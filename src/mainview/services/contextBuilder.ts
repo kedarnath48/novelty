@@ -1,0 +1,181 @@
+import type { Project, MentionTarget, Chapter, Character, Location, Organization, Item, LoreEntry } from "../types/index";
+
+function estimateTokens(text: string): number {
+	return Math.ceil(text.length / 4);
+}
+
+export interface BuildContextParams {
+	project: Project;
+	mentions: MentionTarget[];
+	fileContents: string[];
+	customPrompt: string | null;
+	chapterContextMode: "brief" | "full";
+	maxContextTokens: number;
+	chapters: Chapter[];
+	characters: Character[];
+	locations: Location[];
+	organizations: Organization[];
+	items: Item[];
+	loreEntries: LoreEntry[];
+}
+
+export interface BuildContextResult {
+	systemPrompt: string;
+	estimatedTokens: number;
+}
+
+const ENTRY_PROMPT_INSTRUCTION =
+	"\n\nWhen asked to create a character, location, organization, item, or lore entry, append a JSON code block at the end of your response:\n```entry-data\n{\"category\": \"character|location|organization|item|lore\", \"name\": \"Entry Name\", \"fields\": {\"field1\": \"value1\", ...}}\n```\nInclude all relevant attributes in the fields object.";
+
+function formatProjectPrompt(project: Project): string {
+	const lines: string[] = [];
+	lines.push(`You are a writing assistant for "${project.name}".`);
+	if (project.contentRating) lines.push(`Content rating: ${project.contentRating}`);
+	if (project.primaryGenre) lines.push(`Genre: ${project.primaryGenre}`);
+	if (project.projectScope) lines.push(`Project scope: ${project.projectScope}`);
+	if (project.pov) lines.push(`Point of view: ${project.pov}`);
+	if (project.pacing) lines.push(`Pacing: ${project.pacing}`);
+	if (project.seriesArch) lines.push(`Series architecture: ${project.seriesArch}`);
+	if (project.description) lines.push(`\nProject description:\n${project.description}`);
+	if (project.genres?.length) lines.push(`\nGenres: ${project.genres.join(", ")}`);
+	if (project.themes?.length) lines.push(`Themes: ${project.themes.join(", ")}`);
+	return lines.join("\n");
+}
+
+function formatChapterChip(
+	ch: Chapter,
+	mode: "brief" | "full",
+	fullMode: "brief" | "full",
+): string {
+	const effectiveMode = mode === "full" ? "full" : fullMode;
+	const header = `\n[Chapter: "${ch.title}"]`;
+	if (effectiveMode === "brief") {
+		const excerpt = (ch.content || "").slice(0, 800);
+		return `${header}\n${excerpt}${ch.content && ch.content.length > 800 ? "\n[...]" : ""}`;
+	}
+	return `${header}\n${ch.content || "(empty)"}`;
+}
+
+function formatTemplateData(data: Record<string, unknown> | null): string[] {
+	if (!data) return [];
+	const parts: string[] = [];
+	for (const [key, value] of Object.entries(data)) {
+		if (value == null) continue;
+		if (Array.isArray(value)) {
+			if (value.length > 0) parts.push(`  ${key}: ${value.join(", ")}`);
+		} else if (typeof value === "object") {
+			parts.push(`  ${key}: ${JSON.stringify(value)}`);
+		} else {
+			parts.push(`  ${key}: ${String(value)}`);
+		}
+	}
+	return parts;
+}
+
+function formatCharacterEntity(ch: Character): string {
+	const parts: string[] = [`\n[Character: "${ch.name}"]`];
+	parts.push(...formatTemplateData(ch.templateData));
+	return parts.join("\n");
+}
+
+function formatLocationEntity(loc: Location): string {
+	const parts: string[] = [`\n[Location: "${loc.name}"]`];
+	parts.push(...formatTemplateData(loc.templateData));
+	return parts.join("\n");
+}
+
+function formatOrganizationEntity(org: Organization): string {
+	const parts: string[] = [`\n[Organization: "${org.name}"]`];
+	parts.push(...formatTemplateData(org.templateData));
+	return parts.join("\n");
+}
+
+function formatItemEntity(item: Item): string {
+	const parts: string[] = [`\n[Item: "${item.name}"]`];
+	parts.push(...formatTemplateData(item.templateData));
+	return parts.join("\n");
+}
+
+function formatLoreEntity(lore: LoreEntry): string {
+	const parts: string[] = [`\n[Lore: "${lore.name}"]`];
+	parts.push(...formatTemplateData(lore.templateData));
+	return parts.join("\n");
+}
+
+export function buildContext(params: BuildContextParams): BuildContextResult {
+	const { project, mentions, fileContents, customPrompt, chapterContextMode, maxContextTokens, chapters, characters, locations, organizations, items, loreEntries } = params;
+
+	const parts: string[] = [];
+
+	// 1. Base project prompt
+	parts.push(formatProjectPrompt(project));
+
+	// 2. Entry creation instruction
+	parts.push(ENTRY_PROMPT_INSTRUCTION);
+
+	// 3. Custom prompt
+	if (customPrompt) {
+		parts.push(`\n${customPrompt}`);
+	}
+
+	// 4. @-mention context
+	if (mentions.length > 0) {
+		parts.push("\n\n--- Context from mentions ---");
+		for (const m of mentions) {
+			let block = "";
+			if (m.type === "chapter") {
+				const ch = chapters.find((c) => c.id === m.id);
+				if (ch) block = formatChapterChip(ch, m.mode || "brief", chapterContextMode);
+			} else if (m.type === "character") {
+				const ch = characters.find((c) => c.id === m.id);
+				if (ch) block = formatCharacterEntity(ch);
+			} else if (m.type === "location") {
+				const loc = locations.find((l) => l.id === m.id);
+				if (loc) block = formatLocationEntity(loc);
+			} else if (m.type === "organization") {
+				const org = organizations.find((o) => o.id === m.id);
+				if (org) block = formatOrganizationEntity(org);
+			} else if (m.type === "item") {
+				const it = items.find((i) => i.id === m.id);
+				if (it) block = formatItemEntity(it);
+			} else if (m.type === "lore") {
+				const le = loreEntries.find((l) => l.id === m.id);
+				if (le) block = formatLoreEntity(le);
+			}
+			if (block) parts.push(block);
+		}
+	}
+
+	// 5. File attachments
+	if (fileContents.length > 0) {
+		parts.push("\n\n--- Context from attached files ---");
+		for (const f of fileContents) {
+			parts.push(f);
+		}
+	}
+
+	let fullPrompt = parts.join("\n");
+
+	// 6. Token budget enforcement
+	let estimated = estimateTokens(fullPrompt);
+	if (estimated > maxContextTokens) {
+		// Truncate from the bottom: remove file attachments first, then lower priority mentions
+		const lines = fullPrompt.split("\n");
+		while (estimateTokens(lines.join("\n")) > maxContextTokens && lines.length > 20) {
+			// Find a - line to remove from bottom up
+			let removed = false;
+			for (let i = lines.length - 1; i >= 0; i--) {
+				if (lines[i].startsWith("[Attached file:") || lines[i].startsWith("[") || lines[i].startsWith("  ")) {
+					lines.splice(i, 1);
+					removed = true;
+					break;
+				}
+			}
+			if (!removed) break;
+		}
+		fullPrompt = lines.join("\n");
+		estimated = estimateTokens(fullPrompt);
+	}
+
+	return { systemPrompt: fullPrompt, estimatedTokens: estimated };
+}

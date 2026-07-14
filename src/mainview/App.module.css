@@ -1,0 +1,146 @@
+.titleBar {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    padding: 4px 12px;
+    background-color: #222;
+    background-color: #222324;
+    color: #fff;
+    -webkit-app-region: drag;
+
+    button {
+        -webkit-app-region: no-drag;
+    }
+}
+
+.appIconBtn {
+    background-color: transparent;
+    border: none;
+    color: #595D68;
+    padding: 4px;
+    width: 24px;
+    height: 31px;
+
+    &.active {
+        color: #fff;
+    }
+
+    &:hover {
+        color: #fff;
+    }
+
+    svg {
+        font-size: 12px;
+        width: 22px;
+        margin: 0px;
+    }
+}
+
+.applicationMenu {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 6px;
+
+    button {
+        color: #fff;
+        background-color: transparent;
+        border: none;
+        padding: 4px;
+    }
+}
+
+.iconBtn {
+    background-color: transparent;
+    border: none;
+    color: #595D68;
+    padding: 4px;
+
+    &.active {
+        color: #fff;
+    }
+
+    &:hover {
+        color: #fff;
+    }
+
+    svg {
+        font-size: 12px;
+        width: 22px;
+        margin: 0px;
+    }
+}
+
+.textBtn {
+    background-color: transparent;
+    border: none;
+    color: #595D68;
+    padding: 4px;
+
+    &:hover {
+        color: #fff;
+    }
+}
+
+.iconTextBtn {
+    background-color: transparent;
+    border: none;
+    color: #595D68;
+    padding: 4px;
+
+    &.active {
+        color: #fff;
+    }
+
+    &:hover {
+        color: #fff;
+    }
+
+    svg {
+        font-size: 12px;
+        width: 22px;
+        margin: 0px;
+    }
+}
+
+.actionBoxFooter {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 12px;
+    padding: 0px 40px;
+    background-color: #222;
+    background-color: #222324;
+    color: #fff;
+}
+
+.flexRow {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+
+    h4 {
+        color: #fff;
+        margin: 0px;
+        text-transform: capitalize;
+    }
+
+    button {
+        color: #fff;
+        background-color: transparent;
+        border: none;
+        padding: 4px;
+
+        svg {
+            width: 20px;
+            height: 20px;
+        }
+    }
+}
+
+.flexSpaceBetween {
+    justify-content: space-between;
+}

@@ -1,0 +1,39 @@
+{
+  "name": "novelty",
+  "version": "0.0.1",
+  "type": "module",
+  "description": "Novelty app",
+  "scripts": {
+    "start": "vite build && electrobun dev",
+    "dev": "electrobun dev --watch",
+    "dev:hmr": "concurrently \"bun run hmr\" \"bun run start\"",
+    "hmr": "vite --port 5173 --host",
+    "build:canary": "vite build && electrobun build --env=canary",
+    "type-check": "tsc --noEmit",
+    "lint": "eslint . --ext .ts,.tsx"
+  },
+  "dependencies": {
+    "@tabler/icons-react": "^3.41.1",
+    "drizzle-orm": "^0.39.3",
+    "electrobun": "1.16.0",
+    "novel": "^1.0.2",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-markdown": "^10.1.0",
+    "react-router-dom": "^7.14.2",
+    "rehype-highlight": "^7.0.2",
+    "remark-gfm": "^4.0.1",
+    "vis-timeline": "^8.5.1"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "@types/react": "^18.3.28",
+    "@types/react-dom": "^18.3.7",
+    "@vitejs/plugin-react": "^4.7.0",
+    "autoprefixer": "^10.5.0",
+    "concurrently": "^9.2.1",
+    "drizzle-kit": "^0.30.6",
+    "typescript": "^5.9.3",
+    "vite": "^6.4.2"
+  }
+}
