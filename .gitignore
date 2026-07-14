@@ -11,3 +11,5 @@ package-lock.json
 
 .stignore
 .stfolder/
+
+.vscode/tmp
