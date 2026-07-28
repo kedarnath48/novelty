@@ -16,6 +16,7 @@ import {
 	IconEdit,
 	IconCheck,
 	IconX,
+	IconDatabase,
 } from "@tabler/icons-react";
 import type { ProviderType, ProviderConfig } from "../types/index";
 import type { CompendiumCategory, FieldDefinition, GlobalTemplate, NewGlobalTemplate } from "../types/index";
@@ -1337,8 +1338,8 @@ function QuotaTab() {
 
 	if (!settings) return null;
 
-	const tokenLimit = period === "today" ? settings.general.dailyTokenLimit : settings.general.monthlyTokenLimit;
-	const requestLimit = period === "today" ? settings.general.dailyRequestLimit : settings.general.monthlyRequestLimit;
+	const tokenLimit = (period === "today" ? settings.general.dailyTokenLimit : settings.general.monthlyTokenLimit) ?? 100000;
+	const requestLimit = (period === "today" ? settings.general.dailyRequestLimit : settings.general.monthlyRequestLimit) ?? 100;
 	const tokens = stats?.tokensConsumed ?? 0;
 	const requests = stats?.requestCount ?? 0;
 	const tokenPct = tokenLimit > 0 ? Math.min((tokens / tokenLimit) * 100, 100) : 0;
@@ -1845,6 +1846,283 @@ function TemplatesTab() {
 	);
 }
 
+function EmbeddingsTab() {
+	const { settings, updateEmbeddings, isLocked } = useSettings();
+	const rpc = getRPC();
+	const [indexStatus, setIndexStatus] = useState<{ total: number; byType: Record<string, number> } | null>(null);
+	const [isIndexing, setIsIndexing] = useState(false);
+	const [indexProgress, setIndexProgress] = useState<string>("");
+	const [vecAvailable, setVecAvailable] = useState<boolean | null>(null);
+
+	useEffect(() => {
+		rpc.request["embeddings:check-availability"]().then(setVecAvailable).catch(() => setVecAvailable(false));
+	}, [rpc]);
+
+	useEffect(() => {
+		if (settings?.embeddings?.enabled) {
+			// Load index status for current project if available
+			rpc.request["settings:get-all"]().then((s) => {
+				const recentProjects = s.projects?.recentProjects;
+				if (recentProjects && recentProjects.length > 0) {
+					rpc.request["embeddings:status"](recentProjects[0]).then(setIndexStatus).catch(() => {});
+				}
+			}).catch(() => {});
+		}
+	}, [settings?.embeddings?.enabled, rpc]);
+
+	if (!settings) return null;
+
+	const emb = settings.embeddings ?? {
+		enabled: false,
+		endpoint: "http://localhost:1234/v1",
+		model: "nomic-embed-text",
+		dimension: 768,
+		chunkSize: 500,
+		chunkOverlap: 50,
+		autoIndexOnSave: true,
+	};
+
+	const handleTestConnection = async () => {
+		try {
+			const result = await rpc.request["embeddings:test-server"]();
+			if (result.ok) {
+				alert("Embedding server is reachable!");
+			} else {
+				alert(`Connection failed: ${result.error}`);
+			}
+		} catch (e) {
+			alert(`Connection failed: ${e}`);
+		}
+	};
+
+	const handleRebuildIndex = async () => {
+		const recentProjects = settings.projects.recentProjects;
+		if (!recentProjects || recentProjects.length === 0) {
+			alert("No project open to index.");
+			return;
+		}
+		const projectId = recentProjects[0];
+		setIsIndexing(true);
+		setIndexProgress("Starting index...");
+		try {
+			await rpc.request["embeddings:rebuild"](projectId);
+			const result = await rpc.request["embeddings:index-project"]({ projectId });
+			setIndexStatus(await rpc.request["embeddings:status"](projectId));
+			setIndexProgress(`Indexed ${result.indexed} chunks (${result.skipped} skipped, ${result.failed} failed)`);
+		} catch (e) {
+			setIndexProgress(`Error: ${e}`);
+		} finally {
+			setIsIndexing(false);
+		}
+	};
+
+	return (
+		<div className={styles.tabContent}>
+			<div className={styles.settingsSectionLabel}>Context Engine (RAG)</div>
+
+			{vecAvailable === false && (
+				<div style={{ padding: "12px", background: "#fff3cd", borderRadius: "8px", marginBottom: "16px", color: "#856404" }}>
+					<strong>sqlite-vec not available.</strong> Vector features are disabled. On macOS, install Homebrew SQLite and restart the app.
+				</div>
+			)}
+
+			<div className={styles.settingRow}>
+				<label>Enable Context Engine</label>
+				<input
+					type="checkbox"
+					checked={emb.enabled}
+					disabled={isLocked || vecAvailable === false}
+					onChange={async (e) => {
+						const enabled = e.target.checked;
+						await updateEmbeddings("enabled", enabled);
+						if (enabled) {
+							const recentProjects = settings.projects.recentProjects;
+							if (recentProjects && recentProjects.length > 0) {
+								const projectId = recentProjects[0];
+								try {
+									const status = await rpc.request["embeddings:status"](projectId);
+									if (status.total === 0) {
+										const confirmed = confirm("Index your project for semantic search? This will embed all chapters, characters, locations, and other compendium entries.");
+										if (confirmed) {
+											setIsIndexing(true);
+											setIndexProgress("Starting initial index...");
+											const result = await rpc.request["embeddings:index-project"]({ projectId });
+											setIndexStatus(await rpc.request["embeddings:status"](projectId));
+											setIndexProgress(`Indexed ${result.indexed} chunks (${result.failed} failed)`);
+											setIsIndexing(false);
+										}
+									} else {
+										setIndexStatus(status);
+									}
+								} catch (err) {
+									console.error("Auto-index failed:", err);
+								}
+							}
+						}
+					}}
+				/>
+			</div>
+
+			<div className={styles.settingRow}>
+				<label>Server</label>
+				<div style={{ display: "flex", gap: "8px" }}>
+					<button
+						disabled={isLocked || !emb.enabled}
+						onClick={() => updateEmbeddings("endpoint", "http://localhost:1234/v1")}
+						style={{
+							flex: 1,
+							padding: "6px 12px",
+							borderRadius: "6px",
+							border: emb.endpoint.includes(":1234") ? "1px solid #8b5cf6" : "1px solid #333",
+							background: emb.endpoint.includes(":1234") ? "rgba(139,92,246,0.15)" : "transparent",
+							color: emb.endpoint.includes(":1234") ? "#8b5cf6" : "#999",
+							cursor: "pointer",
+							fontWeight: emb.endpoint.includes(":1234") ? "600" : "400",
+						}}
+					>
+						LM Studio
+					</button>
+					<button
+						disabled={isLocked || !emb.enabled}
+						onClick={() => updateEmbeddings("endpoint", "http://localhost:11434")}
+						style={{
+							flex: 1,
+							padding: "6px 12px",
+							borderRadius: "6px",
+							border: emb.endpoint.includes(":11434") ? "1px solid #8b5cf6" : "1px solid #333",
+							background: emb.endpoint.includes(":11434") ? "rgba(139,92,246,0.15)" : "transparent",
+							color: emb.endpoint.includes(":11434") ? "#8b5cf6" : "#999",
+							cursor: "pointer",
+							fontWeight: emb.endpoint.includes(":11434") ? "600" : "400",
+						}}
+					>
+						Ollama
+					</button>
+				</div>
+			</div>
+
+			<div className={styles.settingRow}>
+				<label>Endpoint URL</label>
+				<input
+					type="text"
+					value={emb.endpoint}
+					disabled={isLocked || !emb.enabled}
+					placeholder="LM Studio: http://localhost:1234/v1 | Ollama: http://localhost:11434"
+					onChange={(e) => updateEmbeddings("endpoint", e.target.value)}
+				/>
+			</div>
+
+			<div className={styles.settingRow}>
+				<label>Embedding Model</label>
+				<input
+					type="text"
+					value={emb.model}
+					disabled={isLocked || !emb.enabled}
+					placeholder="nomic-embed-text"
+					onChange={(e) => updateEmbeddings("model", e.target.value)}
+				/>
+			</div>
+
+			<div className={styles.settingRow}>
+				<label>Vector Dimension</label>
+				<input
+					type="number"
+					value={emb.dimension}
+					disabled={isLocked || !emb.enabled}
+					onChange={(e) => updateEmbeddings("dimension", parseInt(e.target.value) || 768)}
+				/>
+			</div>
+
+			<div className={styles.settingRow}>
+				<label>Chunk Size (tokens)</label>
+				<input
+					type="number"
+					value={emb.chunkSize}
+					disabled={isLocked || !emb.enabled}
+					min={128}
+					max={2048}
+					onChange={(e) => updateEmbeddings("chunkSize", parseInt(e.target.value) || 500)}
+				/>
+			</div>
+
+			<div className={styles.settingRow}>
+				<label>Chunk Overlap (tokens)</label>
+				<input
+					type="number"
+					value={emb.chunkOverlap}
+					disabled={isLocked || !emb.enabled}
+					min={0}
+					max={200}
+					onChange={(e) => updateEmbeddings("chunkOverlap", parseInt(e.target.value) || 50)}
+				/>
+			</div>
+
+			<div className={styles.settingRow}>
+				<label>Auto-index on chapter save</label>
+				<input
+					type="checkbox"
+					checked={emb.autoIndexOnSave}
+					disabled={isLocked || !emb.enabled}
+					onChange={(e) => updateEmbeddings("autoIndexOnSave", e.target.checked)}
+				/>
+			</div>
+
+			<div style={{ marginTop: "24px" }}>
+				<div className={styles.settingsSectionLabel}>Index Status</div>
+
+				<div style={{ display: "flex", gap: "8px", marginBottom: "12px" }}>
+					<button
+						onClick={handleTestConnection}
+						disabled={isLocked || !emb.enabled}
+						style={{
+							padding: "8px 16px",
+							borderRadius: "8px",
+							border: "1px solid #555",
+							background: "#333",
+							color: "#fff",
+							cursor: "pointer",
+						}}
+					>
+						Test Connection
+					</button>
+					<button
+						onClick={handleRebuildIndex}
+						disabled={isLocked || !emb.enabled || isIndexing}
+						style={{
+							padding: "8px 16px",
+							borderRadius: "8px",
+							border: "1px solid #555",
+							background: "#333",
+							color: "#fff",
+							cursor: isIndexing ? "not-allowed" : "pointer",
+							opacity: isIndexing ? 0.5 : 1,
+						}}
+					>
+						{isIndexing ? "Indexing..." : "Rebuild Index"}
+					</button>
+				</div>
+
+				{indexStatus && (
+					<div style={{ marginBottom: "12px", fontSize: "13px", color: "#888" }}>
+						Total indexed: {indexStatus.total} chunks
+						{Object.entries(indexStatus.byType).map(([type, count]) => (
+							<div key={type} style={{ marginLeft: "12px" }}>
+								{type}: {count}
+							</div>
+						))}
+					</div>
+				)}
+
+				{isIndexing && indexProgress && (
+					<div style={{ marginBottom: "12px", fontSize: "13px", color: "#30d158" }}>
+						{indexProgress}
+					</div>
+				)}
+			</div>
+		</div>
+	);
+}
+
 export default function SettingsDialog({
 	open,
 	onClose,
@@ -1931,6 +2209,13 @@ export default function SettingsDialog({
 			component: ProvidersTab,
 		},
 		{
+			id: "embeddings",
+			icon: <IconDatabase stroke={2} />,
+			label: "Context Engine",
+			description: "Configure RAG and embeddings",
+			component: EmbeddingsTab,
+		},
+		{
 			id: "quota",
 			icon: <IconChartBar stroke={2} />,
 			label: "Quota & Usage",
@@ -1989,6 +2274,7 @@ export default function SettingsDialog({
 					{activeTab === "templates" && <TemplatesTab />}
 					{activeTab === "asset library" && <AssetLibraryTab />}
 				{activeTab === "providers" && <ProvidersTab />}
+				{activeTab === "embeddings" && <EmbeddingsTab />}
 				{activeTab === "quota" && <QuotaTab />}
 				{activeTab === "storage" && <StorageTab />}
 				{activeTab === "about" && <AboutTab />}

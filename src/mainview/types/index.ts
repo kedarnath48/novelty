@@ -529,6 +529,23 @@ export type ProviderSettings = {
 	modelDisplayMode?: "alias" | "both";
 };
 
+export type EmbeddingSettings = {
+	enabled: boolean;
+	endpoint: string;
+	model: string;
+	dimension: number;
+	chunkSize: number;
+	chunkOverlap: number;
+	autoIndexOnSave: boolean;
+};
+
+export type ContextSource = {
+	entityType: string;
+	entityId: string;
+	label: string;
+	score?: number;
+};
+
 export type StorageSettings = {
 	encryptionMode: "machine" | "password";
 	dataLocation: string;
@@ -549,6 +566,7 @@ export type Settings = {
 	providers: ProviderSettings;
 	storage: StorageSettings;
 	appearance: AppearanceSettings;
+	embeddings: EmbeddingSettings;
 };
 
 export type SelectorSchema = {
@@ -788,6 +806,43 @@ export type SelectorSchema = {
 			"db:create-inspiration": { params: NewInspiration; response: Inspiration };
 			"db:update-inspiration": { params: { id: string; data: Partial<NewInspiration> }; response: Inspiration | undefined };
 			"db:delete-inspiration": { params: string; response: void };
+			"embeddings:index-project": {
+				params: { projectId: string };
+				response: { indexed: number; skipped: number; failed: number; totalChunks: number };
+			};
+			"embeddings:index-entity": {
+				params: { entityType: string; entityId: string };
+				response: void;
+			};
+			"embeddings:status": {
+				params: string;
+				response: { total: number; byType: Record<string, number> };
+			};
+			"embeddings:rebuild": {
+				params: string;
+				response: void;
+			};
+			"embeddings:check-availability": {
+				params: void;
+				response: boolean;
+			};
+			"embeddings:test-server": {
+				params: void;
+				response: { ok: boolean; error?: string };
+			};
+			"embeddings:context": {
+				params: {
+					projectId: string;
+					userMessage: string;
+					currentChapterId?: string;
+					mentionTargets?: MentionTarget[];
+					fileContents?: string[];
+					customPrompt?: string | null;
+					chapterContextMode?: "brief" | "full";
+					tokenBudget: number;
+				};
+				response: { systemPrompt: string; tokenEstimate: number; sources: ContextSource[] };
+			};
 		};
 	};
 	webview: {

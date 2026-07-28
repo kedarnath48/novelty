@@ -31,6 +31,7 @@ import { parseEntryData, parseAllEntryData } from "../services/entryParser";
 import type { ParsedEntry } from "../services/entryParser";
 import type { RichTextEditorHandle } from "./RichTextEditor";
 import { buildContext } from "../services/contextBuilder";
+import { buildAIContext, checkEmbeddingsAvailable } from "../services/contextEngine";
 import { getTextSource } from "../services/textExtractor";
 import type { ExtractionSource } from "../services/textExtractor";
 import { useSettings } from "../contexts/SettingsContext";
@@ -128,6 +129,11 @@ export default function ChatPanel({
 	const [pendingEntryData, setPendingEntryData] = useState<Record<string, ParsedEntry>>({});
 	const [creatingEntryId, setCreatingEntryId] = useState<string | null>(null);
 	const [slashCommandTargets, setSlashCommandTargets] = useState<Record<string, { category: CompendiumCategory; name: string }>>({});
+	const [embeddingsAvailable, setEmbeddingsAvailable] = useState(false);
+
+	useEffect(() => {
+		checkEmbeddingsAvailable().then(setEmbeddingsAvailable).catch(() => setEmbeddingsAvailable(false));
+	}, []);
 
 	const COMMAND_MAP: Record<string, CompendiumCategory> = {
 		createcharacter: "character",
@@ -354,20 +360,36 @@ export default function ChatPanel({
 			const chapterContextMode = settings?.general.chapterContextMode ?? "brief";
 			const maxContextTokens = settings?.general.maxContextTokens ?? 8000;
 
-			const ctxResult = buildContext({
-				project,
-				mentions: parsedMentions,
-				fileContents,
-				customPrompt: customSystemPrompt || null,
-				chapterContextMode,
-				maxContextTokens,
-				chapters,
-				characters,
-				locations,
-				organizations,
-				items,
-				loreEntries,
-			});
+			let ctxResult: { systemPrompt: string; estimatedTokens?: number; tokenEstimate?: number };
+
+			if (embeddingsAvailable && settings?.embeddings?.enabled) {
+				const engineResult = await buildAIContext({
+					projectId: project.id,
+					userMessage: text,
+					currentChapterId: activeTabType === "chapter" ? activeTabId ?? undefined : undefined,
+					mentionTargets: parsedMentions,
+					fileContents,
+					customPrompt: customSystemPrompt || null,
+					chapterContextMode,
+					tokenBudget: maxContextTokens,
+				});
+				ctxResult = { systemPrompt: engineResult.systemPrompt, tokenEstimate: engineResult.tokenEstimate };
+			} else {
+				ctxResult = buildContext({
+					project,
+					mentions: parsedMentions,
+					fileContents,
+					customPrompt: customSystemPrompt || null,
+					chapterContextMode,
+					maxContextTokens,
+					chapters,
+					characters,
+					locations,
+					organizations,
+					items,
+					loreEntries,
+				});
+			}
 
 			systemPromptMessage = { role: "system", content: ctxResult.systemPrompt };
 		}

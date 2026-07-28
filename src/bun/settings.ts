@@ -65,6 +65,15 @@ interface SettingsFile {
 		encryptionMode: "machine",
 		dataLocation: Utils.paths.userData,
 		cacheSize: 0,
+	},
+	embeddings: {
+		enabled: false,
+		endpoint: "http://localhost:1234/v1",
+		model: "nomic-embed-text",
+		dimension: 768,
+		chunkSize: 500,
+		chunkOverlap: 50,
+		autoIndexOnSave: true,
 	}
 };
 
@@ -154,6 +163,7 @@ function writeSettingsFile(data: SettingsFile): void {
 
 export function getAllSettings(): Settings {
 	if (settingsCache) {
+		migrateEmbeddings(settingsCache);
 		return settingsCache;
 	}
 	const file = readSettingsFile();
@@ -182,8 +192,23 @@ export function getAllSettings(): Settings {
 		settings = settingsCache;
 	}
 	migrateModelEntries(settings);
+	migrateEmbeddings(settings);
 	ensureProjectsDir(settings);
 	return settings;
+}
+
+function migrateEmbeddings(settings: Settings): void {
+	if (!settings.embeddings) {
+		settings.embeddings = {
+			enabled: false,
+			endpoint: "http://localhost:1234/v1",
+			model: "nomic-embed-text",
+			dimension: 768,
+			chunkSize: 500,
+			chunkOverlap: 50,
+			autoIndexOnSave: true,
+		};
+	}
 }
 
 function migrateModelEntries(settings: Settings): void {

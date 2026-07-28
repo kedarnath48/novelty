@@ -4,6 +4,7 @@ import { Utils } from "electrobun/bun";
 import { join } from "path";
 import { mkdirSync, existsSync } from "fs";
 import * as schema from "../schema";
+import * as sqliteVec from "sqlite-vec";
 
 const dbPath = join(Utils.paths.userData, "novelty.db");
 const dbDir = Utils.paths.userData;
@@ -15,8 +16,65 @@ if (!existsSync(dbDir)) {
 	mkdirSync(dbDir, { recursive: true });
 }
 
+let sqliteVecAvailable = false;
+
+if (process.platform === "darwin") {
+	try {
+		const homebrewPaths = [
+			"/opt/homebrew/opt/sqlite/lib/libsqlite3.dylib",
+			"/usr/local/opt/sqlite/lib/libsqlite3.dylib",
+		];
+		for (const p of homebrewPaths) {
+			if (existsSync(p)) {
+				Database.setCustomSQLite(p);
+				break;
+			}
+		}
+	} catch {
+		console.warn("Could not set custom SQLite on macOS, using system SQLite. Vector features may be unavailable.");
+	}
+}
+
 const sqlite = new Database(dbPath);
+
+try {
+	sqliteVec.load(sqlite);
+	sqliteVecAvailable = true;
+	console.log("sqlite-vec loaded successfully");
+} catch (err) {
+	console.warn("Failed to load sqlite-vec extension. Vector features will be unavailable.", err);
+}
+
+export { sqliteVecAvailable };
+
 export const db = drizzle(sqlite, { schema });
+
+export { sqlite as rawSqlite };
+
+export function ensureVecTable(dimension: number): void {
+	if (!sqliteVecAvailable) return;
+	try {
+		const info = sqlite.prepare(`SELECT sql FROM sqlite_master WHERE name = 'embeddings_vec'`).get() as any;
+		if (info && info.sql) {
+			const match = info.sql.match(/float\[(\d+)\]/);
+			if (match) {
+				const currentDim = parseInt(match[1]);
+				if (currentDim !== dimension) {
+					console.log(`Dimension mismatch (${currentDim} vs ${dimension}), recreating embeddings_vec`);
+					sqlite.exec(`DROP TABLE embeddings_vec`);
+				}
+			}
+		}
+	} catch {
+		// Table might not exist yet, that's fine
+	}
+	try {
+		sqlite.exec(`CREATE VIRTUAL TABLE IF NOT EXISTS embeddings_vec USING vec0(embedding float[${dimension}])`);
+		console.log(`embeddings_vec virtual table ready with dimension ${dimension}`);
+	} catch (err: any) {
+		console.warn("Failed to create embeddings_vec virtual table:", err);
+	}
+}
 
 export async function initDatabase() {
 	sqlite.exec(`
@@ -367,6 +425,25 @@ CREATE TABLE IF NOT EXISTS scratch_notes (
 			updated_at INTEGER NOT NULL
 		);
 	`);
+
+	sqlite.exec(`
+		CREATE TABLE IF NOT EXISTS embeddings (
+			id TEXT PRIMARY KEY,
+			project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+			entity_type TEXT NOT NULL,
+			entity_id TEXT NOT NULL,
+			content_hash TEXT NOT NULL,
+			chunk_index INTEGER NOT NULL DEFAULT 0,
+			chunk_text TEXT NOT NULL,
+			token_count INTEGER NOT NULL,
+			created_at INTEGER NOT NULL,
+			updated_at INTEGER NOT NULL
+		);
+	`);
+
+	sqlite.exec(`CREATE INDEX IF NOT EXISTS idx_embeddings_project ON embeddings(project_id)`);
+	sqlite.exec(`CREATE INDEX IF NOT EXISTS idx_embeddings_entity ON embeddings(entity_type, entity_id)`);
+	sqlite.exec(`CREATE INDEX IF NOT EXISTS idx_embeddings_hash ON embeddings(content_hash)`);
 
 	const migrations = [
 		{ table: "chapters", name: "status", type: "TEXT NOT NULL DEFAULT 'outline'" },

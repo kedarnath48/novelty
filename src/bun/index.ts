@@ -42,6 +42,9 @@ import * as actsDB from "./database/acts";
 import * as plotThreadsDB from "./database/plotThreads";
 import * as storyBeatsDB from "./database/storyBeats";
 import * as inspirationsDB from "./database/inspirations";
+import { indexProject, getIndexStatus, rebuildProjectEmbeddings } from "./services/embeddings/pipeline";
+import { buildContext } from "./services/contextEngine";
+import { sqliteVecAvailable } from "./database/index";
 
 const DEV_SERVER_PORT = 5173;
 const DEV_SERVER_URL = `http://localhost:${DEV_SERVER_PORT}`;
@@ -619,6 +622,68 @@ const mainRPC = defineElectrobunRPC<SelectorSchema>("bun", {
 			},
 			"db:delete-inspiration": async (id: string) => {
 				await inspirationsDB.deleteInspiration(id);
+			},
+			"embeddings:index-project": async (params: { projectId: string }) => {
+				const settings = settingsDB.getAllSettings();
+				return await indexProject(params.projectId, settings.embeddings);
+			},
+			"embeddings:index-entity": async (_params: { entityType: string; entityId: string }) => {
+				// Index single entity - placeholder for future use
+			},
+			"embeddings:status": async (projectId: string) => {
+				return getIndexStatus(projectId);
+			},
+			"embeddings:rebuild": async (projectId: string) => {
+				const settings = settingsDB.getAllSettings();
+				rebuildProjectEmbeddings(projectId, settings.embeddings);
+			},
+			"embeddings:check-availability": async () => {
+				return sqliteVecAvailable;
+			},
+			"embeddings:test-server": async () => {
+				const settings = settingsDB.getAllSettings();
+				const emb = settings.embeddings;
+				if (!emb || !emb.enabled) return { ok: false, error: "Embeddings not enabled" };
+				try {
+					const isOllama = emb.endpoint.includes(":11434");
+					const url = isOllama
+						? `${emb.endpoint.replace(/\/$/, "")}/api/embeddings`
+						: `${emb.endpoint.replace(/\/$/, "")}/embeddings`;
+					const body = isOllama
+						? { model: emb.model, prompt: "test" }
+						: { model: emb.model, input: ["test"] };
+					const response = await fetch(url, {
+						method: "POST",
+						headers: { "Content-Type": "application/json" },
+						body: JSON.stringify(body),
+					});
+					if (response.ok) return { ok: true };
+					const text = await response.text();
+					return { ok: false, error: `${response.status}: ${text}` };
+				} catch (e: any) {
+					return { ok: false, error: e.message || String(e) };
+				}
+			},
+			"embeddings:context": async (params: {
+				projectId: string;
+				userMessage: string;
+				currentChapterId?: string;
+				mentionTargets?: any[];
+				fileContents?: string[];
+				customPrompt?: string | null;
+				chapterContextMode?: "brief" | "full";
+				tokenBudget: number;
+			}) => {
+				const settings = settingsDB.getAllSettings();
+				const project = await projectsDB.getProjectById(params.projectId);
+				if (!project) {
+					return { systemPrompt: "", tokenEstimate: 0, sources: [] };
+				}
+				return await buildContext({
+					...params,
+					project: project as any,
+					embeddingSettings: settings.embeddings,
+				});
 			},
 		},
 	},

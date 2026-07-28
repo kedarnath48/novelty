@@ -15,6 +15,7 @@ interface SettingsContextType {
 	updateProviderConfig: (providerId: string, config: ProviderConfig) => Promise<void>;
 	deleteProvider: (providerId: string) => Promise<void>;
 	updateStorage: <K extends keyof Settings["storage"]>(key: K, value: Settings["storage"][K]) => Promise<void>;
+	updateEmbeddings: <K extends keyof Settings["embeddings"]>(key: K, value: Settings["embeddings"][K]) => Promise<void>;
 	setEncryption: (mode: "machine" | "password", password?: string) => Promise<void>;
 	unlock: (password: string) => Promise<boolean>;
 	lock: () => Promise<void>;
@@ -113,6 +114,21 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
 		await updateSetting("storage", newStorage);
 	}, [settings, isLocked, updateSetting]);
 
+	const updateEmbeddings = useCallback(async <K extends keyof Settings["embeddings"]>(key: K, value: Settings["embeddings"][K]) => {
+		if (!settings || isLocked) return;
+		const current = settings.embeddings ?? {
+			enabled: false,
+			endpoint: "http://localhost:1234/v1",
+			model: "nomic-embed-text",
+			dimension: 768,
+			chunkSize: 500,
+			chunkOverlap: 50,
+			autoIndexOnSave: true,
+		};
+		const newEmbeddings = { ...current, [key]: value };
+		await updateSetting("embeddings", newEmbeddings);
+	}, [settings, isLocked, updateSetting]);
+
 	const setEncryption = useCallback(async (mode: "machine" | "password", password?: string) => {
 		const rpc = getRPC();
 		await rpc.request["settings:set-encryption"]({ mode, password });
@@ -189,6 +205,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
 		updateProviderConfig,
 		deleteProvider,
 		updateStorage,
+		updateEmbeddings,
 		setEncryption,
 		unlock,
 		lock,

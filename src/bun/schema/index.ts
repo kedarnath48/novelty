@@ -343,3 +343,16 @@ export const storyBeats = sqliteTable("story_beats", {
 	createdAt: integer("created_at", { mode: "timestamp" }).notNull().$defaultFn(() => new Date()),
 	updatedAt: integer("updated_at", { mode: "timestamp" }).notNull().$defaultFn(() => new Date()),
 });
+
+export const embeddings = sqliteTable("embeddings", {
+	id: text("id").primaryKey(),
+	projectId: text("project_id").references(() => projects.id, { onDelete: "cascade" }).notNull(),
+	entityType: text("entity_type").notNull(),
+	entityId: text("entity_id").notNull(),
+	contentHash: text("content_hash").notNull(),
+	chunkIndex: integer("chunk_index").notNull().default(0),
+	chunkText: text("chunk_text").notNull(),
+	tokenCount: integer("token_count").notNull(),
+	createdAt: integer("created_at", { mode: "timestamp" }).notNull().$defaultFn(() => new Date()),
+	updatedAt: integer("updated_at", { mode: "timestamp" }).notNull().$defaultFn(() => new Date()),
+});

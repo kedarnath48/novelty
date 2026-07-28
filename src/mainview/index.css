@@ -1150,7 +1150,7 @@ input {
 	flex-wrap: wrap;
 }
 
-.editor-action-btn {
+.editor-action-btn, .editor-action-select {
 	font-size: 11px;
 	padding: 3px 10px;
 	border: 1px solid var(--border);
@@ -1165,16 +1165,6 @@ input {
 	background: rgba(240, 160, 80, 0.12);
 	color: var(--text-accent);
 	border-color: var(--text-accent);
-}
-
-.editor-action-select {
-	font-size: 11px;
-	padding: 3px 10px;
-	border: 1px solid var(--border);
-	border-radius: var(--radius-sm);
-	background: rgba(255, 255, 255, 0.04);
-	color: var(--text-secondary);
-	cursor: pointer;
 }
 
 .editor-apply-bar {
@@ -2638,44 +2628,6 @@ input {
 	gap: 6px;
 }
 
-.field-row label {
-	color: #6B7280;
-	font-size: 11px;
-	font-weight: 600;
-	letter-spacing: 0.5px;
-	text-transform: uppercase;
-}
-
-.field-row input,
-.field-row textarea,
-.field-row select {
-	padding: 10px 12px;
-	background: #1A1A1C;
-	border: 1px solid transparent;
-	border-radius: 6px;
-	color: #D1D5DB;
-	font-size: 14px;
-}
-
-.field-row input:focus,
-.field-row textarea:focus,
-.field-row select:focus {
-	outline: none;
-	border-color: #4A9EFF;
-}
-
-.field-row textarea {
-	min-height: 100px;
-	resize: vertical;
-}
-
-.array-field {
-	display: flex;
-	flex-direction: column;
-	gap: 8px;
-	grid-column: span 4;
-}
-
 .array-field>label {
 	color: #6B7280;
 	font-size: 11px;
@@ -2964,6 +2916,7 @@ input {
 	border-radius: 4px;
 	color: #fff;
 	font-size: 13px;
+	font-size: 16px;
 	width: 100%;
 }
 
@@ -3230,6 +3183,10 @@ input {
 .add-beat-btn:hover {
 	border-color: #4A9EFF;
 	color: #4A9EFF;
+	border-color: #865F38!important;
+color: #865F38!important;
+background-color: transparent;
+
 }
 
 .act-unassigned {
