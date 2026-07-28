@@ -16,6 +16,22 @@
             "skipFiles": [
                 "<node_internals>/**"
             ]
+        },
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "Debug: build",
+            "runtimeExecutable": "bun",
+            "runtimeArgs": [
+                "run",
+                "build"
+            ],
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal",
+            "internalConsoleOptions": "neverOpen",
+            "skipFiles": [
+                "<node_internals>/**"
+            ]
         }
     ]
 }
