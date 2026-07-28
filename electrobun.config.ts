@@ -64,7 +64,7 @@ export default {
 		},
 		win: {
 			bundleCEF: false,
-			//icon: "public/assets/favicon_256x256.png",
+			icon: "public/assets/favicon_256x256.png",
 		},
 	},
 } satisfies ElectrobunConfig;
