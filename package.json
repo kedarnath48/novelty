@@ -15,7 +15,7 @@
   "dependencies": {
     "@tabler/icons-react": "^3.41.1",
     "drizzle-orm": "^0.39.3",
-    "electrobun": "1.16.0",
+    "electrobun": "1.18.1",
     "js-tiktoken": "^1.0.21",
     "novel": "^1.0.2",
     "react": "^18.3.1",
