@@ -52,7 +52,7 @@
     }
 }
 
-.iconBtn {
+.iconBtn, .iconTextBtn {
     background-color: transparent;
     border: none;
     color: #595D68;
@@ -72,7 +72,6 @@
         margin: 0px;
     }
 }
-
 .textBtn {
     background-color: transparent;
     border: none;
@@ -84,26 +83,6 @@
     }
 }
 
-.iconTextBtn {
-    background-color: transparent;
-    border: none;
-    color: #595D68;
-    padding: 4px;
-
-    &.active {
-        color: #fff;
-    }
-
-    &:hover {
-        color: #fff;
-    }
-
-    svg {
-        font-size: 12px;
-        width: 22px;
-        margin: 0px;
-    }
-}
 
 .actionBoxFooter {
     display: flex;
