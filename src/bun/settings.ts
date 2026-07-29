@@ -50,6 +50,9 @@ interface SettingsFile {
 			maxRightWidth: 700,
 			leftWidth: 280,
 			rightWidth: 550,
+			enableAutoExpandLeft: false,
+			leftPanelCollapsed: false,
+			rightPanelCollapsed: false,
 		},
 	},
 	projects: {
@@ -218,6 +221,9 @@ function migrateSidebarConstraints(settings: Settings): void {
 				maxRightWidth: 700,
 				leftWidth: 280,
 				rightWidth: 550,
+				enableAutoExpandLeft: false,
+				leftPanelCollapsed: false,
+				rightPanelCollapsed: false,
 			},
 		};
 	} else if (!settings.appearance.sidebarConstraints) {
@@ -227,7 +233,14 @@ function migrateSidebarConstraints(settings: Settings): void {
 			maxRightWidth: 700,
 			leftWidth: 280,
 			rightWidth: 550,
+			enableAutoExpandLeft: false,
+			leftPanelCollapsed: false,
+			rightPanelCollapsed: false,
 		};
+	} else {
+		const c = settings.appearance.sidebarConstraints;
+		if (c.leftPanelCollapsed === undefined) c.leftPanelCollapsed = false;
+		if (c.rightPanelCollapsed === undefined) c.rightPanelCollapsed = false;
 	}
 }
 

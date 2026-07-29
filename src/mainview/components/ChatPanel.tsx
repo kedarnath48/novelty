@@ -61,7 +61,6 @@ function smartTruncate(text: string, maxLen = 50): string {
 }
 
 interface ChatPanelProps {
-	collapsed: boolean;
 	onToggleCollapse: () => void;
 	sessionId?: string;
 	onNewSession?: () => void;
@@ -83,7 +82,6 @@ interface ChatPanelProps {
 }
 
 export default function ChatPanel({
-	collapsed,
 	onToggleCollapse,
 	onNewSession: _onNewSession,
 	style,
@@ -1148,15 +1146,6 @@ export default function ChatPanel({
 	const scrollToTop = () => {
 		messagesRef.current?.scrollTo({ top: 0, behavior: "smooth" });
 	};
-
-	if (collapsed) {
-		return (
-			<button className="chat-panel-collapsed" onClick={onToggleCollapse} style={style}>
-				<IconArrowRight />
-				<span>ASSISTANT</span>
-			</button>
-		);
-	}
 
 	return (
 		<div className="chat-panel" style={style}>

@@ -1309,6 +1309,7 @@ function AppearanceTab() {
 		maxRightWidth: 700,
 		leftWidth: 280,
 		rightWidth: 550,
+		enableAutoExpandLeft: false,
 	};
 
 	return (
@@ -1346,6 +1347,14 @@ function AppearanceTab() {
 					</div>
 				</>
 			)}
+			<div className={styles.settingRow}>
+				<span>Enable Auto Expand Left on Hover</span>
+				<Toggle
+					checked={c.enableAutoExpandLeft}
+					onChange={(v) => updateAppearance("sidebarConstraints", { ...c, enableAutoExpandLeft: v })}
+					disabled={isLocked}
+				/>
+			</div>
 		</div>
 	);
 }

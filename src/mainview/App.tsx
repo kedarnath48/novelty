@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import type { RichTextEditorHandle } from "./components/RichTextEditor";
-import styles from "./App.module.css";
 import { useRPC } from "./contexts/RPCContext";
 import type {
   Chapter,
@@ -57,6 +56,8 @@ import {
   IconMapPin2,
   IconBuildings,
   IconSwords,
+  IconPin,
+  IconPinFilled,
 } from "@tabler/icons-react";
 import UIDialog from "./dialogs/uiDialog";
 import TemplateEditorDialog from "./dialogs/TemplateEditorDialog";
@@ -64,6 +65,7 @@ import SeriesTemplateEditorDialog from "./dialogs/SeriesTemplateEditorDialog";
 import { StatusBar } from "./ui/statusBar";
 import type { SaveState } from "./ui/statusBar";
 import { useSettings } from "./contexts/SettingsContext";
+import styles from "./App.module.css";
 
 const categoryConfig: Record<
   CompendiumCategory,
@@ -77,8 +79,8 @@ const categoryConfig: Record<
 };
 
 function App() {
-  const [isCollapsed, setIsCollapsed] = useState(false);
-  const [isChatCollapsed, setIsChatCollapsed] = useState(false);
+  const [isLeftHovered, setIsLeftHovered] = useState(false);
+  const hoverTimerRef = useRef<ReturnType<typeof setTimeout>>();
   const [leftSidebarWidth, setLeftSidebarWidth] = useState(280);
   const [rightSidebarWidth, setRightSidebarWidth] = useState(550);
   const [isDragging, setIsDragging] = useState<"left" | "right" | null>(null);
@@ -87,12 +89,17 @@ function App() {
   const leftWidthRef = useRef(280);
   const rightWidthRef = useRef(550);
   const { settings, updateAppearance } = useSettings();
+  const sc = settings?.appearance?.sidebarConstraints;
+  const [isCollapsed, setIsCollapsed] = useState(sc?.leftPanelCollapsed ?? false);
+  const [isChatCollapsed, setIsChatCollapsed] = useState(sc?.rightPanelCollapsed ?? false);
 
   useEffect(() => {
     if (settings?.appearance?.sidebarConstraints) {
       const c = settings.appearance.sidebarConstraints;
       setLeftSidebarWidth(c.leftWidth);
       setRightSidebarWidth(c.rightWidth);
+      setIsCollapsed(c.leftPanelCollapsed);
+      setIsChatCollapsed(c.rightPanelCollapsed);
       leftWidthRef.current = c.leftWidth;
       rightWidthRef.current = c.rightWidth;
     }
@@ -101,9 +108,9 @@ function App() {
   const [explorerTab, setExplorerTab] = useState<
     "chapters" | CompendiumCategory
   >("chapters");
-	const [activeDialog, setActiveDialog] = useState<
-		"projects" | "settings" | "ui" | "openFileDialog" | "projectManager" | null
-	>(null);
+  const [activeDialog, setActiveDialog] = useState<
+    "projects" | "settings" | "ui" | "openFileDialog" | "projectManager" | null
+  >(null);
   const [recentFiles, setRecentFiles] = useState<RecentFile[]>([]);
   const [showProjectSelection, setShowProjectSelection] = useState(false);
   const [currentProject, setCurrentProject] = useState<Project | null>(null);
@@ -130,8 +137,8 @@ function App() {
   const [showTimeline, setShowTimeline] = useState(false);
   const [showAnalysis, setShowAnalysis] = useState(false);
   const [skeletonMode, setSkeletonMode] = useState(false);
-	const [showTemplateEditor, setShowTemplateEditor] = useState(false);
-	const [showSeriesTemplateEditor, setShowSeriesTemplateEditor] = useState(false);
+  const [showTemplateEditor, setShowTemplateEditor] = useState(false);
+  const [showSeriesTemplateEditor, setShowSeriesTemplateEditor] = useState(false);
   const [seriesTemplateEditorSeriesId, setSeriesTemplateEditorSeriesId] = useState<string | null>(null);
   const [templates, setTemplates] = useState<
     Record<CompendiumCategory, EntityTemplate | null>
@@ -308,7 +315,7 @@ function App() {
 
   useEffect(() => {
     async function initProject() {
-        const project = await rpc.request["project:get-current"]();
+      const project = await rpc.request["project:get-current"]();
       if (project) {
         setCurrentProject(project);
         loadChapters(project.id);
@@ -1389,277 +1396,319 @@ function App() {
 
   return (
     <>
-		<TitleBar
-			isCollapsed={isCollapsed}
-			isChatCollapsed={isChatCollapsed}
-			setIsCollapsed={setIsCollapsed}
-			setIsChatCollapsed={setIsChatCollapsed}
-			onProjectsClick={() => setActiveDialog("projects")}
-			onSettingsClick={() => setActiveDialog("settings")}
-			onProjectManagerClick={() => setActiveDialog("projectManager")}
-			onTimelineClick={() => setShowTimeline(true)}
-			projectName={currentProject?.name ?? null}
-			extras={
-				currentProject && (
-					<>
-						<button
-							className={`tb-btn ${openTabs.some(t => t.type === "plot-architecture") ? "active" : ""}`}
-							onClick={() => {
-								const existing = openTabs.find(t => t.type === "plot-architecture");
-								if (existing) {
-									if (activeTabId === existing.id) {
-										const newTabs = openTabs.filter(t => t.id !== existing.id);
-										setOpenTabs(newTabs);
-										setActiveTabId(newTabs.length > 0 ? newTabs[0].id : null);
-									} else {
-										setActiveTabId(existing.id);
-									}
-								} else {
-									const tab: FileTab = { id: "plot-architecture", name: "Plot Architecture", type: "plot-architecture", filePath: "", isModified: false };
-									setOpenTabs(prev => [...prev, tab]);
-									setActiveTabId(tab.id);
-								}
-							}}
-							title="Plot Architecture"
-						>
-							Plot
-						</button>
-						<button
-							className={`tb-btn ${skeletonMode ? "active" : ""}`}
-							onClick={() => setSkeletonMode(!skeletonMode)}
-							title="Skeleton Mode"
-						>
-							Skeleton
-						</button>
-						<button
-							className={`tb-btn ${showAnalysis ? "active" : ""}`}
-							onClick={() => setShowAnalysis(!showAnalysis)}
-							title="Story Analysis"
-						>
-							Analyze
-						</button>
-					</>
-				)
-			}
-		/>
+      <TitleBar
+        isCollapsed={isCollapsed}
+        isChatCollapsed={isChatCollapsed}
+        setIsCollapsed={setIsCollapsed}
+        setIsChatCollapsed={setIsChatCollapsed}
+        onProjectsClick={() => setActiveDialog("projects")}
+        onSettingsClick={() => setActiveDialog("settings")}
+        onProjectManagerClick={() => setActiveDialog("projectManager")}
+        onTimelineClick={() => setShowTimeline(true)}
+        projectName={currentProject?.name ?? null}
+        extras={
+          currentProject && (
+            <>
+              <button
+                className={`tb-btn ${openTabs.some(t => t.type === "plot-architecture") ? "active" : ""}`}
+                onClick={() => {
+                  const existing = openTabs.find(t => t.type === "plot-architecture");
+                  if (existing) {
+                    if (activeTabId === existing.id) {
+                      const newTabs = openTabs.filter(t => t.id !== existing.id);
+                      setOpenTabs(newTabs);
+                      setActiveTabId(newTabs.length > 0 ? newTabs[0].id : null);
+                    } else {
+                      setActiveTabId(existing.id);
+                    }
+                  } else {
+                    const tab: FileTab = { id: "plot-architecture", name: "Plot Architecture", type: "plot-architecture", filePath: "", isModified: false };
+                    setOpenTabs(prev => [...prev, tab]);
+                    setActiveTabId(tab.id);
+                  }
+                }}
+                title="Plot Architecture"
+              >
+                Plot
+              </button>
+              <button
+                className={`tb-btn ${skeletonMode ? "active" : ""}`}
+                onClick={() => setSkeletonMode(!skeletonMode)}
+                title="Skeleton Mode"
+              >
+                Skeleton
+              </button>
+              <button
+                className={`tb-btn ${showAnalysis ? "active" : ""}`}
+                onClick={() => setShowAnalysis(!showAnalysis)}
+                title="Story Analysis"
+              >
+                Analyze
+              </button>
+            </>
+          )
+        }
+      />
 
       <main className="flex-container">
         <div
-          className={`box-1 ${isCollapsed ? "collapsed" : ""}`}
-          style={{ width: isCollapsed ? 0 : leftSidebarWidth }}
+          className={`app-panel-left ${isCollapsed ? "collapsed" : ""} ${isCollapsed && isLeftHovered && settings?.appearance?.sidebarConstraints?.enableAutoExpandLeft ? "float" : ""}`}
+          style={{ width: isCollapsed && !isLeftHovered ? 24 : leftSidebarWidth }}
+          onMouseEnter={() => {
+            if (settings?.appearance?.sidebarConstraints?.enableAutoExpandLeft) {
+              if (hoverTimerRef.current) clearTimeout(hoverTimerRef.current);
+              hoverTimerRef.current = setTimeout(() => setIsLeftHovered(true), 200);
+            }
+          }}
+          onMouseLeave={() => {
+            if (hoverTimerRef.current) clearTimeout(hoverTimerRef.current);
+            if (settings?.appearance?.sidebarConstraints?.enableAutoExpandLeft) {
+              hoverTimerRef.current = setTimeout(() => setIsLeftHovered(false), 200);
+            }
+          }}
         >
-          <div className="box-1-header">
-            <h4>EXPLORER</h4>
-            <button
-              className={`${styles.iconBtn} collapseBtn`}
-              onClick={() => setIsCollapsed(!isCollapsed)}
-              title={`${isCollapsed ? "Open" : "Close"} Explorer`}
+          {isCollapsed && !isLeftHovered ? (
+            <div
+              className="sidebar-collapsed left"
+              onClick={() => {
+                setIsCollapsed(false);
+                updateAppearance("sidebarConstraints", { ...settings!.appearance.sidebarConstraints, leftPanelCollapsed: false });
+              }}
             >
-              {isCollapsed ? (
-                <IconChevronRight stroke={2} />
-              ) : (
-                <IconChevronLeft stroke={2} />
-              )}
-            </button>
-          </div>
-          <div className="box-1-content">
-            {explorerTab === "chapters" && (
-              <>
-                <div className={`${styles.flexRow} ${styles.flexSpaceBetween}`}>
-                  <h4>{explorerTab}</h4>
-                  <div className="flexRow">
-                    <button className={`${styles.iconBtn}`} title="edit">
-                      <IconEdit stroke={2} />
-                    </button>
-                    <button
-                      className={`${styles.iconBtn}`}
-                      title="New"
-                      onClick={handleNewChapter}
-                    >
-                      <IconPlus stroke={2} />
-                    </button>
-                    <button
-                      className={`${styles.iconBtn}`}
-                      style={{ display: "none" }}
-                      title="Search"
-                    >
-                      <IconSearch stroke={2} />
-                    </button>
+              <IconChevronRight stroke={2} />
+            </div>
+          ) : (
+            <>
+              <div className="app-panel-header">
+                <h4>EXPLORER</h4>
+                <div style={{ display: "flex", gap: "4px", alignItems: "center" }}>
+                  <button
+                    className={`${styles.iconBtn}`}
+                    onClick={() => updateAppearance("sidebarConstraints", {
+                      ...settings!.appearance.sidebarConstraints,
+                      enableAutoExpandLeft: !settings?.appearance?.sidebarConstraints?.enableAutoExpandLeft,
+                    })}
+                    title={settings?.appearance?.sidebarConstraints?.enableAutoExpandLeft ? "Auto-expand on (click to disable)" : "Auto-expand off (click to enable)"}
+                  >
+                    {settings?.appearance?.sidebarConstraints?.enableAutoExpandLeft ? <IconPinFilled stroke={2} /> : <IconPin stroke={2} />}
+                  </button>
+                  <button
+                    className={`${styles.iconBtn} collapseBtn`}
+                    onClick={() => {
+                      const newVal = !isCollapsed;
+                      setIsCollapsed(newVal);
+                      updateAppearance("sidebarConstraints", { ...settings!.appearance.sidebarConstraints, leftPanelCollapsed: newVal });
+                    }}
+                    title={`${isCollapsed ? "Open" : "Close"} Explorer`}
+                  >
+                    {isCollapsed ? (
+                      <IconChevronRight stroke={2} />
+                    ) : (
+                      <IconChevronLeft stroke={2} />
+                    )}
+                  </button>
+                </div>
+              </div>
+              <div className="app-panel-content">
+                {explorerTab === "chapters" && (
+                  <>
+                    <div className={`${styles.flexRow} ${styles.flexSpaceBetween}`}>
+                      <h4>{explorerTab}</h4>
+                      <div className="flexRow">
+                        <button className={`${styles.iconBtn}`} title="edit">
+                          <IconEdit stroke={2} />
+                        </button>
+                        <button
+                          className={`${styles.iconBtn}`}
+                          title="New"
+                          onClick={handleNewChapter}
+                        >
+                          <IconPlus stroke={2} />
+                        </button>
+                        <button
+                          className={`${styles.iconBtn}`}
+                          style={{ display: "none" }}
+                          title="Search"
+                        >
+                          <IconSearch stroke={2} />
+                        </button>
 
-                    <button
-                      className={`${styles.iconBtn}`}
-                      style={{ display: "none" }}
-                      title="Settings"
-                    >
-                      <IconSettings stroke={2} />
-                    </button>
-                  </div>
-                </div>
-                <div className="chapter-list">
-                  {chaptersLoading ? (
-                    <div className="loading">Loading...</div>
-                  ) : chapters.length === 0 ? (
-                    <div className="empty">No chapters yet</div>
-                  ) : (
-                    chapters.map((chapter) => (
-                      <div
-                        key={chapter.id}
-                        className={`chapter-item ${activeTabId === chapter.id ? "active" : ""}`}
-                        onClick={() => openChapterTab(chapter)}
-                      >
-                        <span className="chapter-title">{chapter.title}</span>
                         <button
-                          className="chapter-delete-btn"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            if (confirm(`Delete "${chapter.title}"?`)) {
-                              rpc.request["db:delete-chapter"](chapter.id).then(
-                                () => {
-                                  loadChapters(currentProject!.id);
-                                  if (activeTabId === chapter.id) {
-                                    setActiveTabId(null);
-                                    setOpenTabs((prev) =>
-                                      prev.filter((t) => t.id !== chapter.id),
-                                    );
-                                  }
-                                },
-                              );
-                            }
-                          }}
+                          className={`${styles.iconBtn}`}
+                          style={{ display: "none" }}
+                          title="Settings"
                         >
-                          <IconTrash size={14} stroke={1.5} />
+                          <IconSettings stroke={2} />
                         </button>
                       </div>
-                    ))
-                  )}
-                </div>
-              </>
-            )}
-            {explorerTab !== "chapters" && currentProject && (
-              <>
-                <div className={`${styles.flexRow} ${styles.flexSpaceBetween}`}>
-                  <h4>
-                    {categoryConfig[explorerTab as CompendiumCategory].label}s
-                  </h4>
-                  <div className="flexRow">
-                    <button
-                      className={`${styles.iconBtn}`}
-                      title="Edit Template"
-                      onClick={() => handleEditTemplate()}
-                    >
-                      <IconEdit stroke={2} />
-                    </button>
-                    <button
-                      className={`${styles.iconBtn}`}
-                      title="New"
-                      onClick={() =>
-                        handleNewCompendiumEntry(
-                          explorerTab as CompendiumCategory,
-                        )
-                      }
-                    >
-                      <IconPlus stroke={2} />
-                    </button>
-                  </div>
-                </div>
-                <div className="chapter-list">
-                  {(explorerTab === "character"
-                    ? characters
-                    : explorerTab === "location"
-                      ? locations
-                      : explorerTab === "organization"
-                        ? organizations
-                        : explorerTab === "item"
-                          ? items
-                          : loreEntries
-                  ).length === 0 ? (
-                    <div className="empty">
-                      No{" "}
-                      {categoryConfig[
-                        explorerTab as CompendiumCategory
-                      ].label.toLowerCase()}
-                      s yet
                     </div>
-                  ) : (
-                    (explorerTab === "character"
-                      ? characters
-                      : explorerTab === "location"
-                        ? locations
-                        : explorerTab === "organization"
-                          ? organizations
-                          : explorerTab === "item"
-                            ? items
-                            : loreEntries
-                    ).map((entry) => (
-                      <div
-                        key={entry.id}
-                        className={`chapter-item ${activeTabId === entry.id ? "active" : ""}`}
-                        onClick={() =>
-                          handleOpenCompendiumEntry(
-                            entry.id,
-                            explorerTab as CompendiumCategory,
-                          )
-                        }
-                      >
-                        <span className="chapter-title">{entry.name}</span>
+                    <div className="chapter-list">
+                      {chaptersLoading ? (
+                        <div className="loading">Loading...</div>
+                      ) : chapters.length === 0 ? (
+                        <div className="empty">No chapters yet</div>
+                      ) : (
+                        chapters.map((chapter) => (
+                          <div
+                            key={chapter.id}
+                            className={`chapter-item ${activeTabId === chapter.id ? "active" : ""}`}
+                            onClick={() => openChapterTab(chapter)}
+                          >
+                            <span className="chapter-title">{chapter.title}</span>
+                            <button
+                              className="chapter-delete-btn"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (confirm(`Delete "${chapter.title}"?`)) {
+                                  rpc.request["db:delete-chapter"](chapter.id).then(
+                                    () => {
+                                      loadChapters(currentProject!.id);
+                                      if (activeTabId === chapter.id) {
+                                        setActiveTabId(null);
+                                        setOpenTabs((prev) =>
+                                          prev.filter((t) => t.id !== chapter.id),
+                                        );
+                                      }
+                                    },
+                                  );
+                                }
+                              }}
+                            >
+                              <IconTrash size={14} stroke={1.5} />
+                            </button>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </>
+                )}
+                {explorerTab !== "chapters" && currentProject && (
+                  <>
+                    <div className={`${styles.flexRow} ${styles.flexSpaceBetween}`}>
+                      <h4>
+                        {categoryConfig[explorerTab as CompendiumCategory].label}s
+                      </h4>
+                      <div className="flexRow">
                         <button
-                          className="chapter-delete-btn"
-                          title="delete"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleDeleteCompendiumEntry(
-                              entry.id,
-                              explorerTab as CompendiumCategory,
-                            );
-                          }}
+                          className={`${styles.iconBtn}`}
+                          title="Edit Template"
+                          onClick={() => handleEditTemplate()}
                         >
-                          <IconTrash size={14} stroke={1.5} />
+                          <IconEdit stroke={2} />
+                        </button>
+                        <button
+                          className={`${styles.iconBtn}`}
+                          title="New"
+                          onClick={() =>
+                            handleNewCompendiumEntry(
+                              explorerTab as CompendiumCategory,
+                            )
+                          }
+                        >
+                          <IconPlus stroke={2} />
                         </button>
                       </div>
-                    ))
-                  )}
-                </div>
-              </>
-            )}
-          </div>
-          <div className="box-1-footer explorer-tab-btns">
-            <button
-              className={explorerTab === "chapters" ? "active" : ""}
-              onClick={() => setExplorerTab("chapters")}
-            >
-              <IconFiles stroke={2} />
-            </button>
-            <button
-              className={explorerTab === "character" ? "active" : ""}
-              onClick={() => setExplorerTab("character")}
-            >
-              <IconUsers stroke={2} />
-            </button>
-            <button
-              className={explorerTab === "location" ? "active" : ""}
-              onClick={() => setExplorerTab("location")}
-            >
-              <IconMapPin2 stroke={2} />
-            </button>
-            <button
-              className={explorerTab === "organization" ? "active" : ""}
-              onClick={() => setExplorerTab("organization")}
-            >
-              <IconBuildings stroke={2} />
-            </button>
-            <button
-              className={explorerTab === "item" ? "active" : ""}
-              onClick={() => setExplorerTab("item")}
-            >
-              <IconSwords stroke={2} />
-            </button>
-            <button
-              className={explorerTab === "lore" ? "active" : ""}
-              onClick={() => setExplorerTab("lore")}
-            >
-              <IconBook stroke={2} />
-            </button>
-          </div>
+                    </div>
+                    <div className="chapter-list">
+                      {(explorerTab === "character"
+                        ? characters
+                        : explorerTab === "location"
+                          ? locations
+                          : explorerTab === "organization"
+                            ? organizations
+                            : explorerTab === "item"
+                              ? items
+                              : loreEntries
+                      ).length === 0 ? (
+                        <div className="empty">
+                          No{" "}
+                          {categoryConfig[
+                            explorerTab as CompendiumCategory
+                          ].label.toLowerCase()}
+                          s yet
+                        </div>
+                      ) : (
+                        (explorerTab === "character"
+                          ? characters
+                          : explorerTab === "location"
+                            ? locations
+                            : explorerTab === "organization"
+                              ? organizations
+                              : explorerTab === "item"
+                                ? items
+                                : loreEntries
+                        ).map((entry) => (
+                          <div
+                            key={entry.id}
+                            className={`chapter-item ${activeTabId === entry.id ? "active" : ""}`}
+                            onClick={() =>
+                              handleOpenCompendiumEntry(
+                                entry.id,
+                                explorerTab as CompendiumCategory,
+                              )
+                            }
+                          >
+                            <span className="chapter-title">{entry.name}</span>
+                            <button
+                              className="chapter-delete-btn"
+                              title="delete"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeleteCompendiumEntry(
+                                  entry.id,
+                                  explorerTab as CompendiumCategory,
+                                );
+                              }}
+                            >
+                              <IconTrash size={14} stroke={1.5} />
+                            </button>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </>
+                )}
+              </div>
+              <div className="app-panel-footer explorer-tab-btns">
+                <button
+                  className={explorerTab === "chapters" ? "active" : ""}
+                  onClick={() => setExplorerTab("chapters")}
+                >
+                  <IconFiles stroke={2} />
+                </button>
+                <button
+                  className={explorerTab === "character" ? "active" : ""}
+                  onClick={() => setExplorerTab("character")}
+                >
+                  <IconUsers stroke={2} />
+                </button>
+                <button
+                  className={explorerTab === "location" ? "active" : ""}
+                  onClick={() => setExplorerTab("location")}
+                >
+                  <IconMapPin2 stroke={2} />
+                </button>
+                <button
+                  className={explorerTab === "organization" ? "active" : ""}
+                  onClick={() => setExplorerTab("organization")}
+                >
+                  <IconBuildings stroke={2} />
+                </button>
+                <button
+                  className={explorerTab === "item" ? "active" : ""}
+                  onClick={() => setExplorerTab("item")}
+                >
+                  <IconSwords stroke={2} />
+                </button>
+                <button
+                  className={explorerTab === "lore" ? "active" : ""}
+                  onClick={() => setExplorerTab("lore")}
+                >
+                  <IconBook stroke={2} />
+                </button>
+              </div>
+            </>
+          )}
         </div>
         {!isCollapsed && (
           <div
@@ -1670,7 +1719,7 @@ function App() {
             }}
           />
         )}
-        <div className="box-2">
+        <div className="app-editor">
           <FileTabs
             tabs={openTabs}
             activeTabId={activeTabId}
@@ -1705,34 +1754,48 @@ function App() {
           )}
           <div className="editor-container">{renderEditor()}</div>
         </div>
-        {!isChatCollapsed && (
-          <div
-            className={`drag-handle ${isDragging === "right" ? "active" : ""}`}
-            onMouseDown={(e) => {
-              e.preventDefault();
-              handleDragStart("right", e.clientX);
-            }}
-          />
-        )}
-        <ChatPanel
-          collapsed={isChatCollapsed}
-          onToggleCollapse={() => setIsChatCollapsed(!isChatCollapsed)}
-          projectId={currentProject?.id ?? null}
-          project={currentProject}
-          chapters={chapters}
-          characters={characters}
-          locations={locations}
-          organizations={organizations}
-          items={items}
-          loreEntries={loreEntries}
-          editorRef={editorRef}
-          onCreateCompendiumEntry={handleCreateCompendiumEntryFromAI}
-          onExtractEntities={handleExtractEntities}
-          onUpdateCompendium={handleUpdateCompendium}
-          activeTabId={activeTabId}
-          activeTabType={getActiveTab()?.type ?? null}
-          style={!isChatCollapsed ? { width: rightSidebarWidth } : undefined}
-        />
+        <div className={`app-panel-right ${isChatCollapsed ? "collapsed" : ""}`}>
+          {isChatCollapsed ? (
+            <div className="sidebar-collapsed right" onClick={() => {
+              setIsChatCollapsed(false);
+              updateAppearance("sidebarConstraints", { ...settings!.appearance.sidebarConstraints, rightPanelCollapsed: false });
+            }}>
+              <IconChevronLeft stroke={2} />
+            </div>
+          ) : (
+            <>
+              <div
+                className={`drag-handle ${isDragging === "right" ? "active" : ""}`}
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  handleDragStart("right", e.clientX);
+                }}
+              />
+              <ChatPanel
+                onToggleCollapse={() => {
+                  const newVal = !isChatCollapsed;
+                  setIsChatCollapsed(newVal);
+                  updateAppearance("sidebarConstraints", { ...settings!.appearance.sidebarConstraints, rightPanelCollapsed: newVal });
+                }}
+                projectId={currentProject?.id ?? null}
+                project={currentProject}
+                chapters={chapters}
+                characters={characters}
+                locations={locations}
+                organizations={organizations}
+                items={items}
+                loreEntries={loreEntries}
+                editorRef={editorRef}
+                onCreateCompendiumEntry={handleCreateCompendiumEntryFromAI}
+                onExtractEntities={handleExtractEntities}
+                onUpdateCompendium={handleUpdateCompendium}
+                activeTabId={activeTabId}
+                activeTabType={getActiveTab()?.type ?? null}
+                style={{ width: rightSidebarWidth }}
+              />
+            </>
+          )}
+        </div>
       </main>
       <StatusBar
         saveState={saveState}
@@ -1751,7 +1814,7 @@ function App() {
       {showProjectSelection && (
         <ProjectsDialog
           open={true}
-          onClose={() => {}}
+          onClose={() => { }}
           onSelectProject={handleSelectProject}
           onProjectUpdated={refreshCurrentProject}
         />

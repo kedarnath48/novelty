@@ -558,6 +558,9 @@ export type SidebarConstraints = {
 	maxRightWidth: number;
 	leftWidth: number;
 	rightWidth: number;
+	enableAutoExpandLeft: boolean;
+	leftPanelCollapsed: boolean;
+	rightPanelCollapsed: boolean;
 };
 
 export type AppearanceSettings = {
