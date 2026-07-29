@@ -1,8 +1,19 @@
-import { forwardRef } from "react";
+import { forwardRef, useState, useEffect } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeHighlight from "rehype-highlight";
-import { IconCopy, IconCheck, IconRefresh, IconEdit, IconArrowBack, IconChevronLeft, IconChevronRight } from "@tabler/icons-react";
+import {
+	IconCopy,
+	IconCheck,
+	IconRefresh,
+	IconEdit,
+	IconArrowBack,
+	IconChevronLeft,
+	IconChevronRight,
+	IconBrain,
+	IconChevronDown,
+	IconChevronUp,
+} from "@tabler/icons-react";
 import type { ChatMessage } from "../services/ai";
 import "highlight.js/styles/github-dark.css";
 
@@ -13,6 +24,7 @@ interface MessageBubbleProps {
 	viewMode: "full" | "truncate" | "accordion";
 	isOld: boolean;
 	isExpanded: boolean;
+	isStreaming: boolean;
 	onCopy: (id: string) => void;
 	onRetry: (id: string) => void;
 	onUndo: (id: string) => void;
@@ -33,7 +45,7 @@ function formatTimestamp(iso: string): string {
 
 const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
 	(
-		{ message, modelDisplayText, justCopiedId, viewMode, isOld, isExpanded, onCopy, onRetry, onUndo, onRemove, onVariantChange, onExpand, createEntryButton },
+		{ message, modelDisplayText, justCopiedId, viewMode, isOld, isExpanded, isStreaming, onCopy, onRetry, onUndo, onRemove, onVariantChange, onExpand, createEntryButton },
 		ref,
 	) => {
 		const isAssistant = message.role === "assistant";
@@ -61,6 +73,11 @@ const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
 			const totalVariants = message.content.length;
 			const isCopied = justCopiedId === message.id;
 			const isTruncated = viewMode === "truncate" && isOld && !isExpanded;
+			const [thinkingExpanded, setThinkingExpanded] = useState(isStreaming);
+			useEffect(() => {
+				if (isStreaming) setThinkingExpanded(true);
+			}, [isStreaming]);
+			const hasReasoning = message.reasoning && message.reasoning.length > 0;
 
 			return (
 				<div ref={ref} className="message-wrapper assistant" data-msg-id={message.id}>
@@ -68,6 +85,28 @@ const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
 						<span className="message-mode-badge">{message.mode}</span>
 						<span className="message-timestamp">{formatTimestamp(message.timestamp)}</span>
 					</div>
+					{hasReasoning && (
+						<div className="chat-message thinking">
+							<button
+								className="thinking-toggle"
+								onClick={() => setThinkingExpanded(!thinkingExpanded)}
+							>
+								<IconBrain size={14} />
+								<span>Thinking</span>
+								{thinkingExpanded ? <IconChevronUp size={12} /> : <IconChevronDown size={12} />}
+							</button>
+							{thinkingExpanded && (
+								<div className="thinking-body">
+									<ReactMarkdown
+										remarkPlugins={[remarkGfm]}
+										rehypePlugins={[rehypeHighlight]}
+									>
+										{message.reasoning}
+									</ReactMarkdown>
+								</div>
+							)}
+						</div>
+					)}
 					<div className="chat-message assistant">
 						<div className={"chat-message-body" + (isTruncated ? " truncated" : "")}>
 							<ReactMarkdown

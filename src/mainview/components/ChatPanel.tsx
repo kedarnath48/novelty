@@ -202,6 +202,7 @@ export default function ChatPanel({
 	const inputRef = useRef<HTMLTextAreaElement>(null);
 	const atTriggerPos = useRef<{ start: number; end: number } | null>(null);
 	const streamedContentRef = useRef("");
+	const streamedReasoningRef = useRef("");
 	const rafIdRef = useRef<number | null>(null);
 	const isStreamingRef = useRef(false);
 
@@ -311,6 +312,20 @@ export default function ChatPanel({
 				updated[updated.length - 1] = {
 					...last,
 					content: [content],
+				} as AssistantChatMessage;
+			}
+			return updated;
+		});
+	}, []);
+
+	const streamingUpdateReasoning = useCallback((assistantId: string, reasoning: string) => {
+		setMessages((prev) => {
+			const updated = [...prev];
+			const last = updated[updated.length - 1];
+			if (last.role === "assistant" && last.id === assistantId) {
+				updated[updated.length - 1] = {
+					...last,
+					reasoning,
 				} as AssistantChatMessage;
 			}
 			return updated;
@@ -506,6 +521,7 @@ export default function ChatPanel({
 			id: assistantId,
 			role: "assistant",
 			content: [""],
+			reasoning: "",
 			currentVariantIndex: 0,
 			model: modelName,
 			mode,
@@ -534,9 +550,10 @@ export default function ChatPanel({
 			const endpoint = provider?.endpoint || "http://localhost:1234/v1";
 
 			streamedContentRef.current = "";
+			streamedReasoningRef.current = "";
 
 			const result = await chatCompletion(endpoint, {
-				provider: { type: "lm-studio", endpoint, models: modelName ? { [modelName]: { enabled: true } } : {}, enabled: true },
+				provider: { type: provider?.type || "lm-studio", endpoint, models: modelName ? { [modelName]: { enabled: true } } : {}, enabled: true },
 				messages: [...messages, userMessage],
 				systemPrompt: systemPromptMessage?.content,
 				onChunk: (chunk) => {
@@ -548,6 +565,10 @@ export default function ChatPanel({
 						});
 					}
 				},
+				onReasoningChunk: (chunk) => {
+					streamedReasoningRef.current += chunk;
+					streamingUpdateReasoning(assistantId, streamedReasoningRef.current);
+				},
 			});
 
 			if (rafIdRef.current !== null) {
@@ -556,6 +577,7 @@ export default function ChatPanel({
 			}
 			// Final state sync
 			streamingUpdate(assistantId, result.content);
+			streamingUpdateReasoning(assistantId, streamedReasoningRef.current);
 
 			rpc.request["db:create-message"]({
 				id: assistantId,
@@ -593,7 +615,7 @@ export default function ChatPanel({
 							recentApiMessages.unshift(systemPromptMessage);
 						}
 						const titleResult = await chatCompletion(endpoint, {
-							provider: { type: "lm-studio", endpoint, models: modelName ? { [modelName]: { enabled: true } } : {}, enabled: true },
+							provider: { type: provider?.type || "lm-studio", endpoint, models: modelName ? { [modelName]: { enabled: true } } : {}, enabled: true },
 							messages: [...messages, userMessage],
 							systemPrompt: systemPromptMessage?.content || "Generate a very short, descriptive title (3-5 words) for this conversation. Respond with ONLY the title text, no quotes, no punctuation, no explanation.",
 						});
@@ -762,9 +784,10 @@ export default function ChatPanel({
 			const modelName = getModelName();
 
 			streamedContentRef.current = "";
+			streamedReasoningRef.current = "";
 
 			const result = await chatCompletion(endpoint, {
-				provider: { type: "lm-studio", endpoint, models: modelName ? { [modelName]: { enabled: true } } : {}, enabled: true },
+				provider: { type: provider?.type || "lm-studio", endpoint, models: modelName ? { [modelName]: { enabled: true } } : {}, enabled: true },
 				messages: precedingMessages,
 				systemPrompt: customSystemPrompt || undefined,
 				onChunk: (chunk) => {
@@ -783,6 +806,16 @@ export default function ChatPanel({
 						});
 					}
 				},
+				onReasoningChunk: (chunk) => {
+					streamedReasoningRef.current += chunk;
+					setMessages((prev) =>
+						prev.map((m) =>
+							m.id === messageId && m.role === "assistant"
+								? { ...m, reasoning: streamedReasoningRef.current }
+								: m,
+						),
+					);
+				},
 			});
 
 			if (rafIdRef.current !== null) {
@@ -793,7 +826,7 @@ export default function ChatPanel({
 			setMessages((prev) =>
 				prev.map((m) =>
 					m.id === messageId && m.role === "assistant"
-						? { ...m, content: [...m.content.slice(0, newVariantIndex), result.content] }
+						? { ...m, content: [...m.content.slice(0, newVariantIndex), result.content], reasoning: streamedReasoningRef.current || m.reasoning }
 						: m,
 				),
 			);
@@ -1205,10 +1238,19 @@ export default function ChatPanel({
 								</p>
 							</div>
 						)}
-						{messages.map((msg, i) => {
-							const isLastUser =
-								msg.role === "user" &&
-								!messages.slice(i + 1).some((m) => m.role === "user");
+					{messages.map((msg, i) => {
+						// Skip rendering empty assistant bubbles during loading unless they have reasoning content (Ollama/Gemma 4 pattern)
+						if (
+							msg.role === "assistant" &&
+							isLoading &&
+							(msg as AssistantChatMessage).content[0].length === 0 &&
+							!(msg as AssistantChatMessage).reasoning
+						) {
+							return null;
+						}
+						const isLastUser =
+							msg.role === "user" &&
+							!messages.slice(i + 1).some((m) => m.role === "user");
 							const isOld = i < activeStart && viewMode !== "full";
 							const entryData = msg.role === "assistant" ? pendingEntryData[msg.id] : undefined;
 							const slashOverride = msg.role === "assistant" ? slashCommandTargets[msg.id] : undefined;
@@ -1247,6 +1289,7 @@ export default function ChatPanel({
 									viewMode={viewMode}
 									isOld={isOld}
 									isExpanded={expandedMessages.has(msg.id)}
+									isStreaming={isLoading}
 									onCopy={handleCopy}
 									onRetry={handleRetry}
 									onUndo={handleUndo}

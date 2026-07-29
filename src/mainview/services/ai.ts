@@ -17,6 +17,7 @@ export interface AssistantChatMessage {
 	id: string;
 	role: "assistant";
 	content: string[];
+	reasoning?: string;
 	currentVariantIndex: number;
 	model: string;
 	mode: "assistant" | "editor";
@@ -47,7 +48,7 @@ export interface ChatCompletionResponse {
 	model: string;
 	choices: {
 		index: number;
-		message: { role: string; content: string };
+		message: { role: string; content: string; reasoning_content?: string; reasoning?: string };
 		finish_reason: string;
 	}[];
 	usage?: {
@@ -64,10 +65,12 @@ export interface AICompletionOptions {
 	temperature?: number;
 	maxTokens?: number;
 	onChunk?: (chunk: string) => void;
+	onReasoningChunk?: (chunk: string) => void;
 }
 
 export interface ChatCompletionResult {
 	content: string;
+	reasoning_content?: string;
 	usage: {
 		prompt_tokens: number;
 		completion_tokens: number;
@@ -79,7 +82,7 @@ export async function chatCompletion(
 	endpoint: string,
 	options: AICompletionOptions,
 ): Promise<ChatCompletionResult> {
-	const { messages, temperature = 0.7, maxTokens = 2048, onChunk, systemPrompt } = options;
+	const { messages, temperature = 0.7, maxTokens = 2048, onChunk, onReasoningChunk, systemPrompt } = options;
 
 	const model = options.provider.models
 		? Object.entries(options.provider.models).find(([, v]) =>
@@ -117,6 +120,7 @@ export async function chatCompletion(
 		const reader = response.body.getReader();
 		const decoder = new TextDecoder();
 		let fullContent = "";
+		let fullReasoning = "";
 		let usage: ChatCompletionResult["usage"] = null;
 
 		while (true) {
@@ -141,8 +145,16 @@ export async function chatCompletion(
 							};
 						}
 						const content = parsed.choices?.[0]?.delta?.content || "";
+						const reasoning =
+							parsed.choices?.[0]?.delta?.reasoning_content ||
+							parsed.choices?.[0]?.delta?.reasoning ||
+							"";
 						fullContent += content;
-						onChunk(content);
+						if (reasoning) {
+							fullReasoning += reasoning;
+							onReasoningChunk?.(reasoning);
+						}
+						onChunk?.(content);
 					} catch {
 						// Skip invalid JSON
 					}
@@ -150,12 +162,16 @@ export async function chatCompletion(
 			}
 		}
 
-		return { content: fullContent, usage };
+		return { content: fullContent, reasoning_content: fullReasoning || undefined, usage };
 	}
 
 	const result: ChatCompletionResponse = await response.json();
 	return {
 		content: result.choices[0]?.message?.content || "",
+		reasoning_content:
+			result.choices[0]?.message?.reasoning_content ||
+			result.choices[0]?.message?.reasoning ||
+			undefined,
 		usage: result.usage ?? null,
 	};
 }
