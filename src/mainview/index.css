@@ -3851,6 +3851,39 @@ background-color: transparent;
 	color: #4A9EFF;
 }
 
+/* ======= Skeleton Mode Banner ======= */
+.skeleton-banner {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 4px 12px;
+	font-size: 11px;
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.5px;
+	color: #4A9EFF;
+	background: rgba(74, 158, 255, 0.08);
+	border-bottom: 1px solid rgba(74, 158, 255, 0.2);
+	user-select: none;
+}
+
+.skeleton-banner-close {
+	margin-left: auto;
+	background: none;
+	border: none;
+	color: #4A9EFF;
+	font-size: 16px;
+	font-weight: bold;
+	cursor: pointer;
+	padding: 0 4px;
+	line-height: 1;
+	opacity: 0.6;
+}
+
+.skeleton-banner-close:hover {
+	opacity: 1;
+}
+
 /* ======= Analysis Overlay ======= */
 .analysis-overlay {
 	position: fixed;

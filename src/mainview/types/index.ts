@@ -467,7 +467,7 @@ export type EntityTemplate = {
 export type FileTab = {
 	id: string;
 	name: string;
-	type: "file" | "chapter" | CompendiumCategory | "compendium-new";
+	type: "file" | "chapter" | CompendiumCategory | "compendium-new" | "plot-architecture";
 	filePath: string;
 	isModified: boolean;
 	category?: CompendiumCategory;

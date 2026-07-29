@@ -108,7 +108,6 @@ function App() {
   const [storySequences, setStorySequences] = useState<StorySequence[]>([]);
   const [chapterPlotThreads, setChapterPlotThreads] = useState<ChapterPlotThread[]>([]);
   const [showTimeline, setShowTimeline] = useState(false);
-  const [showPlotArchitecture, setShowPlotArchitecture] = useState(false);
   const [showAnalysis, setShowAnalysis] = useState(false);
   const [skeletonMode, setSkeletonMode] = useState(false);
 	const [showTemplateEditor, setShowTemplateEditor] = useState(false);
@@ -1173,6 +1172,19 @@ function App() {
       );
     }
 
+    if (activeTab.type === "plot-architecture" && currentProject) {
+      return (
+        <PlotArchitectureView
+          projectId={currentProject.id}
+          chapters={chapters}
+          onNavigateChapter={(chapterId) => {
+            const ch = chapters.find(c => c.id === chapterId);
+            if (ch) openChapterTab(ch);
+          }}
+        />
+      );
+    }
+
     if (activeTab.type === "chapter" || activeTab.type === "file") {
       const chapter = chapters.find(c => c.id === activeTab.id);
 
@@ -1307,8 +1319,23 @@ function App() {
 				currentProject && (
 					<>
 						<button
-							className={`tb-btn ${showPlotArchitecture ? "active" : ""}`}
-							onClick={() => setShowPlotArchitecture(!showPlotArchitecture)}
+							className={`tb-btn ${openTabs.some(t => t.type === "plot-architecture") ? "active" : ""}`}
+							onClick={() => {
+								const existing = openTabs.find(t => t.type === "plot-architecture");
+								if (existing) {
+									if (activeTabId === existing.id) {
+										const newTabs = openTabs.filter(t => t.id !== existing.id);
+										setOpenTabs(newTabs);
+										setActiveTabId(newTabs.length > 0 ? newTabs[0].id : null);
+									} else {
+										setActiveTabId(existing.id);
+									}
+								} else {
+									const tab: FileTab = { id: "plot-architecture", name: "Plot Architecture", type: "plot-architecture", filePath: "", isModified: false };
+									setOpenTabs(prev => [...prev, tab]);
+									setActiveTabId(tab.id);
+								}
+							}}
 							title="Plot Architecture"
 						>
 							Plot
@@ -1349,16 +1376,7 @@ function App() {
             </button>
           </div>
           <div className="box-1-content">
-            {showPlotArchitecture && currentProject ? (
-              <PlotArchitectureView
-                projectId={currentProject.id}
-                chapters={chapters}
-                onNavigateChapter={(chapterId) => {
-                  const ch = chapters.find(c => c.id === chapterId);
-                  if (ch) openChapterTab(ch);
-                }}
-              />
-            ) : explorerTab === "chapters" && (
+            {explorerTab === "chapters" && (
               <>
                 <div className={`${styles.flexRow} ${styles.flexSpaceBetween}`}>
                   <h4>{explorerTab}</h4>
@@ -1517,7 +1535,7 @@ function App() {
               </>
             )}
           </div>
-          <div className="box-1-footer explorer-tab-btns" style={{ display: showPlotArchitecture ? "none" : "flex" }}>
+          <div className="box-1-footer explorer-tab-btns">
             <button
               className={explorerTab === "chapters" ? "active" : ""}
               onClick={() => setExplorerTab("chapters")}
@@ -1564,7 +1582,7 @@ function App() {
             onTabClick={(id) => setActiveTabId(id)}
             onTabClose={(id) => {
               const tab = openTabs.find((t) => t.id === id);
-              if (tab && tab.type !== "chapter" && tab.type !== "file") {
+              if (tab && tab.type !== "chapter" && tab.type !== "file" && tab.type !== "plot-architecture") {
                 handleCloseCompendiumTab(id, tab.type as CompendiumCategory);
               } else {
                 const wasActive = activeTabId === id;
@@ -1583,6 +1601,12 @@ function App() {
             onScratchClick={() => setIsScratchOpen(!isScratchOpen)}
             onNewTabClick={() => setActiveDialog("openFileDialog")}
           />
+          {skeletonMode && (
+            <div className="skeleton-banner">
+              <span>Skeleton Mode</span>
+              <button className="skeleton-banner-close" onClick={() => setSkeletonMode(false)} title="Disable Skeleton Mode">&times;</button>
+            </div>
+          )}
           <div className="editor-container">{renderEditor()}</div>
         </div>
         <ChatPanel

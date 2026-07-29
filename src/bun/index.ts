@@ -710,7 +710,7 @@ async function createMainWindow(projectId: string | null) {
 			y: 200,
 		},
 		rpc: mainRPC,
-		titleBarStyle: "hidden",
+		//titleBarStyle: "hidden",
 		styleMask: {
 			FullScreen: false,
 			Resizable: true,
