@@ -1,6 +1,4 @@
-import { db, sqliteVecAvailable, rawSqlite } from "../../database/index";
-import { embeddings } from "../../schema/index";
-import { eq } from "drizzle-orm";
+import { sqliteVecAvailable, rawSqlite } from "../../database/index";
 import { createEmbeddingProvider } from "./provider";
 import type { EmbeddingSettings } from "../../../mainview/types";
 
@@ -42,17 +40,20 @@ export async function semanticSearch(
 
 	const vecResults = rawSqlite.prepare(
 		`SELECT rowid, distance FROM embeddings_vec WHERE embedding MATCH ? ORDER BY distance LIMIT ?`
-	).all(vectorParam, topK * 3) as { rowid: string; distance: number }[];
+	).all(vectorParam, topK * 3) as { rowid: number; distance: number }[];
 
 	if (vecResults.length === 0) return [];
 
 	const rowIds = vecResults.map((r) => r.rowid);
 	const distanceMap = new Map(vecResults.map((r) => [r.rowid, r.distance]));
 
-	const metaRows = db.select().from(embeddings)
-		.where(eq(embeddings.projectId, projectId))
-		.all()
-		.filter((row: any) => rowIds.includes(row.id));
+	const placeholders = rowIds.map(() => "?").join(",");
+	const metaRows = rawSqlite.prepare(`
+		SELECT rowid, entity_type AS entityType, entity_id AS entityId,
+		       chunk_text AS chunkText, token_count AS tokenCount
+		FROM embeddings
+		WHERE rowid IN (${placeholders}) AND project_id = ?
+	`).all(...rowIds, projectId) as any[];
 
 	const results: SearchResult[] = [];
 
@@ -61,7 +62,7 @@ export async function semanticSearch(
 			continue;
 		}
 
-		const distance = distanceMap.get(meta.id) ?? 1;
+		const distance = distanceMap.get(meta.rowid) ?? 1;
 		const score = 1 - distance;
 
 		if (minScore !== undefined && score < minScore) continue;

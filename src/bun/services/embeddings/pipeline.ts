@@ -172,10 +172,13 @@ export async function indexProject(
 							.where(eq(embeddings.id, embeddingId))
 							.run();
 
-						const updateStmt = rawSqlite.prepare(
-							`UPDATE embeddings_vec SET embedding = vec_f32(?) WHERE rowid = ?`
-						);
-						updateStmt.run(new Float32Array(vector), embeddingId);
+						const embedRow = rawSqlite.prepare("SELECT rowid FROM embeddings WHERE id = ?").get(embeddingId) as { rowid: number } | undefined;
+						if (embedRow) {
+							const updateStmt = rawSqlite.prepare(
+								`UPDATE embeddings_vec SET embedding = vec_f32(?) WHERE rowid = ?`
+							);
+							updateStmt.run(new Float32Array(vector), embedRow.rowid);
+						}
 					} else {
 						db.insert(embeddings)
 							.values({
@@ -190,10 +193,11 @@ export async function indexProject(
 							})
 							.run();
 
+						const embedRow = rawSqlite.prepare("SELECT last_insert_rowid() AS rowid").get() as { rowid: number };
 						const insertStmt = rawSqlite.prepare(
 							`INSERT INTO embeddings_vec(rowid, embedding) VALUES (?, vec_f32(?))`
 						);
-						insertStmt.run(embeddingId, new Float32Array(vector));
+						insertStmt.run(embedRow.rowid, new Float32Array(vector));
 					}
 
 					result.indexed++;
@@ -232,7 +236,7 @@ export function deleteEntityEmbeddings(entityType: string, entityId: string): vo
 		.all();
 
 	for (const row of rows) {
-		rawSqlite.exec(`DELETE FROM embeddings_vec WHERE rowid = '${row.id}'`);
+		rawSqlite.prepare(`DELETE FROM embeddings_vec WHERE rowid = (SELECT rowid FROM embeddings WHERE id = ?)`).run(row.id);
 	}
 
 	db.delete(embeddings)
@@ -244,6 +248,6 @@ export function deleteEntityEmbeddings(entityType: string, entityId: string): vo
 }
 
 export function rebuildProjectEmbeddings(projectId: string, _settings: EmbeddingSettings): void {
-	rawSqlite.exec(`DELETE FROM embeddings_vec WHERE rowid IN (SELECT id FROM embeddings WHERE project_id = '${projectId}')`);
+	rawSqlite.prepare(`DELETE FROM embeddings_vec WHERE rowid IN (SELECT rowid FROM embeddings WHERE project_id = ?)`).run(projectId);
 	db.delete(embeddings).where(eq(embeddings.projectId, projectId)).run();
 }
