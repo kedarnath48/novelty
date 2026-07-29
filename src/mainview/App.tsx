@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import type { RichTextEditorHandle } from "./components/RichTextEditor";
 import styles from "./App.module.css";
 import { useRPC } from "./contexts/RPCContext";
@@ -63,6 +63,7 @@ import TemplateEditorDialog from "./dialogs/TemplateEditorDialog";
 import SeriesTemplateEditorDialog from "./dialogs/SeriesTemplateEditorDialog";
 import { StatusBar } from "./ui/statusBar";
 import type { SaveState } from "./ui/statusBar";
+import { useSettings } from "./contexts/SettingsContext";
 
 const categoryConfig: Record<
   CompendiumCategory,
@@ -78,6 +79,25 @@ const categoryConfig: Record<
 function App() {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isChatCollapsed, setIsChatCollapsed] = useState(false);
+  const [leftSidebarWidth, setLeftSidebarWidth] = useState(280);
+  const [rightSidebarWidth, setRightSidebarWidth] = useState(550);
+  const [isDragging, setIsDragging] = useState<"left" | "right" | null>(null);
+  const dragStartXRef = useRef(0);
+  const dragStartWidthRef = useRef(0);
+  const leftWidthRef = useRef(280);
+  const rightWidthRef = useRef(550);
+  const { settings, updateAppearance } = useSettings();
+
+  useEffect(() => {
+    if (settings?.appearance?.sidebarConstraints) {
+      const c = settings.appearance.sidebarConstraints;
+      setLeftSidebarWidth(c.leftWidth);
+      setRightSidebarWidth(c.rightWidth);
+      leftWidthRef.current = c.leftWidth;
+      rightWidthRef.current = c.rightWidth;
+    }
+  }, [settings?.appearance?.sidebarConstraints]);
+
   const [explorerTab, setExplorerTab] = useState<
     "chapters" | CompendiumCategory
   >("chapters");
@@ -1303,6 +1323,70 @@ function App() {
     );
   }
 
+  const handleDragStart = useCallback((side: "left" | "right", clientX: number) => {
+    setIsDragging(side);
+    dragStartXRef.current = clientX;
+    dragStartWidthRef.current = side === "left" ? leftSidebarWidth : rightSidebarWidth;
+    document.body.style.userSelect = "none";
+    document.body.style.webkitUserSelect = "none";
+  }, [leftSidebarWidth, rightSidebarWidth]);
+
+  useEffect(() => {
+    if (!isDragging) return;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      const delta = e.clientX - dragStartXRef.current;
+      let newWidth: number;
+
+      if (isDragging === "left") {
+        newWidth = Math.max(220, dragStartWidthRef.current + delta);
+        const constraints = settings?.appearance?.sidebarConstraints;
+        const maxLeft = constraints?.enableCustomWidthCap
+          ? (constraints.maxLeftWidth || 600)
+          : 600;
+        newWidth = Math.min(newWidth, maxLeft);
+        leftWidthRef.current = newWidth;
+        setLeftSidebarWidth(newWidth);
+      } else {
+        newWidth = Math.max(400, dragStartWidthRef.current - delta);
+        const constraints = settings?.appearance?.sidebarConstraints;
+        const maxRight = constraints?.enableCustomWidthCap
+          ? (constraints.maxRightWidth || 900)
+          : 900;
+        newWidth = Math.min(newWidth, maxRight);
+        rightWidthRef.current = newWidth;
+        setRightSidebarWidth(newWidth);
+      }
+    };
+
+    const handleMouseUp = () => {
+      setIsDragging(null);
+      document.body.style.userSelect = "";
+      document.body.style.webkitUserSelect = "";
+      if (settings) {
+        const c = settings.appearance.sidebarConstraints ?? {
+          enableCustomWidthCap: false,
+          maxLeftWidth: 400,
+          maxRightWidth: 700,
+          leftWidth: 280,
+          rightWidth: 550,
+        };
+        updateAppearance("sidebarConstraints", {
+          ...c,
+          leftWidth: leftWidthRef.current,
+          rightWidth: rightWidthRef.current,
+        });
+      }
+    };
+
+    document.addEventListener("mousemove", handleMouseMove);
+    document.addEventListener("mouseup", handleMouseUp);
+    return () => {
+      document.removeEventListener("mousemove", handleMouseMove);
+      document.removeEventListener("mouseup", handleMouseUp);
+    };
+  }, [isDragging, settings, updateAppearance]);
+
   return (
     <>
 		<TitleBar
@@ -1360,7 +1444,10 @@ function App() {
 		/>
 
       <main className="flex-container">
-        <div className={`box-1 ${isCollapsed ? "collapsed" : ""}`}>
+        <div
+          className={`box-1 ${isCollapsed ? "collapsed" : ""}`}
+          style={{ width: isCollapsed ? 0 : leftSidebarWidth }}
+        >
           <div className="box-1-header">
             <h4>EXPLORER</h4>
             <button
@@ -1574,6 +1661,15 @@ function App() {
             </button>
           </div>
         </div>
+        {!isCollapsed && (
+          <div
+            className={`drag-handle ${isDragging === "left" ? "active" : ""}`}
+            onMouseDown={(e) => {
+              e.preventDefault();
+              handleDragStart("left", e.clientX);
+            }}
+          />
+        )}
         <div className="box-2">
           <FileTabs
             tabs={openTabs}
@@ -1609,6 +1705,15 @@ function App() {
           )}
           <div className="editor-container">{renderEditor()}</div>
         </div>
+        {!isChatCollapsed && (
+          <div
+            className={`drag-handle ${isDragging === "right" ? "active" : ""}`}
+            onMouseDown={(e) => {
+              e.preventDefault();
+              handleDragStart("right", e.clientX);
+            }}
+          />
+        )}
         <ChatPanel
           collapsed={isChatCollapsed}
           onToggleCollapse={() => setIsChatCollapsed(!isChatCollapsed)}
@@ -1626,6 +1731,7 @@ function App() {
           onUpdateCompendium={handleUpdateCompendium}
           activeTabId={activeTabId}
           activeTabType={getActiveTab()?.type ?? null}
+          style={!isChatCollapsed ? { width: rightSidebarWidth } : undefined}
         />
       </main>
       <StatusBar

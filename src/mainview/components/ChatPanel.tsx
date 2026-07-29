@@ -79,12 +79,14 @@ interface ChatPanelProps {
 	onUpdateCompendium?: (entries: ParsedEntry[], source: ExtractionSource) => void;
 	activeTabId?: string | null;
 	activeTabType?: string | null;
+	style?: React.CSSProperties;
 }
 
 export default function ChatPanel({
 	collapsed,
 	onToggleCollapse,
 	onNewSession: _onNewSession,
+	style,
 	projectId,
 	project,
 	chapters = [],
@@ -1149,7 +1151,7 @@ export default function ChatPanel({
 
 	if (collapsed) {
 		return (
-			<button className="chat-panel-collapsed" onClick={onToggleCollapse}>
+			<button className="chat-panel-collapsed" onClick={onToggleCollapse} style={style}>
 				<IconArrowRight />
 				<span>ASSISTANT</span>
 			</button>
@@ -1157,7 +1159,7 @@ export default function ChatPanel({
 	}
 
 	return (
-		<div className="chat-panel">
+		<div className="chat-panel" style={style}>
 			<div className="chat-panel-header">
 				<div className="chat-panel-header-tabs">
 					<button

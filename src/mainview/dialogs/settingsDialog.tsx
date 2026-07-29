@@ -1301,19 +1301,51 @@ function StorageTab() {
 }
 
 function AppearanceTab() {
-	const { settings } = useSettings();
-	console.log("AppearanceTab", settings);
-	console.log("AppearanceTab Test");
+	const { settings, updateAppearance, isLocked } = useSettings();
+	if (!settings) return null;
+	const c = settings.appearance.sidebarConstraints ?? {
+		enableCustomWidthCap: false,
+		maxLeftWidth: 400,
+		maxRightWidth: 700,
+		leftWidth: 280,
+		rightWidth: 550,
+	};
+
 	return (
 		<div className={styles.tabContent}>
-			<div className="">
-				<h2>Appearance</h2>
-				<p>Appearance settings</p>
-			</div>
+			<div className={styles.settingsSectionLabel}>Sidebar Constraints</div>
 			<div className={styles.settingRow}>
-				{/*<button onClick={() => setActiveDialog("ui")}>UI</button>*/}
-				<button>UI</button>
+				<span>Enable Custom Width Cap</span>
+				<Toggle
+					checked={c.enableCustomWidthCap}
+					onChange={(v) => updateAppearance("sidebarConstraints", { ...c, enableCustomWidthCap: v })}
+					disabled={isLocked}
+				/>
 			</div>
+			{c.enableCustomWidthCap && (
+				<>
+					<div className={styles.settingRow}>
+						<span>Max Left Sidebar Width (px)</span>
+						<NumberInput
+							value={c.maxLeftWidth}
+							onChange={(v) => updateAppearance("sidebarConstraints", { ...c, maxLeftWidth: v || 400 })}
+							min={220}
+							max={1200}
+							disabled={isLocked}
+						/>
+					</div>
+					<div className={styles.settingRow}>
+						<span>Max Right Sidebar Width (px)</span>
+						<NumberInput
+							value={c.maxRightWidth}
+							onChange={(v) => updateAppearance("sidebarConstraints", { ...c, maxRightWidth: v || 700 })}
+							min={400}
+							max={2000}
+							disabled={isLocked}
+						/>
+					</div>
+				</>
+			)}
 		</div>
 	);
 }

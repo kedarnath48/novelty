@@ -44,7 +44,13 @@ interface SettingsFile {
 		fontSize: 14,
 		fontFamily: "Inter",
 		lineHeight: 1.5,
-
+		sidebarConstraints: {
+			enableCustomWidthCap: false,
+			maxLeftWidth: 400,
+			maxRightWidth: 700,
+			leftWidth: 280,
+			rightWidth: 550,
+		},
 	},
 	projects: {
 		defaultProjectsDir: join(Utils.paths.userData, "projects"),
@@ -164,6 +170,7 @@ function writeSettingsFile(data: SettingsFile): void {
 export function getAllSettings(): Settings {
 	if (settingsCache) {
 		migrateEmbeddings(settingsCache);
+		migrateSidebarConstraints(settingsCache);
 		return settingsCache;
 	}
 	const file = readSettingsFile();
@@ -193,8 +200,35 @@ export function getAllSettings(): Settings {
 	}
 	migrateModelEntries(settings);
 	migrateEmbeddings(settings);
+	migrateSidebarConstraints(settings);
 	ensureProjectsDir(settings);
 	return settings;
+}
+
+function migrateSidebarConstraints(settings: Settings): void {
+	if (!settings.appearance) {
+		settings.appearance = {
+			theme: "system",
+			fontSize: 14,
+			fontFamily: "Inter",
+			lineHeight: 1.5,
+			sidebarConstraints: {
+				enableCustomWidthCap: false,
+				maxLeftWidth: 400,
+				maxRightWidth: 700,
+				leftWidth: 280,
+				rightWidth: 550,
+			},
+		};
+	} else if (!settings.appearance.sidebarConstraints) {
+		settings.appearance.sidebarConstraints = {
+			enableCustomWidthCap: false,
+			maxLeftWidth: 400,
+			maxRightWidth: 700,
+			leftWidth: 280,
+			rightWidth: 550,
+		};
+	}
 }
 
 function migrateEmbeddings(settings: Settings): void {

@@ -15,6 +15,7 @@ interface SettingsContextType {
 	updateProviderConfig: (providerId: string, config: ProviderConfig) => Promise<void>;
 	deleteProvider: (providerId: string) => Promise<void>;
 	updateStorage: <K extends keyof Settings["storage"]>(key: K, value: Settings["storage"][K]) => Promise<void>;
+	updateAppearance: <K extends keyof Settings["appearance"]>(key: K, value: Settings["appearance"][K]) => Promise<void>;
 	updateEmbeddings: <K extends keyof Settings["embeddings"]>(key: K, value: Settings["embeddings"][K]) => Promise<void>;
 	setEncryption: (mode: "machine" | "password", password?: string) => Promise<void>;
 	unlock: (password: string) => Promise<boolean>;
@@ -114,6 +115,12 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
 		await updateSetting("storage", newStorage);
 	}, [settings, isLocked, updateSetting]);
 
+	const updateAppearance = useCallback(async <K extends keyof Settings["appearance"]>(key: K, value: Settings["appearance"][K]) => {
+		if (!settings || isLocked) return;
+		const newAppearance = { ...settings.appearance, [key]: value };
+		await updateSetting("appearance", newAppearance);
+	}, [settings, isLocked, updateSetting]);
+
 	const updateEmbeddings = useCallback(async <K extends keyof Settings["embeddings"]>(key: K, value: Settings["embeddings"][K]) => {
 		if (!settings || isLocked) return;
 		const current = settings.embeddings ?? {
@@ -205,6 +212,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
 		updateProviderConfig,
 		deleteProvider,
 		updateStorage,
+		updateAppearance,
 		updateEmbeddings,
 		setEncryption,
 		unlock,

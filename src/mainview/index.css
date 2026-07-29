@@ -86,8 +86,7 @@ body {
 }
 
 .box-1 {
-	flex: 3;
-	flex: 2.75;
+	flex-shrink: 0;
 	display: flex;
 	flex-direction: column;
 	border-right: 1px solid #595D68;
@@ -95,7 +94,8 @@ body {
 	min-width: 220px;
 
 	&.collapsed {
-		max-width: 0px;
+		width: 0px;
+		min-width: 0px;
 		overflow: hidden;
 		padding: 0px;
 	}
@@ -106,12 +106,27 @@ body {
 }
 
 .box-2 {
-	flex: 18;
+	flex: 1;
+	min-width: 200px;
 	display: flex;
 	flex-direction: column;
 	overflow: hidden;
 }
 
+
+.drag-handle {
+	width: 5px;
+	cursor: col-resize;
+	flex-shrink: 0;
+	background: transparent;
+	position: relative;
+	z-index: 10;
+}
+
+.drag-handle:hover,
+.drag-handle.active {
+	background: #3a3a3c;
+}
 
 .box-1-header {
 	display: flex;
@@ -819,18 +834,18 @@ input {
 
 /* Chat Panel */
 .chat-panel {
-	flex: 7;
-	flex: 6.5;
+	flex-shrink: 0;
 	display: flex;
 	flex-direction: column;
 	border-left: 1px solid #595D68;
 	border-left: 1px solid #313233;
 	height: 100%;
 	background-color: #202022;
-	min-width: 550px;
+	min-width: 400px;
 
 	&.collapsed {
-		max-width: 0px;
+		width: 0px;
+		min-width: 0px;
 		overflow: hidden;
 		padding: 0px;
 	}

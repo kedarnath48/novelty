@@ -552,11 +552,20 @@ export type StorageSettings = {
 	cacheSize: number;
 };
 
+export type SidebarConstraints = {
+	enableCustomWidthCap: boolean;
+	maxLeftWidth: number;
+	maxRightWidth: number;
+	leftWidth: number;
+	rightWidth: number;
+};
+
 export type AppearanceSettings = {
 	theme: "light" | "dark" | "system";
 	fontSize: number;
 	fontFamily: string;
 	lineHeight: number;
+	sidebarConstraints: SidebarConstraints;
 };
 
 export type Settings = {
