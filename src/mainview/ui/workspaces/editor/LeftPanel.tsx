@@ -127,151 +127,151 @@ export default function LeftPanel({
 
                 ) : (
                     <>
-                        {!isCollapsed && (
-                            <>
-                                {/* HEADER: Title + Edit Template */}
-                                <div className="app-panel-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                        <h4 style={{ margin: 0 }}>{currentLabel}</h4>
-                                        {mode === 'compendium' && (
-                                            <button
-                                                onClick={handleEditTemplate}
-                                                style={{
-                                                    background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: '#94a3b8',
-                                                    height: "20px"
-                                                }}
-                                                title="Edit Template"
-                                            >
-                                                <IconPencilMinus size={20} stroke={2} />
-                                            </button>
-                                        )}
-                                    </div>
 
-                                    <div style={{ display: "flex", gap: "4px", alignItems: "center" }}>
-                                        <button className="icon-btn" onClick={onAutoExpandToggle}>
-                                            {enableAutoExpandLeft ? <IconPinFilled stroke={2} /> : <IconPin stroke={2} />}
-                                        </button>
-                                        <button className="icon-btn" onClick={onCollapseToggle}>
-                                            {isCollapsed ? <IconChevronRight size={24} /> : <IconChevronLeft size={24} />}
-                                        </button>
-                                    </div>
-                                </div>
-
-                                {/* CONTENT AREA */}
-                                <div className="app-panel-content" style={{ display: 'grid', overflow: 'hidden' }}>
-                                    <div style={{ gridArea: '1 / 1 / 2 / 2', position: 'relative' }}>
-                                        <AnimatePresence mode="wait">
-                                            <motion.div
-                                                key={explorerTab}
-                                                initial={{ opacity: 0, x: -5 }}
-                                                animate={{ opacity: 1, x: 0 }}
-                                                exit={{ opacity: 0, x: 5 }}
-                                                transition={{ duration: 0.15 }}
-                                            >
-                                                {chaptersLoading ? (
-                                                    <div className="loading">Loading...</div>
-                                                ) : currentData.length === 0 ? (
-                                                    /* EMPTY STATE */
-                                                    <div style={{
-                                                        display: 'flex', flexDirection: 'column', alignItems: 'center',
-                                                        justifyContent: 'center', minHeight: '200px', gap: '12px', color: '#94a3b8'
-                                                    }}>
-                                                        <p style={{ fontSize: '16px' }}>No {currentLabel.toLowerCase()} yet</p>
-                                                        <button
-                                                            onClick={handleNewAction}
-                                                            style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px', borderRadius: '6px', border: '1px solid #e2e8f0', cursor: 'pointer' }}
-                                                        >
-                                                            <IconPlus size={16} /> New {currentLabel}
-                                                        </button>
-                                                    </div>
-                                                ) : (
-                                                    <>
-                                                        {/* LIST ITEM: The "New" Button */}
-                                                        <div className="chapter-item new-item-btn" onClick={handleNewAction} style={{ color: '#3b82f6', fontWeight: '500', cursor: 'pointer', height: "32px", border: "dashed 1px", margin: "12px 14px 8px 0" }}>
-                                                            <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><IconPlus size={18} /> New {currentLabel}</span>
-                                                        </div>
-
-                                                        {/* THE ACTUAL LIST */}
-                                                        <div className="chapter-list">
-                                                            {currentData.map((entry: any, index: number) => {
-                                                                const label = entry.title || entry.name;
-                                                                const isManuscript = mode === 'manuscript';
-
-                                                                return (
-                                                                    <>
-                                                                        <div
-                                                                            key={entry.id}
-                                                                            className={`chapter-item ${activeTabId === entry.id ? 'active' : ''}`}
-                                                                            onClick={() => isManuscript ? openChapter(entry) : openCompendiumEntry(entry.id, explorerTab as CompendiumCategory)}
-                                                                        >
-                                                                            <div className="left-side">
-                                                                                {isManuscript && (
-                                                                                    <span className="item-index">{index + 1}.</span>
-                                                                                )}
-                                                                                <span className="item-label">{label}</span>
-                                                                            </div>
-
-                                                                            <button className="delete-btn" onClick={(e) => {
-                                                                                e.stopPropagation();
-                                                                                isManuscript ? deleteChapter(entry) : deleteCompendiumEntry(entry.id, explorerTab as CompendiumCategory);
-                                                                            }}>
-                                                                                <IconTrash size={14} />
-                                                                            </button>
-                                                                        </div>
-                                                                    </>
-                                                                );
-                                                            })}
-                                                        </div>
-                                                    </>
-                                                )}
-                                            </motion.div>
-                                        </AnimatePresence>
-                                    </div>
-                                </div>
-
-                                {/* SUB-NAVIGATION (Compendium Icons) */}
-                                <AnimatePresence>
+                        <>
+                            {/* HEADER: Title + Edit Template */}
+                            <div className="app-panel-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <h4 style={{ margin: 0 }}>{currentLabel}</h4>
                                     {mode === 'compendium' && (
-                                        <motion.div
-                                            initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }}
-                                            className="compendium-sub-nav"
-                                            style={{ display: "flex", justifyContent: "center", gap: "8px" }}
+                                        <button
+                                            onClick={handleEditTemplate}
+                                            style={{
+                                                background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: '#94a3b8',
+                                                height: "20px"
+                                            }}
+                                            title="Edit Template"
                                         >
-                                            {Object.entries(COMPENDIUM_CONFIG).map(([key, config]) => {
-                                                const Icon = config.icon;
-                                                return (
-                                                    <button key={key} onClick={() => onSubTabChange(key as CompendiumCategory)} style={{
-                                                        background: 'none', border: 'none', cursor: 'pointer',
-                                                        color: explorerTab === key ? '#3b82f6' : '#94a3b8'
-                                                    }}>
-                                                        <Icon size={22} />
-                                                    </button>
-                                                );
-                                            })}
-                                        </motion.div>
+                                            <IconPencilMinus size={20} stroke={2} />
+                                        </button>
                                     )}
-                                </AnimatePresence>
-
-                                {/* BOTTOM NAVIGATION (The Pill) */}
-                                <div className="bottom-nav-container" style={{
-                                    position: 'relative', padding: '4px', display: 'flex',
-                                    backgroundColor: 'transparent', borderRadius: '10px', margin: '0px 10px 10px 10px'
-                                }}>
-                                    <motion.div
-                                        animate={{ x: mode === 'manuscript' ? 0 : "100%" }}
-                                        transition={{ type: "spring", stiffness: 350, damping: 30 }}
-                                        style={{
-                                            position: 'absolute', top: '4px', left: '4px', width: 'calc(50% - 4px)', height: 'calc(100% - 8px)',
-                                            backgroundColor: "var(--accent-subtle)", borderRadius: '6px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)', zIndex: 0, border: "1px solid var(--accent-focus)"
-                                        }}
-                                    />
-
-                                    <button onClick={() => onModeChange('manuscript')} style={tabBtnStyle(mode === 'manuscript')}>Manuscript</button>
-                                    <button onClick={() => onModeChange('compendium')} style={tabBtnStyle(mode === 'compendium')}>Compendium</button>
                                 </div>
-                            </>
 
-                        )}
+                                <div style={{ display: "flex", gap: "4px", alignItems: "center" }}>
+                                    <button className="icon-btn" onClick={onAutoExpandToggle}>
+                                        {enableAutoExpandLeft ? <IconPinFilled stroke={2} /> : <IconPin stroke={2} />}
+                                    </button>
+                                    <button className="icon-btn" onClick={onCollapseToggle}>
+                                        {isCollapsed ? <IconChevronRight size={24} /> : <IconChevronLeft size={24} />}
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* CONTENT AREA */}
+                            <div className="app-panel-content" style={{ display: 'grid', overflow: 'hidden' }}>
+                                <div style={{ gridArea: '1 / 1 / 2 / 2', position: 'relative' }}>
+                                    <AnimatePresence mode="wait">
+                                        <motion.div
+                                            key={explorerTab}
+                                            initial={{ opacity: 0, x: -5 }}
+                                            animate={{ opacity: 1, x: 0 }}
+                                            exit={{ opacity: 0, x: 5 }}
+                                            transition={{ duration: 0.15 }}
+                                        >
+                                            {chaptersLoading ? (
+                                                <div className="loading">Loading...</div>
+                                            ) : currentData.length === 0 ? (
+                                                /* EMPTY STATE */
+                                                <div style={{
+                                                    display: 'flex', flexDirection: 'column', alignItems: 'center',
+                                                    justifyContent: 'center', minHeight: '200px', gap: '12px', color: '#94a3b8'
+                                                }}>
+                                                    <p style={{ fontSize: '16px' }}>No {currentLabel.toLowerCase()} yet</p>
+                                                    <button
+                                                        onClick={handleNewAction}
+                                                        style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px', borderRadius: '6px', border: '1px solid #e2e8f0', cursor: 'pointer' }}
+                                                    >
+                                                        <IconPlus size={16} /> New {currentLabel}
+                                                    </button>
+                                                </div>
+                                            ) : (
+                                                <>
+                                                    {/* LIST ITEM: The "New" Button */}
+                                                    <div className="chapter-item new-item-btn" onClick={handleNewAction} style={{ color: '#3b82f6', fontWeight: '500', cursor: 'pointer', height: "32px", border: "dashed 1px", margin: "12px 14px 8px 0" }}>
+                                                        <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><IconPlus size={18} /> New {currentLabel}</span>
+                                                    </div>
+
+                                                    {/* THE ACTUAL LIST */}
+                                                    <div className="chapter-list">
+                                                        {currentData.map((entry: any, index: number) => {
+                                                            const label = entry.title || entry.name;
+                                                            const isManuscript = mode === 'manuscript';
+
+                                                            return (
+                                                                <>
+                                                                    <div
+                                                                        key={entry.id}
+                                                                        className={`chapter-item ${activeTabId === entry.id ? 'active' : ''}`}
+                                                                        onClick={() => isManuscript ? openChapter(entry) : openCompendiumEntry(entry.id, explorerTab as CompendiumCategory)}
+                                                                    >
+                                                                        <div className="left-side">
+                                                                            {isManuscript && (
+                                                                                <span className="item-index">{index + 1}.</span>
+                                                                            )}
+                                                                            <span className="item-label">{label}</span>
+                                                                        </div>
+
+                                                                        <button className="delete-btn" onClick={(e) => {
+                                                                            e.stopPropagation();
+                                                                            isManuscript ? deleteChapter(entry) : deleteCompendiumEntry(entry.id, explorerTab as CompendiumCategory);
+                                                                        }}>
+                                                                            <IconTrash size={14} />
+                                                                        </button>
+                                                                    </div>
+                                                                </>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                </>
+                                            )}
+                                        </motion.div>
+                                    </AnimatePresence>
+                                </div>
+                            </div>
+
+                            {/* SUB-NAVIGATION (Compendium Icons) */}
+                            <AnimatePresence>
+                                {mode === 'compendium' && (
+                                    <motion.div
+                                        initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }}
+                                        className="compendium-sub-nav"
+                                        style={{ display: "flex", justifyContent: "center", gap: "8px" }}
+                                    >
+                                        {Object.entries(COMPENDIUM_CONFIG).map(([key, config]) => {
+                                            const Icon = config.icon;
+                                            return (
+                                                <button key={key} onClick={() => onSubTabChange(key as CompendiumCategory)} style={{
+                                                    background: 'none', border: 'none', cursor: 'pointer',
+                                                    color: explorerTab === key ? '#3b82f6' : '#94a3b8'
+                                                }}>
+                                                    <Icon size={22} />
+                                                </button>
+                                            );
+                                        })}
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
+
+                            {/* BOTTOM NAVIGATION (The Pill) */}
+                            <div className="bottom-nav-container" style={{
+                                position: 'relative', padding: '4px', display: 'flex',
+                                backgroundColor: 'transparent', borderRadius: '10px', margin: '0px 10px 10px 10px'
+                            }}>
+                                <motion.div
+                                    animate={{ x: mode === 'manuscript' ? 0 : "100%" }}
+                                    transition={{ type: "spring", stiffness: 350, damping: 30 }}
+                                    style={{
+                                        position: 'absolute', top: '4px', left: '4px', width: 'calc(50% - 4px)', height: 'calc(100% - 8px)',
+                                        backgroundColor: "var(--accent-subtle)", borderRadius: '6px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)', zIndex: 0, border: "1px solid var(--accent-focus)"
+                                    }}
+                                />
+
+                                <button onClick={() => onModeChange('manuscript')} style={tabBtnStyle(mode === 'manuscript')}>Manuscript</button>
+                                <button onClick={() => onModeChange('compendium')} style={tabBtnStyle(mode === 'compendium')}>Compendium</button>
+                            </div>
+                        </>
+
+
                     </>
                 )}
 

@@ -109,77 +109,6 @@ body {
 		justify-content: space-between;
 	}
 
-	.chapter-item {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		padding: 8px 12px;
-		cursor: pointer;
-		transition: background 0.2s ease;
-		border-radius: 6px;
-
-		.left-side {
-			display: flex;
-			align-items: center;
-			overflow: hidden;
-		}
-
-		.item-index {
-
-			max-width: 0;
-			opacity: 0;
-			white-space: nowrap;
-			overflow: hidden;
-			transition: max-width 0.3s ease, opacity 0.2s ease, margin-right 0.3s ease;
-
-			color: #94a3b8;
-			font-size: 0.85em;
-			margin-right: 0px;
-		}
-
-		.item-label {
-			font-weight: 500;
-			white-space: nowrap;
-			overflow: hidden;
-			text-overflow: ellipsis;
-		}
-
-		.delete-btn {
-			background: none;
-			border: none;
-			color: #94a3b8;
-			padding: 0;
-			cursor: pointer;
-			width: 14px;
-			height: 14px;
-			display: flex;
-			align-items: center;
-			justify-content: center;
-			visibility: hidden;
-
-			&:hover {
-				color: #ff6b6b;
-			}
-		}
-
-
-		&:hover,
-		&.active {
-			background-color: rgba(59, 130, 246, 0.1);
-
-			.item-index {
-				max-width: 40px;
-				opacity: 1;
-				margin-right: 8px;
-			}
-
-			.delete-btn {
-				opacity: 1;
-				visibility: visible;
-			}
-		}
-	}
-
 	&.app-panel-left {
 		flex-shrink: 0;
 		display: flex;
@@ -232,6 +161,78 @@ body {
 		h4 {
 			margin: 0px;
 		}
+
+		.chapter-item {
+			display: flex;
+			align-items: center;
+			justify-content: space-between;
+			padding: 8px 12px;
+			cursor: pointer;
+			transition: background 0.2s ease;
+			border-radius: 6px;
+
+			.left-side {
+				display: flex;
+				align-items: center;
+				overflow: hidden;
+			}
+
+			.item-index {
+
+				max-width: 0;
+				opacity: 0;
+				white-space: nowrap;
+				overflow: hidden;
+				transition: max-width 0.3s ease, opacity 0.2s ease, margin-right 0.3s ease;
+
+				color: #94a3b8;
+				font-size: 0.85em;
+				margin-right: 0px;
+			}
+
+			.item-label {
+				font-weight: 500;
+				white-space: nowrap;
+				overflow: hidden;
+				text-overflow: ellipsis;
+			}
+
+			.delete-btn {
+				background: none;
+				border: none;
+				color: #94a3b8;
+				padding: 0;
+				cursor: pointer;
+				width: 14px;
+				height: 14px;
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				visibility: hidden;
+
+				&:hover {
+					color: #ff6b6b;
+				}
+			}
+
+
+			&:hover,
+			&.active {
+				background-color: rgba(59, 130, 246, 0.1);
+
+				.item-index {
+					max-width: 40px;
+					opacity: 1;
+					margin-right: 8px;
+				}
+
+				.delete-btn {
+					opacity: 1;
+					visibility: visible;
+				}
+			}
+		}
+
 	}
 
 	&.app-panel-right {

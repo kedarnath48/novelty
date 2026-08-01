@@ -1,10 +1,12 @@
 
 type Props = {
-    isChatCollapsed: boolean
+    children: React.ReactNode
 }
 
-export default function RightPanel({ isChatCollapsed }: Props) {
+export default function RightPanel({ children }: Props) {
     return (
-        <aside className={`app-panel app-panel-right ${isChatCollapsed ? "collapsed" : ""}`}>RightPanel</aside>
+        <>
+            {children}
+        </>
     )
 }

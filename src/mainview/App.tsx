@@ -1571,53 +1571,50 @@ function App() {
           )}
           <div className="editor-container">{renderEditor()}</div>
         </div>
-        {
-          /*
-            <RightPanel isChatCollapsed={isChatCollapsed} />
-           */
-        }
-        <aside className={`app-panel app-panel-right ${isChatCollapsed ? "collapsed" : ""}`}>
-          {isChatCollapsed ? (
-            <div className="sidebar-collapsed right" onClick={() => {
-              setIsChatCollapsed(false);
-              updateAppearance("sidebarConstraints", { ...settings!.appearance.sidebarConstraints, rightPanelCollapsed: false });
-            }}>
-              <IconChevronLeft stroke={2} />
-            </div>
-          ) : (
-            <>
-              <div
-                className={`drag-handle ${isDragging === "right" ? "active" : ""}`}
-                onMouseDown={(e) => {
-                  e.preventDefault();
-                  handleDragStart("right", e.clientX);
-                }}
-              />
-              <ChatPanel
-                onToggleCollapse={() => {
-                  const newVal = !isChatCollapsed;
-                  setIsChatCollapsed(newVal);
-                  updateAppearance("sidebarConstraints", { ...settings!.appearance.sidebarConstraints, rightPanelCollapsed: newVal });
-                }}
-                projectId={currentProject?.id ?? null}
-                project={currentProject}
-                chapters={chapters}
-                characters={characters}
-                locations={locations}
-                organizations={organizations}
-                items={items}
-                loreEntries={loreEntries}
-                editorRef={editorRef}
-                onCreateCompendiumEntry={handleCreateCompendiumEntryFromAI}
-                onExtractEntities={handleExtractEntities}
-                onUpdateCompendium={handleUpdateCompendium}
-                activeTabId={activeTabId}
-                activeTabType={getActiveTab()?.type ?? null}
-                style={{ width: rightSidebarWidth }}
-              />
-            </>
-          )}
-        </aside>
+        <RightPanel>
+          <aside className={`app-panel app-panel-right ${isChatCollapsed ? "collapsed" : ""}`}>
+            {isChatCollapsed ? (
+              <div className="sidebar-collapsed right" onClick={() => {
+                setIsChatCollapsed(false);
+                updateAppearance("sidebarConstraints", { ...settings!.appearance.sidebarConstraints, rightPanelCollapsed: false });
+              }}>
+                <IconChevronLeft stroke={2} />
+              </div>
+            ) : (
+              <>
+                <div
+                  className={`drag-handle ${isDragging === "right" ? "active" : ""}`}
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    handleDragStart("right", e.clientX);
+                  }}
+                />
+                <ChatPanel
+                  onToggleCollapse={() => {
+                    const newVal = !isChatCollapsed;
+                    setIsChatCollapsed(newVal);
+                    updateAppearance("sidebarConstraints", { ...settings!.appearance.sidebarConstraints, rightPanelCollapsed: newVal });
+                  }}
+                  projectId={currentProject?.id ?? null}
+                  project={currentProject}
+                  chapters={chapters}
+                  characters={characters}
+                  locations={locations}
+                  organizations={organizations}
+                  items={items}
+                  loreEntries={loreEntries}
+                  editorRef={editorRef}
+                  onCreateCompendiumEntry={handleCreateCompendiumEntryFromAI}
+                  onExtractEntities={handleExtractEntities}
+                  onUpdateCompendium={handleUpdateCompendium}
+                  activeTabId={activeTabId}
+                  activeTabType={getActiveTab()?.type ?? null}
+                  style={{ width: rightSidebarWidth }}
+                />
+              </>
+            )}
+          </aside>
+        </RightPanel>
       </main>
       <StatusBar
         saveState={saveState}
