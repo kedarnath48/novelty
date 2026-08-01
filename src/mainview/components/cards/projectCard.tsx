@@ -67,6 +67,8 @@ export default function ProjectCard({
 		onDelete?.(project.id);
 	}
 
+	console.warn("[genres]", project.genres);
+
 	return (
 		<div className={styles.projectCard} onClick={handleCardClick}>
 			<div className={styles.projectImage}>
@@ -82,14 +84,15 @@ export default function ProjectCard({
 					</span>
 				)}
 				{(project.genres.length > 0 || project.tags.length > 0) && (
-					<div className={styles.projectMeta}>
+					<div className={styles.projectMeta}>/\+
 						{project.genres.length > 0 && (
 							<p className={styles.projectGenres}>
 								{project.genres.slice(0, 3).join(", ")}
 								{project.genres.length > 3 && ` +${project.genres.length - 3}`}
 							</p>
 						)}
-						{project.tags.length > 0 && (
+
+						{false && project.tags.length > 0 && (
 							<div className={styles.projectTags}>
 								{project.tags.slice(0, 5).map((tag) => (
 									<span key={tag} className={styles.projectTag}>

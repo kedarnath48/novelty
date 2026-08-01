@@ -207,7 +207,7 @@ export default function ProjectManager({
 				try {
 					const meta = JSON.parse(project.metadata);
 					setDescription(meta.description ?? "");
-				} catch {}
+				} catch { }
 			}
 			loadCoverImage(project);
 			loadGenresAndTags();
@@ -1396,6 +1396,11 @@ export default function ProjectManager({
 									</div>
 								) : (
 									<div>
+										{(["character", "location", "organization", "item", "lore"] as CompendiumCategory[]).map((cat) => {
+											return (
+												<button> {cat}</button>
+											)
+										})}
 										{(["character", "location", "organization", "item", "lore"] as CompendiumCategory[]).map((cat) => {
 											const tpl = projectTemplates[cat];
 											const fieldCount = tpl?.customFields?.length || 0;
