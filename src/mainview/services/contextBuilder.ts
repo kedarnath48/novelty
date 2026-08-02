@@ -1,4 +1,5 @@
-import type { Project, MentionTarget, Chapter, Character, Location, Organization, Item, LoreEntry } from "../types/index";
+import type { Project, MentionTarget, Chapter, Character, Location, Organization, Item, LoreEntry, FieldDefinition, CompendiumCategory } from "../types/index";
+import { isFieldVisible } from "../templates/fieldVisibility";
 
 function estimateTokens(text: string): number {
 	return Math.ceil(text.length / 4);
@@ -17,6 +18,7 @@ export interface BuildContextParams {
 	organizations: Organization[];
 	items: Item[];
 	loreEntries: LoreEntry[];
+	resolvedTemplates?: Partial<Record<CompendiumCategory, FieldDefinition[]>>;
 }
 
 export interface BuildContextResult {
@@ -56,10 +58,12 @@ function formatChapterChip(
 	return `${header}\n${ch.content || "(empty)"}`;
 }
 
-function formatTemplateData(data: Record<string, unknown> | null): string[] {
+function formatTemplateData(data: Record<string, unknown> | null, resolvedFields?: FieldDefinition[]): string[] {
 	if (!data) return [];
 	const parts: string[] = [];
 	for (const [key, value] of Object.entries(data)) {
+		const field = resolvedFields?.find((f) => f.name === key);
+		if (resolvedFields && field && !isFieldVisible(field, data)) continue;
 		if (value == null) continue;
 		if (Array.isArray(value)) {
 			if (value.length > 0) parts.push(`  ${key}: ${value.join(", ")}`);
@@ -72,38 +76,38 @@ function formatTemplateData(data: Record<string, unknown> | null): string[] {
 	return parts;
 }
 
-function formatCharacterEntity(ch: Character): string {
+function formatCharacterEntity(ch: Character, resolvedFields?: FieldDefinition[]): string {
 	const parts: string[] = [`\n[Character: "${ch.name}"]`];
-	parts.push(...formatTemplateData(ch.templateData));
+	parts.push(...formatTemplateData(ch.templateData, resolvedFields));
 	return parts.join("\n");
 }
 
-function formatLocationEntity(loc: Location): string {
+function formatLocationEntity(loc: Location, resolvedFields?: FieldDefinition[]): string {
 	const parts: string[] = [`\n[Location: "${loc.name}"]`];
-	parts.push(...formatTemplateData(loc.templateData));
+	parts.push(...formatTemplateData(loc.templateData, resolvedFields));
 	return parts.join("\n");
 }
 
-function formatOrganizationEntity(org: Organization): string {
+function formatOrganizationEntity(org: Organization, resolvedFields?: FieldDefinition[]): string {
 	const parts: string[] = [`\n[Organization: "${org.name}"]`];
-	parts.push(...formatTemplateData(org.templateData));
+	parts.push(...formatTemplateData(org.templateData, resolvedFields));
 	return parts.join("\n");
 }
 
-function formatItemEntity(item: Item): string {
+function formatItemEntity(item: Item, resolvedFields?: FieldDefinition[]): string {
 	const parts: string[] = [`\n[Item: "${item.name}"]`];
-	parts.push(...formatTemplateData(item.templateData));
+	parts.push(...formatTemplateData(item.templateData, resolvedFields));
 	return parts.join("\n");
 }
 
-function formatLoreEntity(lore: LoreEntry): string {
+function formatLoreEntity(lore: LoreEntry, resolvedFields?: FieldDefinition[]): string {
 	const parts: string[] = [`\n[Lore: "${lore.name}"]`];
-	parts.push(...formatTemplateData(lore.templateData));
+	parts.push(...formatTemplateData(lore.templateData, resolvedFields));
 	return parts.join("\n");
 }
 
 export function buildContext(params: BuildContextParams): BuildContextResult {
-	const { project, mentions, fileContents, customPrompt, chapterContextMode, maxContextTokens, chapters, characters, locations, organizations, items, loreEntries } = params;
+	const { project, mentions, fileContents, customPrompt, chapterContextMode, maxContextTokens, chapters, characters, locations, organizations, items, loreEntries, resolvedTemplates } = params;
 
 	const parts: string[] = [];
 
@@ -128,19 +132,19 @@ export function buildContext(params: BuildContextParams): BuildContextResult {
 				if (ch) block = formatChapterChip(ch, m.mode || "brief", chapterContextMode);
 			} else if (m.type === "character") {
 				const ch = characters.find((c) => c.id === m.id);
-				if (ch) block = formatCharacterEntity(ch);
+				if (ch) block = formatCharacterEntity(ch, resolvedTemplates?.character);
 			} else if (m.type === "location") {
 				const loc = locations.find((l) => l.id === m.id);
-				if (loc) block = formatLocationEntity(loc);
+				if (loc) block = formatLocationEntity(loc, resolvedTemplates?.location);
 			} else if (m.type === "organization") {
 				const org = organizations.find((o) => o.id === m.id);
-				if (org) block = formatOrganizationEntity(org);
+				if (org) block = formatOrganizationEntity(org, resolvedTemplates?.organization);
 			} else if (m.type === "item") {
 				const it = items.find((i) => i.id === m.id);
-				if (it) block = formatItemEntity(it);
+				if (it) block = formatItemEntity(it, resolvedTemplates?.item);
 			} else if (m.type === "lore") {
 				const le = loreEntries.find((l) => l.id === m.id);
-				if (le) block = formatLoreEntity(le);
+				if (le) block = formatLoreEntity(le, resolvedTemplates?.lore);
 			}
 			if (block) parts.push(block);
 		}

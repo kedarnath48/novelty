@@ -437,6 +437,31 @@ export type ResolvedTemplateInfo = {
 	projectTemplate: EntityTemplate | null;
 };
 
+export type VisibilityOperator =
+	| "isTrue"
+	| "isFalse"
+	| "isEmpty"
+	| "notEmpty"
+	| "equals"
+	| "notEquals"
+	| "contains"
+	| "notContains"
+	| "in"
+	| "notIn"
+	| "greaterThan"
+	| "lessThan";
+
+export type VisibilityCondition = {
+	field: string;
+	operator: VisibilityOperator;
+	value?: string | number | boolean | string[];
+};
+
+export type FieldVisibility = {
+	mode: "all" | "any";
+	conditions: VisibilityCondition[];
+};
+
 export type FieldDefinition = {
 	name: string;
 	type: "text" | "number" | "textarea" | "select" | "checkbox" | "date"
@@ -451,6 +476,7 @@ export type FieldDefinition = {
 	rangeMax?: number;
 	rangeStep?: number;
 	entitylinkCategories?: CompendiumCategory[];
+	visibleWhen?: FieldVisibility;
 };
 
 export type EntityTemplate = {

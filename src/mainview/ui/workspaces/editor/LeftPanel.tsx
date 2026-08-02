@@ -34,7 +34,7 @@ const EXPLORER_CONFIG = {
     ...COMPENDIUM_CONFIG
 } as const;
 
-const ALL_TABS = { ...MANUSCRIPT_CONFIG, ...COMPENDIUM_CONFIG };
+//const ALL_TABS = { ...MANUSCRIPT_CONFIG, ...COMPENDIUM_CONFIG };
 
 
 export type EditorPanelTabs = "manuscript" | "compendium";
@@ -86,7 +86,7 @@ export default function LeftPanel({
         ? "Chapters"
         : COMPENDIUM_CONFIG[explorerTab as CompendiumCategory].label;
 
-    const currentTabConfig = ALL_TABS[explorerTab];
+    //const currentTabConfig = ALL_TABS[explorerTab];
 
     const currentData = useMemo(() => {
         switch (explorerTab) {

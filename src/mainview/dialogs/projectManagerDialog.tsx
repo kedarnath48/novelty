@@ -19,8 +19,6 @@ import type {
 	Asset,
 	Series,
 	NewSeries,
-	CompendiumCategory,
-	EntityTemplate,
 	Inspiration,
 	NewInspiration,
 } from "../types/index";
@@ -39,13 +37,14 @@ import {
 } from "@tabler/icons-react";
 import styles from "./projectsDialog.module.css";
 import localStyles from "./projectManagerDialog.module.css";
+import TemplateManagerTab from "../components/TemplateManagerTab";
 
 interface ProjectManagerProps {
 	open: boolean;
 	onClose: () => void;
 	project: Project | null;
 	onProjectUpdated?: () => void;
-	onSeriesTemplateEdit?: (seriesId: string) => void;
+	onTemplatesChanged?: () => void;
 }
 
 const projectScopes: { value: ProjectScope; label: string }[] = [
@@ -124,7 +123,7 @@ export default function ProjectManager({
 	onClose,
 	project,
 	onProjectUpdated,
-	onSeriesTemplateEdit,
+	onTemplatesChanged,
 }: ProjectManagerProps) {
 	const rpc = useRPC();
 	const [activeTab, setActiveTab] = useState("general");
@@ -609,41 +608,6 @@ export default function ProjectManager({
 			console.error("Failed to update cover:", e);
 		}
 	}
-
-	const [templatesTabSubTab, setTemplatesTabSubTab] = useState<"series" | "project">("project");
-	const [projectTemplates, setProjectTemplates] = useState<Record<string, EntityTemplate | null>>({});
-	const [loadingTemplates, setLoadingTemplates] = useState(false);
-
-	async function loadProjectTemplates() {
-		if (!project) return;
-		setLoadingTemplates(true);
-		try {
-			const categories: CompendiumCategory[] = ["character", "location", "organization", "item", "lore"];
-			const results = await Promise.all(
-				categories.map((cat) =>
-					rpc.request["db:get-resolved-template"]({ projectId: project.id, baseType: cat })
-				)
-			);
-			const map: Record<string, EntityTemplate | null> = {};
-			for (let i = 0; i < categories.length; i++) {
-				map[categories[i]] = results[i]?.projectTemplate || null;
-			}
-			setProjectTemplates(map);
-		} finally {
-			setLoadingTemplates(false);
-		}
-	}
-
-	useEffect(() => {
-		if (open && project && activeTab === "templates") {
-			loadProjectTemplates();
-		}
-	}, [open, activeTab, project?.id]);
-
-	const categoryLabels: Record<string, string> = {
-		character: "Character", location: "Location",
-		organization: "Organization", item: "Item", lore: "Lore",
-	};
 
 	if (!project) {
 		return null;
@@ -1303,13 +1267,12 @@ export default function ProjectManager({
 											New
 										</button>
 									</div>
-									{selectedSeriesId && onSeriesTemplateEdit && (
+									{selectedSeriesId && (
 										<div style={{ marginTop: "0.5rem" }}>
 											<button
 												type="button"
 												onClick={() => {
-													onClose();
-													onSeriesTemplateEdit(selectedSeriesId);
+													setActiveTab("templates");
 												}}
 												style={{ fontSize: "0.85em" }}
 											>
@@ -1359,83 +1322,14 @@ export default function ProjectManager({
 						<div className={localStyles.tabContent}>
 							<div className={styles.tabPanelHeader}>
 								<h3>Templates</h3>
-								<p>Manage compendium entry templates for this project</p>
+								<p>Manage global, series, and project templates for each entry category</p>
 							</div>
 							<div className={styles.tabPanelContent}>
-								{selectedSeriesId && (
-									<div style={{ display: "flex", gap: "0.5rem", marginBottom: "1rem" }}>
-										<button
-											className={templatesTabSubTab === "series" ? localStyles.subTabActive : localStyles.subTab}
-											onClick={() => setTemplatesTabSubTab("series")}
-										>
-											Series Template
-										</button>
-										<button
-											className={templatesTabSubTab === "project" ? localStyles.subTabActive : localStyles.subTab}
-											onClick={() => setTemplatesTabSubTab("project")}
-										>
-											Project Template
-										</button>
-									</div>
-								)}
-								{loadingTemplates ? (
-									<div>Loading...</div>
-								) : templatesTabSubTab === "series" && selectedSeriesId ? (
-									<div>
-										<p style={{ color: "#888", fontSize: "0.85em", marginBottom: "0.75rem" }}>
-											Manage templates shared across all projects in this series.
-										</p>
-										<button
-											onClick={() => {
-												onClose();
-												onSeriesTemplateEdit?.(selectedSeriesId);
-											}}
-										>
-											Open Series Template Editor
-										</button>
-									</div>
-								) : (
-									<div>
-										{(["character", "location", "organization", "item", "lore"] as CompendiumCategory[]).map((cat) => {
-											return (
-												<button> {cat}</button>
-											)
-										})}
-										{(["character", "location", "organization", "item", "lore"] as CompendiumCategory[]).map((cat) => {
-											const tpl = projectTemplates[cat];
-											const fieldCount = tpl?.customFields?.length || 0;
-											return (
-												<div
-													key={cat}
-													style={{
-														display: "flex",
-														alignItems: "center",
-														justifyContent: "space-between",
-														padding: "0.75rem",
-														marginBottom: "0.5rem",
-														border: "1px solid var(--border, #333)",
-														borderRadius: "6px",
-													}}
-												>
-													<div>
-														<strong>{categoryLabels[cat]}</strong>
-														<span style={{ marginLeft: "0.5rem", color: "#888", fontSize: "0.85em" }}>
-															{fieldCount} field{fieldCount !== 1 ? "s" : ""}
-														</span>
-													</div>
-													<button
-														onClick={() => {
-															onClose();
-															onProjectUpdated?.();
-														}}
-													>
-														Edit
-													</button>
-												</div>
-											);
-										})}
-									</div>
-								)}
+								<TemplateManagerTab
+									projectId={project.id}
+									seriesId={selectedSeriesId}
+									onTemplatesChanged={onTemplatesChanged ?? (() => {})}
+								/>
 							</div>
 						</div>
 					)}

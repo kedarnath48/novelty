@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import Dialog from "../components/Dialog";
+import VisibilityEditor from "../components/VisibilityEditor";
 import { useSettings } from "../contexts/SettingsContext";
 import { getRPC } from "../contexts/RPCContext";
 import {
@@ -1631,7 +1632,14 @@ function TemplatesTab() {
 						{fields.map((f, i) => (
 							<div key={i} style={{ padding: "0.5rem", border: "1px solid var(--border, #333)", borderRadius: "4px" }}>
 								<div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-									<strong>{f.name}</strong>
+									<div style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
+										<strong>{f.name}</strong>
+										{f.visibleWhen && (
+											<span style={{ fontSize: "0.7em", color: "#4A9EFF", background: "rgba(74,158,255,0.15)", padding: "1px 6px", borderRadius: "3px", fontWeight: 500 }}>
+												👁 CONDITIONAL
+											</span>
+										)}
+									</div>
 									<span style={{ color: "#888", fontSize: "0.85em" }}>{f.type}</span>
 								</div>
 								<div style={{ display: "flex", gap: "0.5rem", marginTop: "0.25rem" }}>
@@ -1670,6 +1678,12 @@ function TemplatesTab() {
 											onChange={(e) => updateField(i, { rangeStep: Number(e.target.value) }, fields, setter)} />
 									</div>
 								)}
+								<VisibilityEditor
+									fields={fields}
+									currentIndex={i}
+									value={f.visibleWhen}
+									onChange={(v) => updateField(i, { visibleWhen: v }, fields, setter)}
+								/>
 								<button
 									onClick={() => removeField(i, fields, setter)}
 									style={{ marginTop: "0.25rem", color: "#e74c3c", fontSize: "0.85em" }}

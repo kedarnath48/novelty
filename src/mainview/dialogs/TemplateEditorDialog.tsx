@@ -1,7 +1,10 @@
 import { useState, useEffect, useMemo } from "react";
 import Dialog from "../components/Dialog";
+import VisibilityEditor from "../components/VisibilityEditor";
 import { useRPC } from "../contexts/RPCContext";
 import type { CompendiumCategory, FieldDefinition, EntityTemplate, GlobalTemplate, SeriesTemplate, ResolvedTemplateInfo } from "../types/index";
+import { describeVisibility } from "../templates/fieldVisibility";
+import { getInheritedNames, getSeriesInheritedNames, fullMerge } from "../templates/mergeFields";
 
 interface TemplateEditorProps {
 	open: boolean;
@@ -56,64 +59,6 @@ export default function TemplateEditorDialog({
 		const [moved] = newFields.splice(from, 1);
 		newFields.splice(to, 0, moved);
 		setProjectFields(newFields);
-	}
-
-	function getInheritedNames(globalId: string | null, list: GlobalTemplate[]): Set<string> {
-		if (!globalId) return new Set();
-		const gt = list.find((g) => g.id === globalId);
-		if (!gt?.customFields) return new Set();
-		return new Set(gt.customFields.map((f) => f.name));
-	}
-
-	function mergeGlobalFields(fields: FieldDefinition[], globalId: string | null, list: GlobalTemplate[]): FieldDefinition[] {
-		const inherited = getInheritedNames(globalId, list);
-		const nonInherited = fields.filter((f) => !inherited.has(f.name));
-		if (inherited.size === 0) return nonInherited;
-
-		const globalTpl = list.find((g) => g.id === globalId)!;
-		const savedOverrides = new Map(fields.filter((f) => inherited.has(f.name)).map((f) => [f.name, f] as const));
-
-		const inheritedFields = globalTpl.customFields.map((f) => {
-			const existing = savedOverrides.get(f.name);
-			if (existing) return { ...f, ...existing, disabled: existing.disabled ?? false };
-			return { ...f, disabled: false };
-		});
-
-		return [...inheritedFields, ...nonInherited];
-	}
-
-	function getSeriesInheritedNames(seriesId: string | null, list: SeriesTemplate[]): Set<string> {
-		if (!seriesId) return new Set();
-		const st = list.find((s) => s.id === seriesId);
-		if (!st?.customFields) return new Set();
-		return new Set(st.customFields.map((f) => f.name));
-	}
-
-	function mergeSeriesFields(fields: FieldDefinition[], seriesId: string | null, list: SeriesTemplate[]): FieldDefinition[] {
-		const inherited = getSeriesInheritedNames(seriesId, list);
-		const nonInherited = fields.filter((f) => !inherited.has(f.name));
-		if (inherited.size === 0) return nonInherited;
-
-		const seriesTpl = list.find((s) => s.id === seriesId)!;
-		const savedOverrides = new Map(fields.filter((f) => inherited.has(f.name)).map((f) => [f.name, f] as const));
-
-		const inheritedFields = seriesTpl.customFields.map((f) => {
-			const existing = savedOverrides.get(f.name);
-			if (existing) return { ...f, ...existing, disabled: existing.disabled ?? false };
-			return { ...f, disabled: false };
-		});
-
-		return [...inheritedFields, ...nonInherited];
-	}
-
-	function fullMerge(
-		fields: FieldDefinition[],
-		globalId: string | null,
-		globalList: GlobalTemplate[],
-		seriesId: string | null,
-		seriesList: SeriesTemplate[],
-	): FieldDefinition[] {
-		return mergeSeriesFields(mergeGlobalFields(fields, globalId, globalList), seriesId, seriesList);
 	}
 
 	useEffect(() => {
@@ -259,16 +204,20 @@ export default function TemplateEditorDialog({
 		if (fields.length === 0) return <span style={{ color: "#888", fontStyle: "italic" }}>No fields</span>;
 		return (
 			<div style={{ display: "flex", flexWrap: "wrap", gap: "0.25rem" }}>
-				{fields.map((f) => (
-					<span key={f.name} style={{
+				{fields.map((f) => {
+					const visDesc = describeVisibility(f.visibleWhen, (name) => projectFields.find((p) => p.name === name)?.label || name);
+					return (
+					<span key={f.name} title={visDesc || undefined} style={{
 						padding: "0.15rem 0.4rem", background: "var(--bg-secondary, #222)",
 						borderRadius: "3px", fontSize: "0.85em", color: "#ccc",
 					}}>
 						{f.label || f.name}
 						{f.required && <span style={{ color: "#e74c3c" }}>*</span>}
 						<span style={{ color: "#888", marginLeft: "0.25rem", fontSize: "0.85em" }}>({f.type})</span>
+						{visDesc && <span style={{ color: "#4A9EFF", marginLeft: "0.25rem", fontSize: "0.85em" }}>👁</span>}
 					</span>
-				))}
+					);
+				})}
 			</div>
 		);
 	}
@@ -407,6 +356,11 @@ export default function TemplateEditorDialog({
 																INHERITED
 															</span>
 														)}
+														{field.visibleWhen && (
+															<span title={describeVisibility(field.visibleWhen, (name) => projectFields.find((p) => p.name === name)?.label || name) || undefined} style={{ fontSize: "0.7em", color: "#4A9EFF", background: "rgba(74,158,255,0.15)", padding: "1px 6px", borderRadius: "3px", fontWeight: 500 }}>
+																👁 CONDITIONAL
+															</span>
+														)}
 													</div>
 													<div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
 														<label style={{ display: "flex", alignItems: "center", gap: "0.2rem", fontSize: "0.8em", color: "#888" }}>
@@ -484,6 +438,12 @@ export default function TemplateEditorDialog({
 																	</div>
 																</div>
 															)}
+															<VisibilityEditor
+																fields={projectFields}
+																currentIndex={index}
+																value={field.visibleWhen}
+																onChange={(v) => updateField(index, { visibleWhen: v })}
+															/>
 															<button onClick={() => removeField(index)}
 																style={{ marginTop: "0.25rem", color: "#e74c3c", fontSize: "0.85em" }}>
 																Remove

@@ -43,31 +43,22 @@ import type { MappingResult } from "./dialogs/TemplateFieldMappingDialog";
 
 import {
   IconChevronLeft,
-  IconTrash,
-  IconChevronRight,
-  IconEdit,
   IconFiles,
-  IconPlus,
-  IconSearch,
-  IconSettings,
   IconBook,
-  IconUsers,
-  IconMapPin2,
-  IconBuildings,
-  IconSwords,
-  IconPin,
-  IconPinFilled,
+  //IconUsers,
+  //IconMapPin2,
+  //IconBuildings,
+  //IconSwords,
 } from "@tabler/icons-react";
 import UIDialog from "./dialogs/uiDialog";
 import TemplateEditorDialog from "./dialogs/TemplateEditorDialog";
-import SeriesTemplateEditorDialog from "./dialogs/SeriesTemplateEditorDialog";
 import { StatusBar } from "./ui/statusBar";
 import type { SaveState } from "./ui/statusBar";
 import { useSettings } from "./contexts/SettingsContext";
-import styles from "./App.module.css";
 import LeftPanel from "./ui/workspaces/editor/LeftPanel";
 import RightPanel from "./ui/workspaces/editor/RightPanel";
 
+/*
 const categoryConfig: Record<
   CompendiumCategory,
   { icon: typeof IconUsers; label: string }
@@ -78,10 +69,11 @@ const categoryConfig: Record<
   item: { icon: IconSwords, label: "Item" },
   lore: { icon: IconBook, label: "Lore" },
 };
-type WorkspaceMode = 'editor' | 'ai';
+*/
+//type WorkspaceMode = 'editor' | 'ai';
 
 function App() {
-  const [workspaceMode, setWorkspaceMode] = useState<WorkspaceMode>('editor');
+  //const [workspaceMode, setWorkspaceMode] = useState<WorkspaceMode>('editor');
   const [isLeftHovered, setIsLeftHovered] = useState(false);
   const hoverTimerRef = useRef<ReturnType<typeof setTimeout>>();
   const [leftSidebarWidth, setLeftSidebarWidth] = useState(280);
@@ -142,8 +134,6 @@ function App() {
   const [showAnalysis, setShowAnalysis] = useState(false);
   const [skeletonMode, setSkeletonMode] = useState(false);
   const [showTemplateEditor, setShowTemplateEditor] = useState(false);
-  const [showSeriesTemplateEditor, setShowSeriesTemplateEditor] = useState(false);
-  const [seriesTemplateEditorSeriesId, setSeriesTemplateEditorSeriesId] = useState<string | null>(null);
   const [templates, setTemplates] = useState<
     Record<CompendiumCategory, EntityTemplate | null>
   >({
@@ -466,6 +456,20 @@ function App() {
     ]);
     setTemplates((prev) => ({ ...prev, [category]: template || null }));
     setResolvedTemplateFields((prev) => ({ ...prev, [category]: resolved?.fields || [] }));
+  }
+
+  async function refreshResolvedTemplates() {
+    if (!currentProject) return;
+    const categories: CompendiumCategory[] = [
+      "character",
+      "location",
+      "organization",
+      "item",
+      "lore",
+    ];
+    await Promise.all(
+      categories.map((cat) => loadTemplateForCategory(currentProject.id, cat)),
+    );
   }
 
   async function handleSaveTemplate(
@@ -1491,7 +1495,7 @@ function App() {
 
           // Action Callbacks (Ported from your logic)
           handleNewChapter={handleNewChapter}
-          handleNewCompendiumEntry={(cat) => handleNewCompendiumEntry(
+          handleNewCompendiumEntry={(_cat) => handleNewCompendiumEntry(
             explorerTab as CompendiumCategory,
           )}
           handleEditTemplate={() => handleEditTemplate()}
@@ -1513,7 +1517,7 @@ function App() {
               );
             }
           }}
-          deleteCompendiumEntry={(id, cat) => {
+          deleteCompendiumEntry={(id, _cat) => {
             handleDeleteCompendiumEntry(
               id,
               explorerTab as CompendiumCategory,
@@ -1609,6 +1613,7 @@ function App() {
                   onUpdateCompendium={handleUpdateCompendium}
                   activeTabId={activeTabId}
                   activeTabType={getActiveTab()?.type ?? null}
+                  resolvedTemplates={resolvedTemplateFields}
                   style={{ width: rightSidebarWidth }}
                 />
               </>
@@ -1652,11 +1657,7 @@ function App() {
           onClose={() => setActiveDialog(null)}
           project={currentProject}
           onProjectUpdated={refreshCurrentProject}
-          onSeriesTemplateEdit={(seriesId: string) => {
-            setActiveDialog(null);
-            setSeriesTemplateEditorSeriesId(seriesId);
-            setShowSeriesTemplateEditor(true);
-          }}
+          onTemplatesChanged={refreshResolvedTemplates}
         />
       )}
       {activeDialog === "settings" && (
@@ -1698,17 +1699,6 @@ function App() {
           baseType={explorerTab as CompendiumCategory}
           template={templates[explorerTab as CompendiumCategory]}
           onSave={handleSaveTemplate}
-        />
-      )}
-      {showSeriesTemplateEditor && seriesTemplateEditorSeriesId && (
-        <SeriesTemplateEditorDialog
-          open={showSeriesTemplateEditor}
-          onClose={() => {
-            setShowSeriesTemplateEditor(false);
-            setSeriesTemplateEditorSeriesId(null);
-          }}
-          seriesId={seriesTemplateEditorSeriesId}
-          seriesName=""
         />
       )}
 

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import {
-	IconArrowRight,
+	//IconArrowRight,
 	IconPlus,
 	IconHistory,
 	IconArchive,
@@ -26,7 +26,7 @@ import type {
 	UserChatMessage,
 	AssistantChatMessage,
 } from "../services/ai";
-import type { NewChatSession, Project, MentionTarget, Chapter, Character, Location, Organization, Item, LoreEntry, CompendiumCategory } from "../types";
+import type { NewChatSession, Project, MentionTarget, Chapter, Character, Location, Organization, Item, LoreEntry, CompendiumCategory, FieldDefinition } from "../types";
 import { parseEntryData, parseAllEntryData } from "../services/entryParser";
 import type { ParsedEntry } from "../services/entryParser";
 import type { RichTextEditorHandle } from "./RichTextEditor";
@@ -79,6 +79,7 @@ interface ChatPanelProps {
 	activeTabId?: string | null;
 	activeTabType?: string | null;
 	style?: React.CSSProperties;
+	resolvedTemplates?: Partial<Record<CompendiumCategory, FieldDefinition[]>>;
 }
 
 export default function ChatPanel({
@@ -99,6 +100,7 @@ export default function ChatPanel({
 	onUpdateCompendium,
 	activeTabId,
 	activeTabType,
+	resolvedTemplates,
 }: ChatPanelProps) {
 	const rpc = getRPC();
 	const [input, setInput] = useState("");
@@ -403,6 +405,7 @@ export default function ChatPanel({
 					organizations,
 					items,
 					loreEntries,
+					resolvedTemplates,
 				});
 			}
 
@@ -1238,19 +1241,19 @@ export default function ChatPanel({
 								</p>
 							</div>
 						)}
-					{messages.map((msg, i) => {
-						// Skip rendering empty assistant bubbles during loading unless they have reasoning content (Ollama/Gemma 4 pattern)
-						if (
-							msg.role === "assistant" &&
-							isLoading &&
-							(msg as AssistantChatMessage).content[0].length === 0 &&
-							!(msg as AssistantChatMessage).reasoning
-						) {
-							return null;
-						}
-						const isLastUser =
-							msg.role === "user" &&
-							!messages.slice(i + 1).some((m) => m.role === "user");
+						{messages.map((msg, i) => {
+							// Skip rendering empty assistant bubbles during loading unless they have reasoning content (Ollama/Gemma 4 pattern)
+							if (
+								msg.role === "assistant" &&
+								isLoading &&
+								(msg as AssistantChatMessage).content[0].length === 0 &&
+								!(msg as AssistantChatMessage).reasoning
+							) {
+								return null;
+							}
+							const isLastUser =
+								msg.role === "user" &&
+								!messages.slice(i + 1).some((m) => m.role === "user");
 							const isOld = i < activeStart && viewMode !== "full";
 							const entryData = msg.role === "assistant" ? pendingEntryData[msg.id] : undefined;
 							const slashOverride = msg.role === "assistant" ? slashCommandTargets[msg.id] : undefined;

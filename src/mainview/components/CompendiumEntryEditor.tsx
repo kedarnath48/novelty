@@ -2,6 +2,7 @@ import { useState } from "react";
 import type { Character, Location, Organization, Item, LoreEntry, CompendiumCategory, EntityTemplate, FieldDefinition } from "../types/index";
 import { IconX, IconPhoto } from "@tabler/icons-react";
 import { RichTextEditor } from "./RichTextEditor";
+import { isFieldVisible } from "../templates/fieldVisibility";
 
 interface CompendiumEntryEditorProps {
 	entry: Character | Location | Organization | Item | LoreEntry;
@@ -18,7 +19,7 @@ interface CompendiumEntryEditorProps {
 
 export default function CompendiumEntryEditor({ entry, category, template, onUpdate, onEditTemplate, characters, locations, organizations, items, loreEntries }: CompendiumEntryEditorProps) {
 	const templateData = (entry as Record<string, unknown>).templateData as Record<string, unknown> | null || {};
-	const fields = template?.customFields || [];
+	const fields = (template?.customFields || []).filter((f) => isFieldVisible(f, templateData));
 
 	const portraitFields = fields.filter((f) => f.type === "portrait");
 	const imagesFields = fields.filter((f) => f.type === "images");

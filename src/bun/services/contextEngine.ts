@@ -3,7 +3,10 @@ import { characters, locations, organizations, items, loreEntries, plotThreads, 
 import { eq } from "drizzle-orm";
 import { semanticSearch } from "./embeddings/search";
 import { countTokens, truncateToTokens } from "./embeddings/tokenizer";
-import type { EmbeddingSettings, Project, MentionTarget, ContextSource } from "../../mainview/types";
+import { resolveTemplate } from "../database/templates";
+import type { FieldDefinition } from "../database/templates";
+import { isFieldVisible } from "../../mainview/templates/fieldVisibility";
+import type { EmbeddingSettings, Project, MentionTarget, ContextSource, CompendiumCategory } from "../../mainview/types";
 
 export interface ContextRequest {
 	projectId: string;
@@ -59,6 +62,34 @@ function formatTemplateData(data: Record<string, unknown> | null): string[] {
 	return parts;
 }
 
+async function getResolvedFields(
+	projectId: string,
+	type: string,
+): Promise<FieldDefinition[]> {
+	try {
+		const resolved = await resolveTemplate(projectId, type as CompendiumCategory);
+		return resolved.fields;
+	} catch {
+		return [];
+	}
+}
+
+function filterByVisibility(
+	data: Record<string, unknown>,
+	resolvedFields: FieldDefinition[],
+): Record<string, unknown> {
+	const out: Record<string, unknown> = {};
+	for (const [key, value] of Object.entries(data)) {
+		const field = resolvedFields.find((f) => f.name === key);
+		if (!field) {
+			out[key] = value;
+			continue;
+		}
+		if (isFieldVisible(field, data)) out[key] = value;
+	}
+	return out;
+}
+
 function formatChapterContent(ch: any, mode: "brief" | "full"): string {
 	const header = `\n[Chapter: "${ch.title}"]`;
 	if (mode === "brief") {
@@ -68,13 +99,14 @@ function formatChapterContent(ch: any, mode: "brief" | "full"): string {
 	return `${header}\n${ch.content || "(empty)"}`;
 }
 
-function formatEntityBlock(type: string, name: string, templateData: any): string {
+function formatEntityBlock(type: string, name: string, templateData: any, resolvedFields?: FieldDefinition[]): string {
 	const label = type.charAt(0).toUpperCase() + type.slice(1);
 	const parts = [`\n[${label}: "${name}"]`];
 	if (templateData) {
 		try {
 			const data = typeof templateData === "string" ? JSON.parse(templateData) : templateData;
-			parts.push(...formatTemplateData(data));
+			const filtered = resolvedFields ? filterByVisibility(data, resolvedFields) : data;
+			parts.push(...formatTemplateData(filtered));
 		} catch { /* skip */ }
 	}
 	return parts.join("\n");
@@ -181,10 +213,10 @@ async function retrieveSemanticContext(
 	return { text: parts.join("\n"), sources };
 }
 
-function retrieveCompendiumEntities(
+async function retrieveCompendiumEntities(
 	projectId: string,
 	budgetTokens: number
-): { text: string; sources: ContextSource[] } {
+): Promise<{ text: string; sources: ContextSource[] }> {
 	const parts: string[] = [];
 	const sources: ContextSource[] = [];
 	let usedTokens = 0;
@@ -193,8 +225,9 @@ function retrieveCompendiumEntities(
 	if (allChars.length > 0) {
 		const header = `\n--- All Characters (${allChars.length}) ---`;
 		let block = header;
+		const resolvedFields = await getResolvedFields(projectId, "character");
 		for (const ch of allChars) {
-			const entry = formatEntityBlock("character", ch.name, ch.templateData);
+			const entry = formatEntityBlock("character", ch.name, ch.templateData, resolvedFields);
 			const testBlock = block + entry;
 			if (countTokens(testBlock) > budgetTokens) break;
 			block += entry;
@@ -211,8 +244,9 @@ function retrieveCompendiumEntities(
 	if (allLocs.length > 0) {
 		const header = `\n--- All Locations (${allLocs.length}) ---`;
 		let block = header;
+		const resolvedFields = await getResolvedFields(projectId, "location");
 		for (const loc of allLocs) {
-			const entry = formatEntityBlock("location", loc.name, loc.templateData);
+			const entry = formatEntityBlock("location", loc.name, loc.templateData, resolvedFields);
 			const testBlock = block + entry;
 			if (countTokens(testBlock) > budgetTokens) break;
 			block += entry;
@@ -229,8 +263,9 @@ function retrieveCompendiumEntities(
 	if (allOrgs.length > 0) {
 		const header = `\n--- All Organizations (${allOrgs.length}) ---`;
 		let block = header;
+		const resolvedFields = await getResolvedFields(projectId, "organization");
 		for (const org of allOrgs) {
-			const entry = formatEntityBlock("organization", org.name, org.templateData);
+			const entry = formatEntityBlock("organization", org.name, org.templateData, resolvedFields);
 			const testBlock = block + entry;
 			if (countTokens(testBlock) > budgetTokens) break;
 			block += entry;
@@ -247,8 +282,9 @@ function retrieveCompendiumEntities(
 	if (allItems.length > 0) {
 		const header = `\n--- All Items (${allItems.length}) ---`;
 		let block = header;
+		const resolvedFields = await getResolvedFields(projectId, "item");
 		for (const item of allItems) {
-			const entry = formatEntityBlock("item", item.name, item.templateData);
+			const entry = formatEntityBlock("item", item.name, item.templateData, resolvedFields);
 			const testBlock = block + entry;
 			if (countTokens(testBlock) > budgetTokens) break;
 			block += entry;
@@ -265,8 +301,9 @@ function retrieveCompendiumEntities(
 	if (allLore.length > 0) {
 		const header = `\n--- All Lore (${allLore.length}) ---`;
 		let block = header;
+		const resolvedFields = await getResolvedFields(projectId, "lore");
 		for (const lore of allLore) {
-			const entry = formatEntityBlock("lore", lore.name, lore.templateData);
+			const entry = formatEntityBlock("lore", lore.name, lore.templateData, resolvedFields);
 			const testBlock = block + entry;
 			if (countTokens(testBlock) > budgetTokens) break;
 			block += entry;
@@ -344,31 +381,31 @@ export async function buildContext(request: ContextRequest): Promise<ContextResu
 			} else if (m.type === "character") {
 				const e = db.select().from(characters).where(eq(characters.id, m.id)).get();
 				if (e) {
-					block = formatEntityBlock("character", e.name, e.templateData);
+					block = formatEntityBlock("character", e.name, e.templateData, await getResolvedFields(request.projectId, "character"));
 					sources.push({ entityType: "character", entityId: e.id, label: e.name });
 				}
 			} else if (m.type === "location") {
 				const e = db.select().from(locations).where(eq(locations.id, m.id)).get();
 				if (e) {
-					block = formatEntityBlock("location", e.name, e.templateData);
+					block = formatEntityBlock("location", e.name, e.templateData, await getResolvedFields(request.projectId, "location"));
 					sources.push({ entityType: "location", entityId: e.id, label: e.name });
 				}
 			} else if (m.type === "organization") {
 				const e = db.select().from(organizations).where(eq(organizations.id, m.id)).get();
 				if (e) {
-					block = formatEntityBlock("organization", e.name, e.templateData);
+					block = formatEntityBlock("organization", e.name, e.templateData, await getResolvedFields(request.projectId, "organization"));
 					sources.push({ entityType: "organization", entityId: e.id, label: e.name });
 				}
 			} else if (m.type === "item") {
 				const e = db.select().from(items).where(eq(items.id, m.id)).get();
 				if (e) {
-					block = formatEntityBlock("item", e.name, e.templateData);
+					block = formatEntityBlock("item", e.name, e.templateData, await getResolvedFields(request.projectId, "item"));
 					sources.push({ entityType: "item", entityId: e.id, label: e.name });
 				}
 			} else if (m.type === "lore") {
 				const e = db.select().from(loreEntries).where(eq(loreEntries.id, m.id)).get();
 				if (e) {
-					block = formatEntityBlock("lore", e.name, e.templateData);
+					block = formatEntityBlock("lore", e.name, e.templateData, await getResolvedFields(request.projectId, "lore"));
 					sources.push({ entityType: "lore", entityId: e.id, label: e.name });
 				}
 			}
@@ -385,7 +422,7 @@ export async function buildContext(request: ContextRequest): Promise<ContextResu
 	const { text: structuredText, sources: structuredSources } = retrieveStructuredContext(request, structuredBudget);
 	sources.push(...structuredSources);
 
-	const { text: compendiumText, sources: compendiumSources } = retrieveCompendiumEntities(request.projectId, compendiumBudget);
+	const { text: compendiumText, sources: compendiumSources } = await retrieveCompendiumEntities(request.projectId, compendiumBudget);
 	sources.push(...compendiumSources);
 
 	const { text: semanticText, sources: semanticSources } = await retrieveSemanticContext(request, semanticBudget);
