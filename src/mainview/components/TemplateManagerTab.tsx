@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, type ReactNode } from "react";
 import { useRPC } from "../contexts/RPCContext";
 import VisibilityEditor from "./VisibilityEditor";
 import { describeVisibility } from "../templates/fieldVisibility";
@@ -63,9 +63,10 @@ export default function TemplateManagerTab({
 	const [globalTemplates, setGlobalTemplates] = useState<GlobalTemplate[]>([]);
 	const [seriesTemplates, setSeriesTemplates] = useState<SeriesTemplate[]>([]);
 	const [drafts, setDrafts] = useState<Partial<Record<CompendiumCategory, CategoryDraft>>>({});
-	const [expanded, setExpanded] = useState<CompendiumCategory[]>([]);
+	const [activeCat, setActiveCat] = useState<CompendiumCategory>("character");
 	const [loading, setLoading] = useState(true);
 	const [savingCat, setSavingCat] = useState<CompendiumCategory | null>(null);
+	const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({});
 
 	async function load() {
 		if (!projectId) return;
@@ -154,18 +155,20 @@ export default function TemplateManagerTab({
 		}));
 	}
 
-	function toggleExpand(cat: CompendiumCategory) {
-		setExpanded((prev) =>
-			prev.includes(cat) ? prev.filter((c) => c !== cat) : [...prev, cat],
-		);
-	}
-
 	function updateDraft(cat: CompendiumCategory, patch: Partial<CategoryDraft>) {
 		setDrafts((prev) => {
 			const d = prev[cat];
 			if (!d) return prev;
 			return { ...prev, [cat]: { ...d, ...patch, dirty: true } };
 		});
+	}
+
+	function isSectionCollapsed(cat: CompendiumCategory, section: "global" | "series" | "project") {
+		return !!collapsedSections[`${cat}:${section}`];
+	}
+
+	function toggleSection(cat: CompendiumCategory, section: "global" | "series" | "project") {
+		setCollapsedSections((prev) => ({ ...prev, [`${cat}:${section}`]: !prev[`${cat}:${section}`] }));
 	}
 
 	function handleGlobalChange(cat: CompendiumCategory, newId: string) {
@@ -363,6 +366,25 @@ export default function TemplateManagerTab({
 		return `${g} global · ${s} series · ${p} project`;
 	}
 
+	function globalSummary(d: CategoryDraft): string {
+		const g = globalTemplates.find((x) => x.id === d.globalTemplateId);
+		return g ? `${g.name} (${g.customFields?.length || 0} fields)` : "None";
+	}
+
+	function seriesSummary(d: CategoryDraft): string {
+		if (!seriesId) return "Not applicable";
+		const s = seriesTemplates.find((x) => x.id === d.seriesTemplateId);
+		return s ? `${s.name} (${s.customFields?.length || 0} fields)` : "None";
+	}
+
+	function projectSummary(d: CategoryDraft): string {
+		const inherited = new Set([
+			...Array.from(getInheritedNames(d.globalTemplateId, globalTemplates)),
+			...Array.from(getSeriesInheritedNames(d.seriesTemplateId, seriesTemplates)),
+		]);
+		return `${d.projectFields.filter((f) => !inherited.has(f.name)).length} project fields`;
+	}
+
 	function renderFieldPreview(fields: FieldDefinition[], labelResolver: (name: string) => string) {
 		if (fields.length === 0) {
 			return <span style={{ color: "#888", fontStyle: "italic" }}>No fields</span>;
@@ -401,7 +423,6 @@ export default function TemplateManagerTab({
 		const selected = globalTemplates.find((g) => g.id === d.globalTemplateId);
 		return (
 			<div>
-				<h4 style={{ margin: "0 0 0.5rem 0", color: "#aaa" }}>Global Template</h4>
 				<select
 					value={d.globalTemplateId || ""}
 					onChange={(e) => handleGlobalChange(cat, e.target.value)}
@@ -485,7 +506,6 @@ export default function TemplateManagerTab({
 		if (!seriesId) {
 			return (
 				<div>
-					<h4 style={{ margin: "0 0 0.5rem 0", color: "#aaa" }}>Series Template</h4>
 					<div style={{ color: "#888", fontSize: "0.85em" }}>
 						This project is not assigned to a series, so no series templates apply. Assign a series in the General tab.
 					</div>
@@ -496,7 +516,6 @@ export default function TemplateManagerTab({
 		const applied = seriesTemplates.find((s) => s.id === d.seriesTemplateId);
 		return (
 			<div>
-				<h4 style={{ margin: "0 0 0.5rem 0", color: "#aaa" }}>Series Template</h4>
 				<select
 					value={d.seriesTemplateId || ""}
 					onChange={(e) => handleSeriesChange(cat, e.target.value)}
@@ -587,7 +606,6 @@ export default function TemplateManagerTab({
 	function renderProjectSection(cat: CompendiumCategory, d: CategoryDraft) {
 		return (
 			<div>
-				<h4 style={{ margin: "0 0 0.5rem 0", color: "#aaa" }}>Project Fields</h4>
 				<p style={{ fontSize: "0.85em", color: "#888", margin: "0 0 0.5rem 0" }}>
 					The effective template for this project. Inherited fields from the global and series templates are shown with an INHERITED badge.
 				</p>
@@ -602,73 +620,145 @@ export default function TemplateManagerTab({
 	}
 
 	return (
-		<div style={{ flex: 1, overflowY: "auto", display: "flex", flexDirection: "column", gap: "0.5rem", minHeight: 0 }}>
+		<div style={{ flex: 1, overflowY: "auto", display: "flex", flexDirection: "column", gap: "0.75rem", minHeight: 0 }}>
 			{loading ? (
 				<div style={{ padding: "2rem", textAlign: "center", color: "#888" }}>Loading templates...</div>
 			) : (
-				CATEGORIES.map((cat) => {
-					const d = drafts[cat];
-					if (!d) return null;
-					const isExpanded = expanded.includes(cat);
-					return (
-						<div key={cat} style={{ border: "1px solid var(--border, #333)", borderRadius: "6px", overflow: "hidden" }}>
-							<button
-								type="button"
-								onClick={() => toggleExpand(cat)}
-								style={{
-									width: "100%",
-									display: "flex",
-									justifyContent: "space-between",
-									alignItems: "center",
-									padding: "0.75rem 1rem",
-									background: "transparent",
-									border: "none",
-									cursor: "pointer",
-								}}
-							>
-								<div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-									<span style={{ color: "#888" }}>{isExpanded ? "▾" : "▸"}</span>
-									<strong>{categoryLabels[cat]}</strong>
-									<span style={{ color: "#888", fontSize: "0.85em" }}>{summaryFor(d)}</span>
-									{d.dirty && (
-										<span style={{ fontSize: "0.7em", color: "#FFA500", background: "rgba(255,165,0,0.15)", padding: "1px 6px", borderRadius: "3px", fontWeight: 500 }}>
-											UNSAVED
-										</span>
-									)}
-								</div>
-							</button>
-							{isExpanded && (
-								<div
+				<>
+					<div
+						style={{
+							display: "flex",
+							gap: "0.4rem",
+							borderBottom: "1px solid var(--border, #333)",
+							paddingBottom: "0.5rem",
+							flexWrap: "wrap",
+							flexShrink: 0,
+						}}
+					>
+						{CATEGORIES.map((cat) => {
+							const d = drafts[cat];
+							if (!d) return null;
+							const isActive = activeCat === cat;
+							return (
+								<button
+									key={cat}
+									type="button"
+									onClick={() => setActiveCat(cat)}
 									style={{
-										padding: "0.75rem 1rem",
-										borderTop: "1px solid var(--border, #333)",
 										display: "flex",
 										flexDirection: "column",
-										gap: "1rem",
+										alignItems: "flex-start",
+										gap: "0.15rem",
+										padding: "0.4rem 0.75rem",
+										borderRadius: "4px",
+										border: `1px solid ${isActive ? "var(--accent)" : "var(--border, #333)"}`,
+										cursor: "pointer",
+										background: isActive ? "var(--accent-subtle, rgba(240,160,80,0.08))" : "transparent",
+										color: isActive ? "var(--accent)" : "#ccc",
 									}}
 								>
-									{renderGlobalSection(cat, d)}
-									{renderSeriesSection(cat, d)}
-									{renderProjectSection(cat, d)}
-									<div style={{ display: "flex", justifyContent: "flex-end", gap: "0.5rem" }}>
+									<span style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
+										<strong>{categoryLabels[cat]}</strong>
 										{d.dirty && (
-											<button type="button" onClick={() => reloadCategory(cat)}>Discard</button>
+											<span style={{ fontSize: "0.65em", color: "#FFA500", background: "rgba(255,165,0,0.15)", padding: "1px 5px", borderRadius: "3px", fontWeight: 500 }}>
+												UNSAVED
+											</span>
 										)}
-										<button
-											type="button"
-											className="save-btn"
-											onClick={() => handleSaveCategory(cat)}
-											disabled={!d.dirty || savingCat === cat}
-										>
-											{savingCat === cat ? "Saving..." : `Save ${categoryLabels[cat]}`}
-										</button>
-									</div>
+									</span>
+									<span style={{ fontSize: "0.72em", opacity: 0.75 }}>{summaryFor(d)}</span>
+								</button>
+							);
+						})}
+					</div>
+					{(() => {
+						const d = drafts[activeCat];
+						if (!d) return null;
+						return (
+							<div style={{ display: "flex", flexDirection: "column", gap: "1rem", padding: "0.25rem 0.25rem 0.5rem" }}>
+								<CollapsibleSection
+									title="Global Template"
+									collapsed={isSectionCollapsed(activeCat, "global")}
+									onToggle={() => toggleSection(activeCat, "global")}
+									summary={globalSummary(d)}
+								>
+									{renderGlobalSection(activeCat, d)}
+								</CollapsibleSection>
+								<CollapsibleSection
+									title="Series Template"
+									collapsed={isSectionCollapsed(activeCat, "series") && !d.seriesEditor}
+									onToggle={() => toggleSection(activeCat, "series")}
+									summary={seriesSummary(d)}
+								>
+									{renderSeriesSection(activeCat, d)}
+								</CollapsibleSection>
+								<CollapsibleSection
+									title="Project Fields"
+									collapsed={isSectionCollapsed(activeCat, "project")}
+									onToggle={() => toggleSection(activeCat, "project")}
+									summary={projectSummary(d)}
+								>
+									{renderProjectSection(activeCat, d)}
+								</CollapsibleSection>
+								<div style={{ display: "flex", justifyContent: "flex-end", gap: "0.5rem" }}>
+									{d.dirty && (
+										<button type="button" onClick={() => reloadCategory(activeCat)}>Discard</button>
+									)}
+									<button
+										type="button"
+										className="save-btn"
+										onClick={() => handleSaveCategory(activeCat)}
+										disabled={!d.dirty || savingCat === activeCat}
+									>
+										{savingCat === activeCat ? "Saving..." : `Save ${categoryLabels[activeCat]}`}
+									</button>
 								</div>
-							)}
-						</div>
-					);
-				})
+							</div>
+						);
+					})()}
+				</>
 			)}
+		</div>
+	);
+}
+
+function CollapsibleSection({
+	title,
+	collapsed,
+	onToggle,
+	summary,
+	children,
+}: {
+	title: string;
+	collapsed: boolean;
+	onToggle: () => void;
+	summary: string;
+	children: ReactNode;
+}) {
+	return (
+		<div>
+			<button
+				type="button"
+				onClick={onToggle}
+				style={{
+					width: "100%",
+					display: "flex",
+					justifyContent: "space-between",
+					alignItems: "center",
+					gap: "0.5rem",
+					padding: "0.5rem 0.75rem",
+					background: "var(--bg-secondary, #1a1a1a)",
+					border: "1px solid var(--border, #333)",
+					borderRadius: "4px",
+					cursor: "pointer",
+				}}
+			>
+				<span style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+					<span style={{ color: "#888" }}>{collapsed ? "▸" : "▾"}</span>
+					<strong style={{ color: "#ccc" }}>{title}</strong>
+				</span>
+				<span style={{ color: "#888", fontSize: "0.8em", textAlign: "right" }}>{summary}</span>
+			</button>
+			{!collapsed && <div style={{ marginTop: "0.5rem" }}>{children}</div>}
 		</div>
 	);
 }
@@ -1009,65 +1099,65 @@ function SimpleFieldsEditor({
 										</span>
 									)}
 								</div>
-							<div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-								<span style={{ color: "#888", fontSize: "0.85em" }}>{f.type}</span>
-								<button type="button" onClick={() => moveField(i, i - 1)} disabled={i === 0} title="Move up">↑</button>
-								<button type="button" onClick={() => moveField(i, i + 1)} disabled={i === fields.length - 1} title="Move down">↓</button>
+								<div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+									<span style={{ color: "#888", fontSize: "0.85em" }}>{f.type}</span>
+									<button type="button" onClick={() => moveField(i, i - 1)} disabled={i === 0} title="Move up">↑</button>
+									<button type="button" onClick={() => moveField(i, i + 1)} disabled={i === fields.length - 1} title="Move down">↓</button>
+								</div>
 							</div>
-						</div>
-						{inheritedNames.has(f.name) ? (
-							<div style={{ display: "flex", gap: "0.5rem", marginTop: "0.25rem", alignItems: "center" }}>
-								<span style={{ flex: 1, color: "#aaa", fontSize: "0.9em" }}>{f.label}</span>
-								{f.required && <span style={{ color: "#e74c3c", fontSize: "0.85em" }}>Required *</span>}
-								<label style={{ display: "flex", alignItems: "center", gap: "0.25rem", fontSize: "0.85em", cursor: "pointer", color: f.disabled ? "#e74c3c" : "#aaa" }}>
-									<input type="checkbox" checked={!f.disabled} onChange={() => toggleFieldDisabled(f.name)} />
-									Enabled
-								</label>
-							</div>
-						) : (
-							<>
-								<div style={{ display: "flex", gap: "0.5rem", marginTop: "0.25rem" }}>
-									<input
-										type="text"
-										placeholder="Label"
-										value={f.label}
-										onChange={(e) => updateField(i, { label: e.target.value })}
-										style={{ flex: 1 }}
-									/>
-									<label style={{ display: "flex", alignItems: "center", gap: "0.25rem", fontSize: "0.85em" }}>
-										<input type="checkbox" checked={f.required} onChange={(e) => updateField(i, { required: e.target.checked })} />
-										Required
+							{inheritedNames.has(f.name) ? (
+								<div style={{ display: "flex", gap: "0.5rem", marginTop: "0.25rem", alignItems: "center" }}>
+									<span style={{ flex: 1, color: "#aaa", fontSize: "0.9em" }}>{f.label}</span>
+									{f.required && <span style={{ color: "#e74c3c", fontSize: "0.85em" }}>Required *</span>}
+									<label style={{ display: "flex", alignItems: "center", gap: "0.25rem", fontSize: "0.85em", cursor: "pointer", color: f.disabled ? "#e74c3c" : "#aaa" }}>
+										<input type="checkbox" checked={!f.disabled} onChange={() => toggleFieldDisabled(f.name)} />
+										Enabled
 									</label>
 								</div>
-								{(f.type === "select" || f.type === "multiselect") && (
-								<input
-									type="text"
-									placeholder="Options (comma-separated)"
-									value={f.options?.join(", ") || ""}
-									onChange={(e) => updateField(i, { options: e.target.value.split(",").map((o) => o.trim()).filter(Boolean) })}
-									style={{ width: "100%", marginTop: "0.25rem" }}
-								/>
+							) : (
+								<>
+									<div style={{ display: "flex", gap: "0.5rem", marginTop: "0.25rem" }}>
+										<input
+											type="text"
+											placeholder="Label"
+											value={f.label}
+											onChange={(e) => updateField(i, { label: e.target.value })}
+											style={{ flex: 1 }}
+										/>
+										<label style={{ display: "flex", alignItems: "center", gap: "0.25rem", fontSize: "0.85em" }}>
+											<input type="checkbox" checked={f.required} onChange={(e) => updateField(i, { required: e.target.checked })} />
+											Required
+										</label>
+									</div>
+									{(f.type === "select" || f.type === "multiselect") && (
+										<input
+											type="text"
+											placeholder="Options (comma-separated)"
+											value={f.options?.join(", ") || ""}
+											onChange={(e) => updateField(i, { options: e.target.value.split(",").map((o) => o.trim()).filter(Boolean) })}
+											style={{ width: "100%", marginTop: "0.25rem" }}
+										/>
+									)}
+									{f.type === "range" && (
+										<div style={{ display: "flex", gap: "0.5rem", marginTop: "0.25rem" }}>
+											<input type="number" placeholder="Min" value={f.rangeMin ?? 0} onChange={(e) => updateField(i, { rangeMin: Number(e.target.value) })} />
+											<input type="number" placeholder="Max" value={f.rangeMax ?? 100} onChange={(e) => updateField(i, { rangeMax: Number(e.target.value) })} />
+											<input type="number" placeholder="Step" value={f.rangeStep ?? 1} onChange={(e) => updateField(i, { rangeStep: Number(e.target.value) })} />
+										</div>
+									)}
+									<VisibilityEditor
+										fields={fields}
+										currentIndex={i}
+										value={f.visibleWhen}
+										onChange={(v) => updateField(i, { visibleWhen: v })}
+									/>
+									<button type="button" onClick={() => removeField(i)} style={{ marginTop: "0.25rem", color: "#e74c3c", fontSize: "0.85em" }}>
+										Remove
+									</button>
+								</>
 							)}
-							{f.type === "range" && (
-								<div style={{ display: "flex", gap: "0.5rem", marginTop: "0.25rem" }}>
-									<input type="number" placeholder="Min" value={f.rangeMin ?? 0} onChange={(e) => updateField(i, { rangeMin: Number(e.target.value) })} />
-									<input type="number" placeholder="Max" value={f.rangeMax ?? 100} onChange={(e) => updateField(i, { rangeMax: Number(e.target.value) })} />
-									<input type="number" placeholder="Step" value={f.rangeStep ?? 1} onChange={(e) => updateField(i, { rangeStep: Number(e.target.value) })} />
-								</div>
-							)}
-							<VisibilityEditor
-								fields={fields}
-								currentIndex={i}
-								value={f.visibleWhen}
-								onChange={(v) => updateField(i, { visibleWhen: v })}
-							/>
-							<button type="button" onClick={() => removeField(i)} style={{ marginTop: "0.25rem", color: "#e74c3c", fontSize: "0.85em" }}>
-								Remove
-							</button>
-							</>
-						)}
-					</div>
-				))}
+						</div>
+					))}
 				</div>
 			)}
 		</div>
