@@ -6,6 +6,7 @@ import { countTokens, truncateToTokens } from "./embeddings/tokenizer";
 import { resolveTemplate } from "../database/templates";
 import type { FieldDefinition } from "../database/templates";
 import { isFieldVisible } from "../../mainview/templates/fieldVisibility";
+import { isLineageEdge } from "../../mainview/templates/lineage";
 import type { EmbeddingSettings, Project, MentionTarget, ContextSource, CompendiumCategory } from "../../mainview/types";
 
 export interface ContextRequest {
@@ -52,7 +53,15 @@ function formatTemplateData(data: Record<string, unknown> | null): string[] {
 	for (const [key, value] of Object.entries(data)) {
 		if (value == null) continue;
 		if (Array.isArray(value)) {
-			if (value.length > 0) parts.push(`  ${key}: ${value.join(", ")}`);
+			if (value.length === 0) continue;
+			if (value.every(isLineageEdge)) {
+				const labels = (value as Array<{ relation: string; targetId: string }>).map(
+					(e) => `${e.relation} → ${e.targetId}`,
+				);
+				parts.push(`  ${key}: ${labels.join(", ")}`);
+			} else if (value.length > 0) {
+				parts.push(`  ${key}: ${value.join(", ")}`);
+			}
 		} else if (typeof value === "object") {
 			parts.push(`  ${key}: ${JSON.stringify(value)}`);
 		} else {

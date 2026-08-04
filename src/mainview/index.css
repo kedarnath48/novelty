@@ -2401,7 +2401,7 @@ input {
 
 .field-row label {
 	color: #6B7280;
-	font-size: 11px;
+	font-size: 12px;
 	font-weight: 600;
 	letter-spacing: 0.5px;
 	text-transform: uppercase;
@@ -3190,6 +3190,101 @@ input {
 .custom-field textarea {
 	min-height: 80px;
 	resize: vertical;
+}
+
+/* ======= Multi-select chip combobox ======= */
+.multiselect-combobox {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 4px;
+	padding: 6px 8px;
+	background: #2a2b2c;
+	border-radius: 4px;
+	cursor: text;
+	min-height: 38px;
+}
+
+.ms-chip {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	background: rgba(74, 158, 255, 0.15);
+	color: #7ab8ff;
+	border-radius: 12px;
+	padding: 2px 6px 2px 10px;
+	font-size: 12px;
+	line-height: 1.6;
+}
+
+.ms-chip-remove {
+	background: none;
+	border: none;
+	color: #7ab8ff;
+	cursor: pointer;
+	font-size: 14px;
+	line-height: 1;
+	padding: 0 3px;
+	border-radius: 50%;
+}
+
+.ms-chip-remove:hover {
+	color: #fff;
+	background: rgba(74, 158, 255, 0.25);
+}
+
+.multiselect-combobox input {
+	flex: 1;
+	min-width: 120px;
+	border: none;
+	background: transparent;
+	color: #fff;
+	font-size: 13px;
+	padding: 4px 0;
+}
+
+.multiselect-combobox input:focus {
+	outline: none;
+}
+
+.multiselect-combobox input::placeholder {
+	color: #888;
+}
+
+.multiselect-dropdown {
+	position: absolute;
+	top: calc(100% + 4px);
+	left: 0;
+	right: 0;
+	z-index: 20;
+	background: #2a2b2c;
+	border: 1px solid #393a3b;
+	border-radius: 4px;
+	padding: 6px;
+	max-height: 180px;
+	overflow-y: auto;
+	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+	display: flex;
+	flex-wrap: wrap;
+	gap: 4px;
+	align-content: flex-start;
+}
+
+.multiselect-option-pill {
+	background: transparent;
+	border: 1px solid #4a4b4c;
+	color: #ccc;
+	border-radius: 12px;
+	padding: 2px 10px;
+	font-size: 12px;
+	line-height: 1.6;
+	cursor: pointer;
+}
+
+.multiselect-option-pill:hover {
+	border-color: #4a9eff;
+	color: #fff;
+	background: rgba(74, 158, 255, 0.1);
 }
 
 

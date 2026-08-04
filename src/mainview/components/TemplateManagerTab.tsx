@@ -31,10 +31,47 @@ const categoryLabels: Record<CompendiumCategory, string> = {
 	organization: "Organization", item: "Item", lore: "Lore",
 };
 
-const fieldTypes: FieldDefinition["type"][] = [
-	"text", "number", "textarea", "select", "checkbox", "date",
-	"file", "multiselect", "entitylink", "richtext", "color", "toggle", "range",
-	"portrait", "images",
+const FIELD_TYPE_GROUPS: { label: string; types: { type: FieldDefinition["type"]; label: string }[] }[] = [
+	{
+		label: "Text",
+		types: [
+			{ type: "text", label: "Text" },
+			{ type: "textarea", label: "Long Text" },
+			{ type: "richtext", label: "Rich Text" },
+		],
+	},
+	{
+		label: "Numbers",
+		types: [
+			{ type: "number", label: "Number" },
+			{ type: "range", label: "Slider" },
+		],
+	},
+	{
+		label: "Choices",
+		types: [
+			{ type: "select", label: "Dropdown" },
+			{ type: "multiselect", label: "Multi-select" },
+			{ type: "toggle", label: "Toggle" },
+			{ type: "date", label: "Date" },
+			{ type: "color", label: "Color" },
+		],
+	},
+	{
+		label: "Media",
+		types: [
+			{ type: "portrait", label: "Portrait" },
+			{ type: "images", label: "Gallery" },
+		],
+	},
+	{
+		label: "Links",
+		types: [{ type: "entitylink", label: "Entity Link" }],
+	},
+	{
+		label: "Relationships",
+		types: [{ type: "lineage", label: "Family Tree" }],
+	},
 ];
 
 interface SeriesEditorState {
@@ -763,6 +800,47 @@ function CollapsibleSection({
 	);
 }
 
+function FieldTypePills({
+	value,
+	onChange,
+}: {
+	value: FieldDefinition["type"];
+	onChange: (type: FieldDefinition["type"]) => void;
+}) {
+	return (
+		<div style={{ display: "flex", flexDirection: "column", gap: "0.4rem" }}>
+			{FIELD_TYPE_GROUPS.map((group) => (
+				<div key={group.label}>
+					<div style={{ fontSize: "0.7em", color: "#888", marginBottom: "0.2rem" }}>{group.label}</div>
+					<div style={{ display: "flex", flexWrap: "wrap", gap: "0.25rem" }}>
+						{group.types.map(({ type, label }) => {
+							const selected = value === type;
+							return (
+								<button
+									key={type}
+									type="button"
+									onClick={() => onChange(type)}
+									style={{
+										padding: "0.25rem 0.6rem",
+										borderRadius: "12px",
+										fontSize: "0.8em",
+										border: `1px solid ${selected ? "var(--accent)" : "var(--border, #333)"}`,
+										background: selected ? "var(--accent-subtle, rgba(240,160,80,0.12))" : "transparent",
+										color: selected ? "var(--accent)" : "#bbb",
+										cursor: "pointer",
+									}}
+								>
+									{label}
+								</button>
+							);
+						})}
+					</div>
+				</div>
+			))}
+		</div>
+	);
+}
+
 function ProjectFieldsEditor({
 	fields,
 	onChange,
@@ -789,10 +867,10 @@ function ProjectFieldsEditor({
 			...(newFieldType === "select" || newFieldType === "multiselect" ? { options: [] } : {}),
 			...(newFieldType === "range" ? { rangeMin: 0, rangeMax: 100, rangeStep: 1 } : {}),
 			...(newFieldType === "entitylink" ? { entitylinkCategories: ["character", "location", "organization", "item", "lore"] } : {}),
+			...(newFieldType === "lineage" ? { entitylinkCategories: ["character"] } : {}),
 		};
 		onChange([...fields, field]);
 		setNewFieldName("");
-		setNewFieldType("text");
 	}
 
 	function updateField(index: number, updates: Partial<FieldDefinition>) {
@@ -849,7 +927,7 @@ function ProjectFieldsEditor({
 
 	return (
 		<div>
-			<div style={{ display: "flex", gap: "0.5rem", marginBottom: "0.75rem" }}>
+			<div style={{ display: "flex", gap: "0.5rem", marginBottom: "0.5rem" }}>
 				<input
 					type="text"
 					placeholder="Field name"
@@ -858,13 +936,9 @@ function ProjectFieldsEditor({
 					onKeyDown={(e) => e.key === "Enter" && addField()}
 					style={{ flex: 1 }}
 				/>
-				<select value={newFieldType} onChange={(e) => setNewFieldType(e.target.value as FieldDefinition["type"])}>
-					{fieldTypes.map((type) => (
-						<option key={type} value={type}>{type}</option>
-					))}
-				</select>
 				<button type="button" onClick={addField} disabled={!newFieldName.trim()}>Create</button>
 			</div>
+			<FieldTypePills value={newFieldType} onChange={setNewFieldType} />
 
 			{fields.length === 0 ? (
 				<div style={{ color: "#888", fontSize: "0.85em" }}>No fields defined.</div>
@@ -966,7 +1040,7 @@ function ProjectFieldsEditor({
 													<input type="number" placeholder="Step" value={field.rangeStep ?? 1} onChange={(e) => updateField(index, { rangeStep: Number(e.target.value) })} />
 												</div>
 											)}
-											{field.type === "entitylink" && (
+											{(field.type === "entitylink" || field.type === "lineage") && (
 												<div style={{ marginTop: "0.25rem" }}>
 													<label style={{ fontSize: "0.85em" }}>Allowed Categories:</label>
 													<div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
@@ -1030,10 +1104,10 @@ function SimpleFieldsEditor({
 			...(newFieldType === "select" || newFieldType === "multiselect" ? { options: [] } : {}),
 			...(newFieldType === "range" ? { rangeMin: 0, rangeMax: 100, rangeStep: 1 } : {}),
 			...(newFieldType === "entitylink" ? { entitylinkCategories: ["character", "location", "organization", "item", "lore"] } : {}),
+			...(newFieldType === "lineage" ? { entitylinkCategories: ["character"] } : {}),
 		};
 		onChange([...fields, field]);
 		setNewFieldName("");
-		setNewFieldType("text");
 	}
 
 	function updateField(index: number, updates: Partial<FieldDefinition>) {
@@ -1069,13 +1143,11 @@ function SimpleFieldsEditor({
 					onKeyDown={(e) => e.key === "Enter" && addField()}
 					style={{ flex: 1 }}
 				/>
-				<select value={newFieldType} onChange={(e) => setNewFieldType(e.target.value as FieldDefinition["type"])}>
-					{fieldTypes.map((t) => <option key={t} value={t}>{t}</option>)}
-				</select>
-				<button type="button" onClick={() => { addField(); setNewFieldName(""); setNewFieldType("text"); }} disabled={!newFieldName.trim()}>
+				<button type="button" onClick={addField} disabled={!newFieldName.trim()}>
 					Add
 				</button>
 			</div>
+			<FieldTypePills value={newFieldType} onChange={setNewFieldType} />
 			{fields.length === 0 ? (
 				<div style={{ color: "#888", fontSize: "0.85em" }}>No fields defined</div>
 			) : (

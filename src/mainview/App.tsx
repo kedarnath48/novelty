@@ -20,6 +20,7 @@ import type {
   StorySequence,
   ChapterPlotThread,
 } from "./types/index";
+import { type LineageEdge, edgeKey as lineageEdgeKey } from "./templates/lineage";
 import type { ParsedEntry } from "./services/entryParser";
 import type { ExtractionSource } from "./services/textExtractor";
 
@@ -777,50 +778,178 @@ function App() {
           ),
         );
 
-        if (field === "name") {
-          switch (category) {
-            case "character":
-              setCharacters((prev) =>
-                prev.map((e) =>
-                  e.id === entryId ? { ...e, name: value as string } : e,
-                ),
-              );
-              break;
-            case "location":
-              setLocations((prev) =>
-                prev.map((e) =>
-                  e.id === entryId ? { ...e, name: value as string } : e,
-                ),
-              );
-              break;
-            case "organization":
-              setOrganizations((prev) =>
-                prev.map((e) =>
-                  e.id === entryId ? { ...e, name: value as string } : e,
-                ),
-              );
-              break;
-            case "item":
-              setItems((prev) =>
-                prev.map((e) =>
-                  e.id === entryId ? { ...e, name: value as string } : e,
-                ),
-              );
-              break;
-            case "lore":
-              setLoreEntries((prev) =>
-                prev.map((e) =>
-                  e.id === entryId ? { ...e, name: value as string } : e,
-                ),
-              );
-              break;
-          }
-        }
-      }
-    } catch (e) {
-      console.error("Failed to update entry:", e);
-    }
-  }
+       if (field === "name") {
+           switch (category) {
+             case "character":
+               setCharacters((prev) =>
+                 prev.map((e) =>
+                   e.id === entryId ? { ...e, name: value as string } : e,
+                 ),
+               );
+               break;
+             case "location":
+               setLocations((prev) =>
+                 prev.map((e) =>
+                   e.id === entryId ? { ...e, name: value as string } : e,
+                 ),
+               );
+               break;
+             case "organization":
+               setOrganizations((prev) =>
+                 prev.map((e) =>
+                   e.id === entryId ? { ...e, name: value as string } : e,
+                 ),
+               );
+               break;
+             case "item":
+               setItems((prev) =>
+                 prev.map((e) =>
+                   e.id === entryId ? { ...e, name: value as string } : e,
+                 ),
+               );
+               break;
+             case "lore":
+               setLoreEntries((prev) =>
+                 prev.map((e) =>
+                   e.id === entryId ? { ...e, name: value as string } : e,
+                 ),
+               );
+               break;
+           }
+         }
+
+         if (field === "templateData" && updated) {
+           await mirrorLineageChanges(entryId, category, value as Record<string, unknown>);
+         }
+       }
+     } catch (e) {
+       console.error("Failed to update entry:", e);
+     }
+   }
+
+   async function mirrorLineageChanges(
+     sourceId: string,
+     sourceCategory: CompendiumCategory,
+     newTemplateData: Record<string, unknown>,
+   ) {
+     const oldEntry = compendiumEntries[sourceId] as Record<string, unknown> | null;
+     const oldTemplateData = (oldEntry?.templateData as Record<string, unknown> | null) || {};
+     const newData = newTemplateData || {};
+
+     const lineageFieldNames = new Set<string>();
+     for (const [key, val] of Object.entries(newData)) {
+       if (Array.isArray(val) && val.every((v) => typeof v === "object" && v !== null && "relation" in v && "targetId" in v)) {
+         lineageFieldNames.add(key);
+       }
+     }
+     for (const [key, val] of Object.entries(oldTemplateData)) {
+       if (Array.isArray(val) && val.every((v) => typeof v === "object" && v !== null && "relation" in v && "targetId" in v)) {
+         lineageFieldNames.add(key);
+       }
+     }
+
+     for (const fieldName of lineageFieldNames) {
+       const oldEdges: LineageEdge[] = (oldTemplateData[fieldName] as LineageEdge[]) || [];
+       const newEdges: LineageEdge[] = (newData[fieldName] as LineageEdge[]) || [];
+
+       const oldKeys = new Set(oldEdges.map((e) => lineageEdgeKey(e)));
+       const newKeys = new Set(newEdges.map((e) => lineageEdgeKey(e)));
+
+       const added = newEdges.filter((e) => !oldKeys.has(lineageEdgeKey(e)));
+       const removed = oldEdges.filter((e) => !newKeys.has(lineageEdgeKey(e)));
+
+       for (const edge of added) {
+         await mirrorEdge(sourceId, sourceCategory, fieldName, edge, "add");
+       }
+       for (const edge of removed) {
+         await mirrorEdge(sourceId, sourceCategory, fieldName, edge, "remove");
+       }
+     }
+   }
+
+   async function mirrorEdge(
+     sourceId: string,
+     sourceCategory: CompendiumCategory,
+     fieldName: string,
+     edge: LineageEdge,
+     action: "add" | "remove",
+   ) {
+     const targetId = edge.targetId;
+     const targetCategory = edge.targetType as CompendiumCategory;
+     if (!targetId || !targetCategory) return;
+
+     const targetEntries = compendiumEntries[targetId] as Record<string, unknown> | null;
+     if (!targetEntries) return;
+
+     const targetTemplateData = (targetEntries.templateData as Record<string, unknown> | null) || {};
+     const targetEdges = (targetTemplateData[fieldName] as LineageEdge[]) || [];
+
+     const inverseKey = lineageEdgeKey({
+       relation: edge.inverseRelation,
+       inverseRelation: edge.relation,
+       targetType: sourceCategory,
+       targetId: sourceId,
+     });
+
+     let newTargetEdges: LineageEdge[];
+     if (action === "add") {
+       if (targetEdges.some((e) => lineageEdgeKey(e) === inverseKey)) return;
+       newTargetEdges = [...targetEdges, {
+         relation: edge.inverseRelation,
+         inverseRelation: edge.relation,
+         targetType: sourceCategory,
+         targetId: sourceId,
+       }];
+     } else {
+       newTargetEdges = targetEdges.filter((e) => lineageEdgeKey(e) !== inverseKey);
+     }
+
+     try {
+       let updated: unknown;
+       switch (targetCategory) {
+         case "character":
+           updated = await rpc.request["db:update-character"]({ id: targetId, data: { templateData: { ...targetTemplateData, [fieldName]: newTargetEdges } } });
+           break;
+         case "location":
+           updated = await rpc.request["db:update-location"]({ id: targetId, data: { templateData: { ...targetTemplateData, [fieldName]: newTargetEdges } } });
+           break;
+         case "organization":
+           updated = await rpc.request["db:update-organization"]({ id: targetId, data: { templateData: { ...targetTemplateData, [fieldName]: newTargetEdges } } });
+           break;
+         case "item":
+           updated = await rpc.request["db:update-item"]({ id: targetId, data: { templateData: { ...targetTemplateData, [fieldName]: newTargetEdges } } });
+           break;
+         case "lore":
+           updated = await rpc.request["db:update-lore-entry"]({ id: targetId, data: { templateData: { ...targetTemplateData, [fieldName]: newTargetEdges } } });
+           break;
+         default:
+           return;
+       }
+
+       if (updated) {
+         setCompendiumEntries((prev) => ({ ...prev, [targetId]: updated }));
+         switch (targetCategory) {
+           case "character":
+             setCharacters((prev) => prev.map((e) => e.id === targetId ? { ...e, templateData: (updated as Character).templateData } : e));
+             break;
+           case "location":
+             setLocations((prev) => prev.map((e) => e.id === targetId ? { ...e, templateData: (updated as Location).templateData } : e));
+             break;
+           case "organization":
+             setOrganizations((prev) => prev.map((e) => e.id === targetId ? { ...e, templateData: (updated as Organization).templateData } : e));
+             break;
+           case "item":
+             setItems((prev) => prev.map((e) => e.id === targetId ? { ...e, templateData: (updated as Item).templateData } : e));
+             break;
+           case "lore":
+             setLoreEntries((prev) => prev.map((e) => e.id === targetId ? { ...e, templateData: (updated as LoreEntry).templateData } : e));
+             break;
+         }
+       }
+     } catch (e) {
+       console.error("Failed to mirror lineage edge:", e);
+     }
+   }
 
   async function handleCreateCompendiumEntryFromAI(
     category: CompendiumCategory,

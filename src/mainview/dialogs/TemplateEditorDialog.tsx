@@ -19,7 +19,7 @@ interface TemplateEditorProps {
 const fieldTypes: FieldDefinition["type"][] = [
 	"text", "number", "textarea", "select", "checkbox", "date",
 	"file", "multiselect", "entitylink", "richtext", "color", "toggle", "range",
-	"portrait", "images",
+	"portrait", "images", "lineage",
 ];
 
 const categoryLabels: Record<CompendiumCategory, string> = {
@@ -421,6 +421,24 @@ export default function TemplateEditorDialog({
 																</div>
 															)}
 															{field.type === "entitylink" && (
+																<div style={{ marginTop: "0.25rem" }}>
+																	<label style={{ fontSize: "0.85em" }}>Allowed Categories:</label>
+																	<div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+																		{(["character", "location", "organization", "item", "lore"] as CompendiumCategory[]).map((cat) => (
+																			<label key={cat} style={{ fontSize: "0.85em", display: "flex", alignItems: "center", gap: "0.2rem" }}>
+																				<input type="checkbox" checked={field.entitylinkCategories?.includes(cat) ?? true}
+																					onChange={(e) => {
+																						const current = field.entitylinkCategories || ["character", "location", "organization", "item", "lore"];
+																						const updated = e.target.checked ? [...current, cat] : current.filter((c) => c !== cat);
+																						updateField(index, { entitylinkCategories: updated });
+																					}} />
+																				{cat}
+																			</label>
+																		))}
+																	</div>
+																</div>
+															)}
+															{(field.type === "entitylink" || field.type === "lineage") && (
 																<div style={{ marginTop: "0.25rem" }}>
 																	<label style={{ fontSize: "0.85em" }}>Allowed Categories:</label>
 																	<div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>

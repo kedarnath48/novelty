@@ -1508,7 +1508,7 @@ function AboutTab() {
 const gtFieldTypes: FieldDefinition["type"][] = [
 	"text", "number", "textarea", "select", "checkbox", "date",
 	"file", "multiselect", "entitylink", "richtext", "color", "toggle", "range",
-	"portrait", "images",
+	"portrait", "images", "lineage",
 ];
 
 const GT_CATEGORIES: CompendiumCategory[] = [
@@ -1676,6 +1676,24 @@ function TemplatesTab() {
 											onChange={(e) => updateField(i, { rangeMax: Number(e.target.value) }, fields, setter)} />
 										<input type="number" placeholder="Step" value={f.rangeStep ?? 1}
 											onChange={(e) => updateField(i, { rangeStep: Number(e.target.value) }, fields, setter)} />
+									</div>
+								)}
+								{(f.type === "entitylink" || f.type === "lineage") && (
+									<div style={{ marginTop: "0.25rem" }}>
+										<label style={{ fontSize: "0.85em" }}>Allowed Categories:</label>
+										<div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+											{(["character", "location", "organization", "item", "lore"] as CompendiumCategory[]).map((cat) => (
+												<label key={cat} style={{ fontSize: "0.85em", display: "flex", alignItems: "center", gap: "0.2rem" }}>
+													<input type="checkbox" checked={f.entitylinkCategories?.includes(cat) ?? true}
+														onChange={(e) => {
+															const current = f.entitylinkCategories || ["character", "location", "organization", "item", "lore"];
+															const updated = e.target.checked ? [...current, cat] : current.filter((c) => c !== cat);
+															updateField(i, { entitylinkCategories: updated }, fields, setter);
+														}} />
+													{cat}
+												</label>
+											))}
+										</div>
 									</div>
 								)}
 								<VisibilityEditor

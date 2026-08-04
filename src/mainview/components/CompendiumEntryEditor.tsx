@@ -1,8 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import type { Character, Location, Organization, Item, LoreEntry, CompendiumCategory, EntityTemplate, FieldDefinition } from "../types/index";
+import type { LineageEdge } from "../templates/lineage";
 import { IconX, IconPhoto } from "@tabler/icons-react";
 import { RichTextEditor } from "./RichTextEditor";
 import { isFieldVisible } from "../templates/fieldVisibility";
+import LineageFieldEditor from "./LineageFieldEditor";
 
 interface CompendiumEntryEditorProps {
 	entry: Character | Location | Organization | Item | LoreEntry;
@@ -77,17 +79,18 @@ export default function CompendiumEntryEditor({ entry, category, template, onUpd
 					<div className="entry-fields-column">
 						<div className="entry-fields">
 							{regularFields.map((field) => (
-								<CustomField
-									key={field.name}
-									field={field}
-									value={templateData?.[field.name] as string | number | boolean | string[] | undefined}
-									onUpdate={(value) => handleFieldUpdate(field.name, value)}
-									characters={characters}
-									locations={locations}
-									organizations={organizations}
-									items={items}
-									loreEntries={loreEntries}
-								/>
+							<CustomField
+								key={field.name}
+								field={field}
+								value={templateData?.[field.name] as string | number | boolean | string[] | undefined}
+								onUpdate={(value) => handleFieldUpdate(field.name, value)}
+								entry={entry as { id: string; name: string }}
+								characters={characters}
+								locations={locations}
+								organizations={organizations}
+								items={items}
+								loreEntries={loreEntries}
+							/>
 							))}
 						</div>
 					</div>
@@ -175,8 +178,9 @@ export default function CompendiumEntryEditor({ entry, category, template, onUpd
 
 interface CustomFieldProps {
 	field: FieldDefinition;
-	value: string | number | boolean | string[] | undefined;
-	onUpdate: (value: string | number | boolean | string[] | undefined) => void;
+	value: unknown;
+	onUpdate: (value: unknown) => void;
+	entry: { id: string; name: string };
 	characters?: Character[];
 	locations?: Location[];
 	organizations?: Organization[];
@@ -184,7 +188,7 @@ interface CustomFieldProps {
 	loreEntries?: LoreEntry[];
 }
 
-function CustomField({ field, value, onUpdate, characters, locations, organizations, items, loreEntries }: CustomFieldProps) {
+function CustomField({ field, value, onUpdate, entry, characters, locations, organizations, items, loreEntries }: CustomFieldProps) {
 	const spanStyle: React.CSSProperties = { gridColumn: `span ${field.span || 4}` };
 	if (field.type === "text") {
 		return (
@@ -264,28 +268,15 @@ function CustomField({ field, value, onUpdate, characters, locations, organizati
 		);
 	}
 	if (field.type === "multiselect") {
-		const selected = (value as string[]) || [];
 		return (
 			<div className="field-row custom-field" style={spanStyle}>
 				<label>{field.label}</label>
-				<div className="multiselect-options">
-					{field.options?.map((opt) => (
-						<label key={opt} className="multiselect-option">
-							<input
-								type="checkbox"
-								checked={selected.includes(opt)}
-								onChange={(e) => {
-									if (e.target.checked) {
-										onUpdate([...selected, opt]);
-									} else {
-										onUpdate(selected.filter((v) => v !== opt));
-									}
-								}}
-							/>
-							{opt}
-						</label>
-					))}
-				</div>
+				<MultiSelectInput
+					options={field.options || []}
+					value={(value as string[]) || []}
+					onChange={(v) => onUpdate(v)}
+					placeholder="Select options..."
+				/>
 			</div>
 		);
 	}
@@ -325,7 +316,7 @@ function CustomField({ field, value, onUpdate, characters, locations, organizati
 		const step = field.rangeStep ?? 1;
 		return (
 			<div className="field-row custom-field" style={spanStyle}>
-				<label>{field.label}: {value !== undefined ? value : min}</label>
+				<label>{field.label}: {value !== undefined ? String(value) : min}</label>
 				<input
 					type="range"
 					min={min}
@@ -429,5 +420,123 @@ function CustomField({ field, value, onUpdate, characters, locations, organizati
 			</div>
 		);
 	}
+	if (field.type === "lineage") {
+		const lineageEdges = (value as LineageEdge[]) || [];
+		return (
+			<div className="field-row custom-field" style={spanStyle}>
+				<label>{field.label}</label>
+							<LineageFieldEditor
+								edges={lineageEdges}
+								entryId={entry.id}
+								entryName={entry.name}
+								allowedCategories={field.entitylinkCategories || ["character"]}
+								characters={characters}
+								locations={locations}
+								organizations={organizations}
+								items={items}
+								loreEntries={loreEntries}
+								onChange={(v) => onUpdate(v)}
+							/>
+			</div>
+		);
+	}
 	return null;
+}
+
+function MultiSelectInput({
+	options,
+	value,
+	onChange,
+	placeholder,
+}: {
+	options: string[];
+	value: string[];
+	onChange: (value: string[]) => void;
+	placeholder?: string;
+}) {
+	const [open, setOpen] = useState(false);
+	const [query, setQuery] = useState("");
+	const containerRef = useRef<HTMLDivElement>(null);
+
+	useEffect(() => {
+		function handleClickOutside(e: MouseEvent) {
+			if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+				setOpen(false);
+			}
+		}
+		document.addEventListener("mousedown", handleClickOutside);
+		return () => document.removeEventListener("mousedown", handleClickOutside);
+	}, []);
+
+	const selected = value || [];
+	const filtered = options.filter(
+		(o) => !selected.includes(o) && o.toLowerCase().includes(query.trim().toLowerCase()),
+	);
+
+	function select(opt: string) {
+		if (!selected.includes(opt)) {
+			onChange([...selected, opt]);
+		}
+		setQuery("");
+		setOpen(true);
+	}
+
+	function remove(opt: string) {
+		onChange(selected.filter((v) => v !== opt));
+	}
+
+	function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
+		if (e.key === "Enter") {
+			e.preventDefault();
+			const text = query.trim();
+			if (text) {
+				const match = options.find((o) => o.toLowerCase() === text.toLowerCase());
+				select(match || text);
+			}
+		} else if (e.key === "Escape") {
+			setOpen(false);
+		} else if (e.key === "Backspace" && !query && selected.length > 0) {
+			remove(selected[selected.length - 1]);
+		}
+	}
+
+	return (
+		<div ref={containerRef} style={{ position: "relative" }}>
+			<div className="multiselect-combobox" onClick={() => setOpen(true)}>
+				{selected.map((s) => (
+					<span key={s} className="ms-chip">
+						{s}
+						<button
+							type="button"
+							className="ms-chip-remove"
+							title="Remove"
+							onClick={(e) => {
+								e.stopPropagation();
+								remove(s);
+							}}
+						>
+							×
+						</button>
+					</span>
+				))}
+				<input
+					type="text"
+					value={query}
+					placeholder={selected.length === 0 ? placeholder || "Select..." : ""}
+					onChange={(e) => setQuery(e.target.value)}
+					onFocus={() => setOpen(true)}
+					onKeyDown={handleKeyDown}
+				/>
+			</div>
+			{open && filtered.length > 0 && (
+				<div className="multiselect-dropdown">
+					{filtered.map((opt) => (
+						<button key={opt} type="button" className="multiselect-option-pill" onClick={() => select(opt)}>
+							{opt}
+						</button>
+					))}
+				</div>
+			)}
+		</div>
+	);
 }

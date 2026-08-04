@@ -1,5 +1,6 @@
 import type { Project, MentionTarget, Chapter, Character, Location, Organization, Item, LoreEntry, FieldDefinition, CompendiumCategory } from "../types/index";
 import { isFieldVisible } from "../templates/fieldVisibility";
+import { isLineageEdge } from "../templates/lineage";
 
 function estimateTokens(text: string): number {
 	return Math.ceil(text.length / 4);
@@ -66,7 +67,15 @@ function formatTemplateData(data: Record<string, unknown> | null, resolvedFields
 		if (resolvedFields && field && !isFieldVisible(field, data)) continue;
 		if (value == null) continue;
 		if (Array.isArray(value)) {
-			if (value.length > 0) parts.push(`  ${key}: ${value.join(", ")}`);
+			if (value.length === 0) continue;
+			if (value.every(isLineageEdge)) {
+				const labels = (value as Array<{ relation: string; targetId: string }>).map(
+					(e) => `${e.relation} → ${e.targetId}`,
+				);
+				parts.push(`  ${key}: ${labels.join(", ")}`);
+			} else if (value.length > 0) {
+				parts.push(`  ${key}: ${value.join(", ")}`);
+			}
 		} else if (typeof value === "object") {
 			parts.push(`  ${key}: ${JSON.stringify(value)}`);
 		} else {
