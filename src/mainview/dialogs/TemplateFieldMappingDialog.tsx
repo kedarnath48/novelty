@@ -34,7 +34,7 @@ interface Props {
 const fieldTypes: FieldDefinition["type"][] = [
 	"text", "number", "textarea", "select", "checkbox", "date",
 	"file", "multiselect", "entitylink", "richtext", "color", "toggle", "range",
-	"portrait", "images", "lineage",
+	"portrait", "images", "tree",
 ];
 
 function normalizeName(name: string): string {

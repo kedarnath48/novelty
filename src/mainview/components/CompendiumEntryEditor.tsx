@@ -1,10 +1,11 @@
 import { useState, useEffect, useRef } from "react";
 import type { Character, Location, Organization, Item, LoreEntry, CompendiumCategory, EntityTemplate, FieldDefinition } from "../types/index";
-import type { LineageEdge } from "../templates/lineage";
+import type { TreeEdge } from "../templates/tree";
+import { getTreeRelations } from "../templates/tree";
 import { IconX, IconPhoto } from "@tabler/icons-react";
 import { RichTextEditor } from "./RichTextEditor";
 import { isFieldVisible } from "../templates/fieldVisibility";
-import LineageFieldEditor from "./LineageFieldEditor";
+import TreeFieldEditor from "./TreeFieldEditor";
 
 interface CompendiumEntryEditorProps {
 	entry: Character | Location | Organization | Item | LoreEntry;
@@ -420,16 +421,17 @@ function CustomField({ field, value, onUpdate, entry, characters, locations, org
 			</div>
 		);
 	}
-	if (field.type === "lineage") {
-		const lineageEdges = (value as LineageEdge[]) || [];
+	if (field.type === "tree") {
+		const treeEdges = (value as TreeEdge[]) || [];
 		return (
 			<div className="field-row custom-field" style={spanStyle}>
 				<label>{field.label}</label>
-							<LineageFieldEditor
-								edges={lineageEdges}
+							<TreeFieldEditor
+								edges={treeEdges}
 								entryId={entry.id}
 								entryName={entry.name}
 								allowedCategories={field.entitylinkCategories || ["character"]}
+								relations={getTreeRelations(field)}
 								characters={characters}
 								locations={locations}
 								organizations={organizations}

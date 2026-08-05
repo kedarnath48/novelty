@@ -1,10 +1,12 @@
 import { useState, useEffect, useMemo } from "react";
 import Dialog from "../components/Dialog";
 import VisibilityEditor from "../components/VisibilityEditor";
+import TreeRelationsEditor from "../components/TreeRelationsEditor";
 import { useRPC } from "../contexts/RPCContext";
 import type { CompendiumCategory, FieldDefinition, EntityTemplate, GlobalTemplate, SeriesTemplate, ResolvedTemplateInfo } from "../types/index";
 import { describeVisibility } from "../templates/fieldVisibility";
 import { getInheritedNames, getSeriesInheritedNames, fullMerge } from "../templates/mergeFields";
+import { TREE_PRESETS } from "../templates/tree";
 
 interface TemplateEditorProps {
 	open: boolean;
@@ -19,7 +21,7 @@ interface TemplateEditorProps {
 const fieldTypes: FieldDefinition["type"][] = [
 	"text", "number", "textarea", "select", "checkbox", "date",
 	"file", "multiselect", "entitylink", "richtext", "color", "toggle", "range",
-	"portrait", "images", "lineage",
+	"portrait", "images", "tree",
 ];
 
 const categoryLabels: Record<CompendiumCategory, string> = {
@@ -131,6 +133,7 @@ export default function TemplateEditorDialog({
 			...(newFieldType === "select" || newFieldType === "multiselect" ? { options: [] } : {}),
 			...(newFieldType === "range" ? { rangeMin: 0, rangeMax: 100, rangeStep: 1 } : {}),
 			...(newFieldType === "entitylink" ? { entitylinkCategories: ["character", "location", "organization", "item", "lore"] } : {}),
+			...(newFieldType === "tree" ? { entitylinkCategories: ["character"], treeRelations: TREE_PRESETS.family } : {}),
 		};
 		setProjectFields([...projectFields, field]);
 		setNewFieldName("");
@@ -420,7 +423,7 @@ export default function TemplateEditorDialog({
 																		onChange={(e) => updateField(index, { rangeStep: Number(e.target.value) })} />
 																</div>
 															)}
-															{field.type === "entitylink" && (
+															{(field.type === "entitylink" || field.type === "tree") && (
 																<div style={{ marginTop: "0.25rem" }}>
 																	<label style={{ fontSize: "0.85em" }}>Allowed Categories:</label>
 																	<div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
@@ -438,23 +441,11 @@ export default function TemplateEditorDialog({
 																	</div>
 																</div>
 															)}
-															{(field.type === "entitylink" || field.type === "lineage") && (
-																<div style={{ marginTop: "0.25rem" }}>
-																	<label style={{ fontSize: "0.85em" }}>Allowed Categories:</label>
-																	<div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
-																		{(["character", "location", "organization", "item", "lore"] as CompendiumCategory[]).map((cat) => (
-																			<label key={cat} style={{ fontSize: "0.85em", display: "flex", alignItems: "center", gap: "0.2rem" }}>
-																				<input type="checkbox" checked={field.entitylinkCategories?.includes(cat) ?? true}
-																					onChange={(e) => {
-																						const current = field.entitylinkCategories || ["character", "location", "organization", "item", "lore"];
-																						const updated = e.target.checked ? [...current, cat] : current.filter((c) => c !== cat);
-																						updateField(index, { entitylinkCategories: updated });
-																					}} />
-																				{cat}
-																			</label>
-																		))}
-																	</div>
-																</div>
+															{field.type === "tree" && (
+																<TreeRelationsEditor
+																	relations={field.treeRelations || TREE_PRESETS.family}
+																	onChange={(treeRelations) => updateField(index, { treeRelations })}
+																/>
 															)}
 															<VisibilityEditor
 																fields={projectFields}

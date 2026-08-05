@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import Dialog from "../components/Dialog";
 import VisibilityEditor from "../components/VisibilityEditor";
+import TreeRelationsEditor from "../components/TreeRelationsEditor";
+import { TREE_PRESETS } from "../templates/tree";
 import { useSettings } from "../contexts/SettingsContext";
 import { getRPC } from "../contexts/RPCContext";
 import {
@@ -1508,7 +1510,7 @@ function AboutTab() {
 const gtFieldTypes: FieldDefinition["type"][] = [
 	"text", "number", "textarea", "select", "checkbox", "date",
 	"file", "multiselect", "entitylink", "richtext", "color", "toggle", "range",
-	"portrait", "images", "lineage",
+	"portrait", "images", "tree",
 ];
 
 const GT_CATEGORIES: CompendiumCategory[] = [
@@ -1585,6 +1587,7 @@ function TemplatesTab() {
 			...(type === "select" || type === "multiselect" ? { options: [] } : {}),
 			...(type === "range" ? { rangeMin: 0, rangeMax: 100, rangeStep: 1 } : {}),
 			...(type === "entitylink" ? { entitylinkCategories: ["character", "location", "organization", "item", "lore"] } : {}),
+			...(type === "tree" ? { entitylinkCategories: ["character"], treeRelations: TREE_PRESETS.family } : {}),
 		};
 		setter([...fields, field]);
 	}
@@ -1678,7 +1681,7 @@ function TemplatesTab() {
 											onChange={(e) => updateField(i, { rangeStep: Number(e.target.value) }, fields, setter)} />
 									</div>
 								)}
-								{(f.type === "entitylink" || f.type === "lineage") && (
+								{(f.type === "entitylink" || f.type === "tree") && (
 									<div style={{ marginTop: "0.25rem" }}>
 										<label style={{ fontSize: "0.85em" }}>Allowed Categories:</label>
 										<div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
@@ -1695,6 +1698,12 @@ function TemplatesTab() {
 											))}
 										</div>
 									</div>
+								)}
+								{f.type === "tree" && (
+									<TreeRelationsEditor
+										relations={f.treeRelations || TREE_PRESETS.family}
+										onChange={(treeRelations) => updateField(i, { treeRelations }, fields, setter)}
+									/>
 								)}
 								<VisibilityEditor
 									fields={fields}

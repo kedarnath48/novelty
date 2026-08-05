@@ -1,7 +1,9 @@
 import { useState, useEffect, type ReactNode } from "react";
 import { useRPC } from "../contexts/RPCContext";
 import VisibilityEditor from "./VisibilityEditor";
+import TreeRelationsEditor from "./TreeRelationsEditor";
 import { describeVisibility } from "../templates/fieldVisibility";
+import { TREE_PRESETS } from "../templates/tree";
 import {
 	getInheritedNames,
 	getSeriesInheritedNames,
@@ -65,12 +67,11 @@ const FIELD_TYPE_GROUPS: { label: string; types: { type: FieldDefinition["type"]
 		],
 	},
 	{
-		label: "Links",
-		types: [{ type: "entitylink", label: "Entity Link" }],
-	},
-	{
-		label: "Relationships",
-		types: [{ type: "lineage", label: "Family Tree" }],
+		label: "Links & Trees",
+		types: [
+			{ type: "entitylink", label: "Entity Link" },
+			{ type: "tree", label: "Tree" },
+		],
 	},
 ];
 
@@ -867,7 +868,7 @@ function ProjectFieldsEditor({
 			...(newFieldType === "select" || newFieldType === "multiselect" ? { options: [] } : {}),
 			...(newFieldType === "range" ? { rangeMin: 0, rangeMax: 100, rangeStep: 1 } : {}),
 			...(newFieldType === "entitylink" ? { entitylinkCategories: ["character", "location", "organization", "item", "lore"] } : {}),
-			...(newFieldType === "lineage" ? { entitylinkCategories: ["character"] } : {}),
+			...(newFieldType === "tree" ? { entitylinkCategories: ["character"], treeRelations: TREE_PRESETS.family } : {}),
 		};
 		onChange([...fields, field]);
 		setNewFieldName("");
@@ -1040,7 +1041,7 @@ function ProjectFieldsEditor({
 													<input type="number" placeholder="Step" value={field.rangeStep ?? 1} onChange={(e) => updateField(index, { rangeStep: Number(e.target.value) })} />
 												</div>
 											)}
-											{(field.type === "entitylink" || field.type === "lineage") && (
+											{(field.type === "entitylink" || field.type === "tree") && (
 												<div style={{ marginTop: "0.25rem" }}>
 													<label style={{ fontSize: "0.85em" }}>Allowed Categories:</label>
 													<div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
@@ -1060,6 +1061,12 @@ function ProjectFieldsEditor({
 														))}
 													</div>
 												</div>
+											)}
+											{field.type === "tree" && (
+												<TreeRelationsEditor
+													relations={field.treeRelations || TREE_PRESETS.family}
+													onChange={(treeRelations) => updateField(index, { treeRelations })}
+												/>
 											)}
 											<VisibilityEditor
 												fields={fields}
@@ -1104,7 +1111,7 @@ function SimpleFieldsEditor({
 			...(newFieldType === "select" || newFieldType === "multiselect" ? { options: [] } : {}),
 			...(newFieldType === "range" ? { rangeMin: 0, rangeMax: 100, rangeStep: 1 } : {}),
 			...(newFieldType === "entitylink" ? { entitylinkCategories: ["character", "location", "organization", "item", "lore"] } : {}),
-			...(newFieldType === "lineage" ? { entitylinkCategories: ["character"] } : {}),
+			...(newFieldType === "tree" ? { entitylinkCategories: ["character"], treeRelations: TREE_PRESETS.family } : {}),
 		};
 		onChange([...fields, field]);
 		setNewFieldName("");

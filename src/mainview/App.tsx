@@ -20,7 +20,7 @@ import type {
   StorySequence,
   ChapterPlotThread,
 } from "./types/index";
-import { type LineageEdge, edgeKey as lineageEdgeKey } from "./templates/lineage";
+import { type TreeEdge, treeEdgeKey } from "./templates/tree";
 import type { ParsedEntry } from "./services/entryParser";
 import type { ExtractionSource } from "./services/textExtractor";
 
@@ -818,91 +818,91 @@ function App() {
            }
          }
 
-         if (field === "templateData" && updated) {
-           await mirrorLineageChanges(entryId, category, value as Record<string, unknown>);
-         }
+          if (field === "templateData" && updated) {
+            await mirrorTreeChanges(entryId, category, value as Record<string, unknown>);
+          }
        }
      } catch (e) {
        console.error("Failed to update entry:", e);
      }
    }
 
-   async function mirrorLineageChanges(
-     sourceId: string,
-     sourceCategory: CompendiumCategory,
-     newTemplateData: Record<string, unknown>,
-   ) {
-     const oldEntry = compendiumEntries[sourceId] as Record<string, unknown> | null;
-     const oldTemplateData = (oldEntry?.templateData as Record<string, unknown> | null) || {};
-     const newData = newTemplateData || {};
+    async function mirrorTreeChanges(
+      sourceId: string,
+      sourceCategory: CompendiumCategory,
+      newTemplateData: Record<string, unknown>,
+    ) {
+      const oldEntry = compendiumEntries[sourceId] as Record<string, unknown> | null;
+      const oldTemplateData = (oldEntry?.templateData as Record<string, unknown> | null) || {};
+      const newData = newTemplateData || {};
 
-     const lineageFieldNames = new Set<string>();
-     for (const [key, val] of Object.entries(newData)) {
-       if (Array.isArray(val) && val.every((v) => typeof v === "object" && v !== null && "relation" in v && "targetId" in v)) {
-         lineageFieldNames.add(key);
-       }
-     }
-     for (const [key, val] of Object.entries(oldTemplateData)) {
-       if (Array.isArray(val) && val.every((v) => typeof v === "object" && v !== null && "relation" in v && "targetId" in v)) {
-         lineageFieldNames.add(key);
-       }
-     }
+      const treeFieldNames = new Set<string>();
+      for (const [key, val] of Object.entries(newData)) {
+        if (Array.isArray(val) && val.every((v) => typeof v === "object" && v !== null && "relation" in v && "targetId" in v)) {
+          treeFieldNames.add(key);
+        }
+      }
+      for (const [key, val] of Object.entries(oldTemplateData)) {
+        if (Array.isArray(val) && val.every((v) => typeof v === "object" && v !== null && "relation" in v && "targetId" in v)) {
+          treeFieldNames.add(key);
+        }
+      }
 
-     for (const fieldName of lineageFieldNames) {
-       const oldEdges: LineageEdge[] = (oldTemplateData[fieldName] as LineageEdge[]) || [];
-       const newEdges: LineageEdge[] = (newData[fieldName] as LineageEdge[]) || [];
+      for (const fieldName of treeFieldNames) {
+        const oldEdges: TreeEdge[] = (oldTemplateData[fieldName] as TreeEdge[]) || [];
+        const newEdges: TreeEdge[] = (newData[fieldName] as TreeEdge[]) || [];
 
-       const oldKeys = new Set(oldEdges.map((e) => lineageEdgeKey(e)));
-       const newKeys = new Set(newEdges.map((e) => lineageEdgeKey(e)));
+        const oldKeys = new Set(oldEdges.map((e) => treeEdgeKey(e)));
+        const newKeys = new Set(newEdges.map((e) => treeEdgeKey(e)));
 
-       const added = newEdges.filter((e) => !oldKeys.has(lineageEdgeKey(e)));
-       const removed = oldEdges.filter((e) => !newKeys.has(lineageEdgeKey(e)));
+        const added = newEdges.filter((e) => !oldKeys.has(treeEdgeKey(e)));
+        const removed = oldEdges.filter((e) => !newKeys.has(treeEdgeKey(e)));
 
-       for (const edge of added) {
-         await mirrorEdge(sourceId, sourceCategory, fieldName, edge, "add");
-       }
-       for (const edge of removed) {
-         await mirrorEdge(sourceId, sourceCategory, fieldName, edge, "remove");
-       }
-     }
-   }
+        for (const edge of added) {
+          await mirrorEdge(sourceId, sourceCategory, fieldName, edge, "add");
+        }
+        for (const edge of removed) {
+          await mirrorEdge(sourceId, sourceCategory, fieldName, edge, "remove");
+        }
+      }
+    }
 
-   async function mirrorEdge(
-     sourceId: string,
-     sourceCategory: CompendiumCategory,
-     fieldName: string,
-     edge: LineageEdge,
-     action: "add" | "remove",
-   ) {
-     const targetId = edge.targetId;
-     const targetCategory = edge.targetType as CompendiumCategory;
-     if (!targetId || !targetCategory) return;
+    async function mirrorEdge(
+      sourceId: string,
+      sourceCategory: CompendiumCategory,
+      fieldName: string,
+      edge: TreeEdge,
+      action: "add" | "remove",
+    ) {
+      const targetId = edge.targetId;
+      const targetCategory = edge.targetType as CompendiumCategory;
+      if (!targetId || !targetCategory) return;
 
-     const targetEntries = compendiumEntries[targetId] as Record<string, unknown> | null;
-     if (!targetEntries) return;
+      const targetEntries = compendiumEntries[targetId] as Record<string, unknown> | null;
+      if (!targetEntries) return;
 
-     const targetTemplateData = (targetEntries.templateData as Record<string, unknown> | null) || {};
-     const targetEdges = (targetTemplateData[fieldName] as LineageEdge[]) || [];
+      const targetTemplateData = (targetEntries.templateData as Record<string, unknown> | null) || {};
+      const targetEdges = (targetTemplateData[fieldName] as TreeEdge[]) || [];
 
-     const inverseKey = lineageEdgeKey({
-       relation: edge.inverseRelation,
-       inverseRelation: edge.relation,
-       targetType: sourceCategory,
-       targetId: sourceId,
-     });
+      const inverseKey = treeEdgeKey({
+        relation: edge.inverseRelation,
+        inverseRelation: edge.relation,
+        targetType: sourceCategory,
+        targetId: sourceId,
+      });
 
-     let newTargetEdges: LineageEdge[];
-     if (action === "add") {
-       if (targetEdges.some((e) => lineageEdgeKey(e) === inverseKey)) return;
-       newTargetEdges = [...targetEdges, {
-         relation: edge.inverseRelation,
-         inverseRelation: edge.relation,
-         targetType: sourceCategory,
-         targetId: sourceId,
-       }];
-     } else {
-       newTargetEdges = targetEdges.filter((e) => lineageEdgeKey(e) !== inverseKey);
-     }
+      let newTargetEdges: TreeEdge[];
+      if (action === "add") {
+        if (targetEdges.some((e) => treeEdgeKey(e) === inverseKey)) return;
+        newTargetEdges = [...targetEdges, {
+          relation: edge.inverseRelation,
+          inverseRelation: edge.relation,
+          targetType: sourceCategory,
+          targetId: sourceId,
+        }];
+      } else {
+        newTargetEdges = targetEdges.filter((e) => treeEdgeKey(e) !== inverseKey);
+      }
 
      try {
        let updated: unknown;
@@ -947,7 +947,7 @@ function App() {
          }
        }
      } catch (e) {
-       console.error("Failed to mirror lineage edge:", e);
+        console.error("Failed to mirror tree edge:", e);
      }
    }
 

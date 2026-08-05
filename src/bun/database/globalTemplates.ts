@@ -2,6 +2,7 @@ import { db } from "./index";
 import { globalTemplates } from "../schema";
 import { eq, and, asc } from "drizzle-orm";
 import type { CompendiumCategory } from "../../mainview/types";
+import { normalizeTreeFields } from "../../mainview/templates/tree";
 
 export type VisibilityOperator =
 	| "isTrue"
@@ -32,7 +33,7 @@ export type FieldDefinition = {
 	name: string;
 	type: "text" | "number" | "textarea" | "select" | "checkbox" | "date"
 		| "file" | "multiselect" | "entitylink" | "richtext" | "color" | "toggle" | "range"
-		| "portrait" | "images" | "lineage";
+		| "portrait" | "images" | "tree";
 	label: string;
 	required: boolean;
 	disabled?: boolean;
@@ -42,6 +43,7 @@ export type FieldDefinition = {
 	rangeMax?: number;
 	rangeStep?: number;
 	entitylinkCategories?: CompendiumCategory[];
+	treeRelations?: { relation: string; inverse: string }[];
 	visibleWhen?: FieldVisibility;
 };
 
@@ -63,7 +65,7 @@ function parseTemplate(row: typeof globalTemplates.$inferSelect): GlobalTemplate
 		name: row.name,
 		description: row.description,
 		baseType: row.baseType as CompendiumCategory,
-		customFields: row.customFields ? JSON.parse(row.customFields) : [],
+		customFields: normalizeTreeFields(row.customFields ? JSON.parse(row.customFields) : []),
 		createdAt: row.createdAt,
 		updatedAt: row.updatedAt,
 	};

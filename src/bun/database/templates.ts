@@ -2,6 +2,7 @@ import { db } from "./index";
 import { entityTemplates, globalTemplates, seriesTemplates } from "../schema";
 import { eq, and } from "drizzle-orm";
 import type { CompendiumCategory } from "../../mainview/types";
+import { normalizeTreeFields } from "../../mainview/templates/tree";
 
 export type VisibilityOperator =
 	| "isTrue"
@@ -32,7 +33,7 @@ export type FieldDefinition = {
 	name: string;
 	type: "text" | "number" | "textarea" | "select" | "checkbox" | "date"
 		| "file" | "multiselect" | "entitylink" | "richtext" | "color" | "toggle" | "range"
-		| "portrait" | "images" | "lineage";
+		| "portrait" | "images" | "tree";
 	label: string;
 	required: boolean;
 	disabled?: boolean;
@@ -42,6 +43,7 @@ export type FieldDefinition = {
 	rangeMax?: number;
 	rangeStep?: number;
 	entitylinkCategories?: CompendiumCategory[];
+	treeRelations?: { relation: string; inverse: string }[];
 	visibleWhen?: FieldVisibility;
 };
 
@@ -61,7 +63,7 @@ export type NewEntityTemplate = Omit<EntityTemplate, "createdAt" | "updatedAt">;
 function parseTemplate(row: Record<string, unknown>): EntityTemplate {
 	return {
 		...row,
-		customFields: row.customFields ? JSON.parse(row.customFields as string) : [],
+		customFields: row.customFields ? normalizeTreeFields(JSON.parse(row.customFields as string)) : [],
 	} as EntityTemplate;
 }
 
@@ -176,7 +178,7 @@ export async function resolveTemplate(
 		if (gt[0]) {
 			globalTemplateData = {
 				...gt[0],
-				customFields: gt[0].customFields ? JSON.parse(gt[0].customFields) : [],
+				customFields: gt[0].customFields ? normalizeTreeFields(JSON.parse(gt[0].customFields)) : [],
 			};
 		}
 	}
@@ -186,7 +188,7 @@ export async function resolveTemplate(
 		if (st[0]) {
 			seriesTemplateData = {
 				...st[0],
-				customFields: st[0].customFields ? JSON.parse(st[0].customFields) : [],
+				customFields: st[0].customFields ? normalizeTreeFields(JSON.parse(st[0].customFields)) : [],
 			};
 		}
 	}
@@ -214,7 +216,7 @@ export async function resolveTemplate(
 	}
 
 	return {
-		fields: Array.from(fieldMap.values()),
+		fields: normalizeTreeFields(Array.from(fieldMap.values())),
 		globalTemplate: globalTemplateData as any,
 		seriesTemplate: seriesTemplateData as any,
 		projectTemplate,

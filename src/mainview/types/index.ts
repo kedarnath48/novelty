@@ -466,7 +466,7 @@ export type FieldDefinition = {
 	name: string;
 	type: "text" | "number" | "textarea" | "select" | "checkbox" | "date"
 		| "file" | "multiselect" | "entitylink" | "richtext" | "color" | "toggle" | "range"
-		| "portrait" | "images" | "lineage";
+		| "portrait" | "images" | "tree";
 	label: string;
 	required: boolean;
 	disabled?: boolean;
@@ -476,6 +476,7 @@ export type FieldDefinition = {
 	rangeMax?: number;
 	rangeStep?: number;
 	entitylinkCategories?: CompendiumCategory[];
+	treeRelations?: { relation: string; inverse: string }[];
 	visibleWhen?: FieldVisibility;
 };
 
