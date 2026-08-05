@@ -4,9 +4,9 @@
     align-items: center;
     gap: 12px;
     padding: 4px 12px;
-    background-color: #222;
-    background-color: #222324;
-    color: #fff;
+    background: var(--titlebar-bg, #222324);
+    color: var(--text-primary, #fff);
+    user-select: none;
     -webkit-app-region: drag;
 
     button {
@@ -19,24 +19,32 @@
 }
 
 .appIconBtn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
     background-color: transparent;
     border: none;
-    color: #595D68;
+    border-radius: 6px;
+    color: var(--text-secondary, #9aa0a6);
     padding: 4px;
-    width: 24px;
+    width: 28px;
     height: 31px;
+    cursor: pointer;
+    transition: background 120ms ease, color 120ms ease;
 
     &.active {
-        color: #fff;
+        color: var(--text-primary, #fff);
     }
 
     &:hover {
-        color: #fff;
+        background: var(--accent-subtle, rgba(240, 160, 80, 0.08));
+        color: var(--text-primary, #fff);
     }
 
     svg {
         font-size: 12px;
-        width: 22px;
+        width: 20px;
+        height: 20px;
         margin: 0px;
     }
 }
@@ -45,14 +53,90 @@
     display: flex;
     flex-direction: row;
     align-items: center;
-    gap: 6px;
+    gap: 2px;
+}
 
-    button {
-        color: #fff;
-        background-color: transparent;
-        border: none;
-        padding: 4px;
+.menuBar {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 2px;
+}
+
+.menuWrapper {
+    position: relative;
+}
+
+.menuBtn {
+    display: flex;
+    align-items: center;
+    padding: 5px 8px;
+    background-color: transparent;
+    border: none;
+    border-radius: 6px;
+    color: var(--text-secondary, #9aa0a6);
+    font: inherit;
+    font-size: 14px;
+    cursor: pointer;
+    transition: background 120ms ease, color 120ms ease;
+
+    &:hover {
+        background: var(--accent-subtle, rgba(240, 160, 80, 0.08));
+        color: var(--text-primary, #fff);
     }
+}
+
+.menuBtnOpen {
+    background: var(--accent-subtle, rgba(240, 160, 80, 0.08));
+    color: var(--text-primary, #fff);
+}
+
+.menuDropdown {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    min-width: 200px;
+    padding: 4px;
+    background: var(--editor-slash-bg, #1a1a1c);
+    border: 1px solid var(--editor-slash-border, #333);
+    border-radius: 8px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+    z-index: 100;
+}
+
+.menuDivider {
+    height: 1px;
+    margin: 4px 6px;
+    background: var(--border, #2a2f3f);
+}
+
+.menuItem {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+    width: 100%;
+    padding: 6px 8px;
+    border: none;
+    border-radius: 5px;
+    background: transparent;
+    color: var(--text-primary, #e4e4e7);
+    font: inherit;
+    font-size: 14px;
+    text-align: left;
+    cursor: pointer;
+    transition: background 120ms ease;
+
+    &:hover {
+        background: var(--accent-subtle, rgba(240, 160, 80, 0.08));
+        color: var(--text-primary);
+    }
+}
+
+.menuShortcut {
+    color: var(--text-muted, #6b7280);
+    font-size: 11px;
+    white-space: nowrap;
 }
 
 .projectSwitcher {
@@ -81,7 +165,7 @@
     background: transparent;
     border: none;
     border-radius: 14px;
-    color: #fff;
+    color: var(--text-primary, #fff);
     font: inherit;
     font-size: 13px;
     font-weight: 500;
@@ -94,7 +178,7 @@
 
     .chevron {
         flex-shrink: 0;
-        color: #9aa0a6;
+        color: var(--text-secondary, #9aa0a6);
         transition: color 150ms ease;
     }
 
@@ -126,7 +210,7 @@
     background: transparent;
     border: none;
     border-radius: 14px;
-    color: #9aa0a6;
+    color: var(--text-secondary, #9aa0a6);
     cursor: pointer;
     transition: color 150ms ease, background 150ms ease;
 
@@ -144,24 +228,85 @@
 
 .iconBtn,
 .iconTextBtn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
     background-color: transparent;
     border: none;
-    color: #595D68;
+    border-radius: 6px;
+    color: var(--text-muted, #595d68);
     padding: 4px;
+    cursor: pointer;
+    transition: background 120ms ease, color 120ms ease;
 
     &.active {
-        color: #fff;
+        color: var(--text-primary, #fff);
     }
 
     &:hover {
-        color: #fff;
+        background: var(--accent-subtle, rgba(240, 160, 80, 0.08));
+        color: var(--text-primary, #fff);
     }
 
     svg {
         font-size: 12px;
-        width: 22px;
+        width: 18px;
+        height: 18px;
         margin: 0px;
     }
+}
+
+.titleBarRight {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.leftButtons {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    margin-right: 8px;
+}
+
+.windowControls {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+}
+
+.windowBtn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 30px;
+    padding: 0;
+    background: transparent;
+    border: none;
+    border-radius: 6px;
+    color: var(--text-secondary, #9aa0a6);
+    cursor: pointer;
+    transition: background 120ms ease, color 120ms ease;
+
+    &:hover {
+        background: rgba(255, 255, 255, 0.08);
+        color: var(--text-primary, #fff);
+    }
+
+    svg {
+        width: 15px;
+        height: 15px;
+    }
+}
+
+.windowClose:hover {
+    background: #e81123;
+    color: #fff;
+}
+
+.hidden {
+    display: none;
 }
 
 .textBtn {

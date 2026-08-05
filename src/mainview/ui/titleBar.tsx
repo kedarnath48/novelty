@@ -1,6 +1,5 @@
 import styles from "../App.module.css";
-import { Electroview } from "electrobun/view";
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRPC } from "../contexts/RPCContext";
 import {
 	IconChevronDown,
@@ -16,6 +15,40 @@ import {
 	IconTimelineEventText,
 	IconX,
 } from "@tabler/icons-react";
+
+type MenuItem = { label: string; shortcut?: string } | "sep";
+
+const MENUS: Record<string, MenuItem[]> = {
+	File: [
+		{ label: "New", shortcut: "Ctrl+N" },
+		{ label: "Open...", shortcut: "Ctrl+O" },
+		{ label: "Save", shortcut: "Ctrl+S" },
+		{ label: "Save As...", shortcut: "Ctrl+Shift+S" },
+		"sep",
+		{ label: "Exit", shortcut: "Alt+F4" },
+	],
+	Edit: [
+		{ label: "Undo", shortcut: "Ctrl+Z" },
+		{ label: "Redo", shortcut: "Ctrl+Y" },
+		"sep",
+		{ label: "Cut", shortcut: "Ctrl+X" },
+		{ label: "Copy", shortcut: "Ctrl+C" },
+		{ label: "Paste", shortcut: "Ctrl+V" },
+	],
+	View: [
+		{ label: "Toggle Explorer" },
+		{ label: "Toggle Chat" },
+		"sep",
+		{ label: "Zoom In", shortcut: "Ctrl+Plus" },
+		{ label: "Zoom Out", shortcut: "Ctrl+-" },
+	],
+	Help: [
+		{ label: "Documentation" },
+		{ label: "Keyboard Shortcuts" },
+		"sep",
+		{ label: "About Novelty" },
+	],
+};
 
 export function TitleBar({
 	isCollapsed,
@@ -41,12 +74,12 @@ export function TitleBar({
 	extras?: React.ReactNode;
 }) {
 	const rpc = useRPC();
-	const eb = useMemo(() => new Electroview({ rpc }), [rpc]);
 
 	const [isMaximized, setIsMaximized] = useState(false);
+	const [activeMenu, setActiveMenu] = useState<string | null>(null);
+	const menuBarRef = useRef<HTMLDivElement>(null);
 
 	useEffect(() => {
-		// Change 'isMax: boolean' to '{ params: boolean }'
 		rpc.addMessageListener("window-state-changed", (payload) => {
 			const isMax = payload.valueOf();
 			setIsMaximized(isMax);
@@ -58,18 +91,31 @@ export function TitleBar({
 		})();
 	}, []);
 
+	useEffect(() => {
+		function handleClickOutside(e: MouseEvent) {
+			if (
+				menuBarRef.current &&
+				!menuBarRef.current.contains(e.target as Node)
+			) {
+				setActiveMenu(null);
+			}
+		}
+		document.addEventListener("mousedown", handleClickOutside);
+		return () => document.removeEventListener("mousedown", handleClickOutside);
+	}, []);
+
 	return (
 		<>
 			<div className={`${styles.titleBar} electrobun-webkit-app-region-drag`}>
 				<div
 					className={`${styles.applicationMenu} electrobun-webkit-app-region-no-drag`}
 				>
-					<button className={styles.appIconBtn}>
+					<button className={styles.appIconBtn} title="Novelty" aria-label="Novelty">
 						<svg
 							xmlns="http://www.w3.org/2000/svg"
 							viewBox="0 0 48 48"
-							width={24}
-							height={24}
+							width={20}
+							height={20}
 						>
 							<rect width="48" height="48" rx="12" fill="#292931" />
 							<g
@@ -84,11 +130,48 @@ export function TitleBar({
 							</g>
 						</svg>
 					</button>
-					<div className="app-menu-items">
-						<button className="app-menu-item">File</button>
-						<button className="app-menu-item">Edit</button>
-						<button className="app-menu-item">View</button>
-						<button className="app-menu-item">Help</button>
+					<div className={styles.menuBar} ref={menuBarRef}>
+						{Object.entries(MENUS).map(([label, items]) => (
+							<div key={label} className={styles.menuWrapper}>
+								<button
+									className={`${styles.menuBtn} ${
+										activeMenu === label ? styles.menuBtnOpen : ""
+									}`}
+									onClick={() =>
+										setActiveMenu(activeMenu === label ? null : label)
+									}
+									onMouseEnter={() =>
+										activeMenu !== null && activeMenu !== label
+											? setActiveMenu(label)
+											: undefined
+									}
+								>
+									{label}
+								</button>
+								{activeMenu === label && (
+									<div className={styles.menuDropdown}>
+										{items.map((item, i) =>
+											item === "sep" ? (
+												<div key={i} className={styles.menuDivider} />
+											) : (
+												<button
+													key={i}
+													className={styles.menuItem}
+													onClick={() => setActiveMenu(null)}
+												>
+													<span>{item.label}</span>
+													{item.shortcut && (
+														<span className={styles.menuShortcut}>
+															{item.shortcut}
+														</span>
+													)}
+												</button>
+											),
+										)}
+									</div>
+								)}
+							</div>
+						))}
 					</div>
 				</div>
 				<div className={styles.projectSwitcher}>
@@ -111,22 +194,15 @@ export function TitleBar({
 						<IconFolder stroke={2} />
 					</button>
 				</div>
-				<div className="title-bar-left electrobun-webkit-app-region-no-drag" style={{ display: "flex" }}>
-					{extras && (
-						<div className="title-bar-extras">{extras}</div>
-					)}
-					<div
-						className={styles.leftButtons}
-						style={{
-							display: "inline-block",
-							marginRight: "16px",
-						}}
-					>
+				<div
+					className={`${styles.titleBarRight} electrobun-webkit-app-region-no-drag`}
+				>
+					{extras && <div className="title-bar-extras">{extras}</div>}
+					<div className={styles.leftButtons}>
 						<button
-							className={`${styles.iconBtn}`}
+							className={`${styles.iconBtn} ${styles.hidden}`}
 							onClick={() => setIsCollapsed(!isCollapsed)}
 							title={`${isCollapsed ? "Open" : "Close"} Explorer`}
-							style={{ display: "none" }}
 						>
 							{isCollapsed ? (
 								<IconLayoutSidebar stroke={2} />
@@ -135,10 +211,9 @@ export function TitleBar({
 							)}
 						</button>
 						<button
-							className={`${styles.iconBtn}`}
+							className={`${styles.iconBtn} ${styles.hidden}`}
 							onClick={() => setIsChatCollapsed(!isChatCollapsed)}
 							title={`${isChatCollapsed ? "Open" : "Close"} Chat`}
-							style={{ display: "none" }}
 						>
 							{isChatCollapsed ? (
 								<IconLayoutSidebarRight stroke={2} />
@@ -146,40 +221,37 @@ export function TitleBar({
 								<IconLayoutSidebarRightFilled />
 							)}
 						</button>
-						<button className={`${styles.iconBtn}`} onClick={onTimelineClick} title="Timeline">
+						<button
+							className={styles.iconBtn}
+							onClick={onTimelineClick}
+							title="Timeline"
+							aria-label="Timeline"
+						>
 							<IconTimelineEventText stroke={2} />
 						</button>
 						<button
-							className={`${styles.iconBtn}`}
+							className={styles.iconBtn}
 							onClick={onSettingsClick}
 							title="Open settings"
+							aria-label="Open settings"
 						>
 							<IconSettings stroke={2} />
 						</button>
 					</div>
-					<div
-						className={styles.windowControls}
-						style={{
-							display: "inline-block",
-						}}
-					>
+					<div className={styles.windowControls}>
 						<button
-							className={`${styles.iconBtn}`}
-							onClick={() => {
-								console.log("minimize clicked");
-								(eb.rpc?.send as any)["minimize-window"]();
-							}}
+							className={styles.windowBtn}
+							onClick={() => rpc.send["minimize-window"]()}
 							title="Minimize"
+							aria-label="Minimize"
 						>
 							<IconMinus stroke={2} />
 						</button>
 						<button
-							className={`${styles.iconBtn}`}
-							onClick={() => {
-								console.log("maximize clicked");
-								(eb.rpc?.send as any)["maximize-window"]();
-							}}
+							className={styles.windowBtn}
+							onClick={() => rpc.send["maximize-window"]()}
 							title={isMaximized ? "Restore" : "Maximize"}
+							aria-label={isMaximized ? "Restore" : "Maximize"}
 						>
 							{isMaximized ? (
 								<IconSquares stroke={2} />
@@ -188,15 +260,15 @@ export function TitleBar({
 							)}
 						</button>
 						<button
-							className={`${styles.iconBtn}`}
-							onClick={() => (eb.rpc?.send as any)["close-window"]()}
+							className={`${styles.windowBtn} ${styles.windowClose}`}
+							onClick={() => rpc.send["close-window"]()}
 							title="Close"
+							aria-label="Close"
 						>
 							<IconX stroke={2} />
 						</button>
 					</div>
 				</div>
-				{/*<button>user</button>*/}
 			</div>
 		</>
 	);
