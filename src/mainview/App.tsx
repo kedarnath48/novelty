@@ -90,13 +90,18 @@ function App() {
   const [isChatCollapsed, setIsChatCollapsed] = useState(sc?.rightPanelCollapsed ?? false);
   const [mode, setMode] = useState<'manuscript' | 'compendium'>('manuscript');
 
+  const appliedPanelStateRef = useRef(false);
+
   useEffect(() => {
     if (settings?.appearance?.sidebarConstraints) {
       const c = settings.appearance.sidebarConstraints;
       setLeftSidebarWidth(c.leftWidth);
       setRightSidebarWidth(c.rightWidth);
-      setIsCollapsed(c.leftPanelCollapsed);
-      setIsChatCollapsed(c.rightPanelCollapsed);
+      if (!appliedPanelStateRef.current) {
+        appliedPanelStateRef.current = true;
+        setIsCollapsed(c.leftPanelCollapsed);
+        setIsChatCollapsed(c.rightPanelCollapsed);
+      }
       leftWidthRef.current = c.leftWidth;
       rightWidthRef.current = c.rightWidth;
     }
@@ -1271,6 +1276,25 @@ function App() {
     return openTabs.find((t) => t.id === activeTabId);
   }
 
+  useEffect(() => {
+    if (!settings?.appearance?.sidebarConstraints?.enableAutoSwitchPanel) return;
+    const tab = getActiveTab();
+    if (!tab) return;
+    if (tab.type === "chapter") {
+      setMode("manuscript");
+      setExplorerTab("chapters");
+    } else if (
+      tab.type === "character" ||
+      tab.type === "location" ||
+      tab.type === "organization" ||
+      tab.type === "item" ||
+      tab.type === "lore"
+    ) {
+      setMode("compendium");
+      setExplorerTab(tab.type);
+    }
+  }, [activeTabId, openTabs, settings?.appearance?.sidebarConstraints?.enableAutoSwitchPanel]);
+
   function isTextFileTab(): boolean {
     if (isScratchOpen) return true;
     const tab = getActiveTab();
@@ -1540,7 +1564,7 @@ function App() {
         setIsChatCollapsed={setIsChatCollapsed}
         onProjectsClick={() => setActiveDialog("projects")}
         onSettingsClick={() => setActiveDialog("settings")}
-        onProjectManagerClick={() => setActiveDialog("projectManager")}
+        onTitleClick={() => setActiveDialog(currentProject ? "projectManager" : "projects")}
         onTimelineClick={() => setShowTimeline(true)}
         projectName={currentProject?.name ?? null}
         extras={

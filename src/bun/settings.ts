@@ -53,6 +53,7 @@ interface SettingsFile {
 			enableAutoExpandLeft: false,
 			leftPanelCollapsed: false,
 			rightPanelCollapsed: false,
+			enableAutoSwitchPanel: true,
 		},
 	},
 	projects: {
@@ -224,6 +225,7 @@ function migrateSidebarConstraints(settings: Settings): void {
 				enableAutoExpandLeft: false,
 				leftPanelCollapsed: false,
 				rightPanelCollapsed: false,
+				enableAutoSwitchPanel: true,
 			},
 		};
 	} else if (!settings.appearance.sidebarConstraints) {
@@ -236,11 +238,13 @@ function migrateSidebarConstraints(settings: Settings): void {
 			enableAutoExpandLeft: false,
 			leftPanelCollapsed: false,
 			rightPanelCollapsed: false,
+			enableAutoSwitchPanel: true,
 		};
 	} else {
 		const c = settings.appearance.sidebarConstraints;
 		if (c.leftPanelCollapsed === undefined) c.leftPanelCollapsed = false;
 		if (c.rightPanelCollapsed === undefined) c.rightPanelCollapsed = false;
+		if (c.enableAutoSwitchPanel === undefined) c.enableAutoSwitchPanel = true;
 	}
 }
 

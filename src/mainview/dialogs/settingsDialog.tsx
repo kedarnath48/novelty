@@ -1313,6 +1313,7 @@ function AppearanceTab() {
 		leftWidth: 280,
 		rightWidth: 550,
 		enableAutoExpandLeft: false,
+		enableAutoSwitchPanel: true,
 	};
 
 	return (
@@ -1355,6 +1356,14 @@ function AppearanceTab() {
 				<Toggle
 					checked={c.enableAutoExpandLeft}
 					onChange={(v) => updateAppearance("sidebarConstraints", { ...c, enableAutoExpandLeft: v })}
+					disabled={isLocked}
+				/>
+			</div>
+			<div className={styles.settingRow}>
+				<span>Auto-switch Left Panel to Match Active Editor Tab</span>
+				<Toggle
+					checked={c.enableAutoSwitchPanel}
+					onChange={(v) => updateAppearance("sidebarConstraints", { ...c, enableAutoSwitchPanel: v })}
 					disabled={isLocked}
 				/>
 			</div>

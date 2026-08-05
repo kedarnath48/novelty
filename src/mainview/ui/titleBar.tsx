@@ -3,7 +3,7 @@ import { Electroview } from "electrobun/view";
 import { useState, useEffect, useMemo } from "react";
 import { useRPC } from "../contexts/RPCContext";
 import {
-	IconBook2,
+	IconChevronDown,
 	IconFolder,
 	IconLayoutSidebar,
 	IconLayoutSidebarFilled,
@@ -24,7 +24,7 @@ export function TitleBar({
 	setIsChatCollapsed,
 	onProjectsClick,
 	onSettingsClick,
-	onProjectManagerClick,
+	onTitleClick,
 	onTimelineClick,
 	projectName,
 	extras,
@@ -35,7 +35,7 @@ export function TitleBar({
 	setIsChatCollapsed: (isChatCollapsed: boolean) => void;
 	onProjectsClick: () => void;
 	onSettingsClick: () => void;
-	onProjectManagerClick: () => void;
+	onTitleClick: () => void;
 	onTimelineClick: () => void;
 	projectName: string | null;
 	extras?: React.ReactNode;
@@ -91,10 +91,27 @@ export function TitleBar({
 						<button className="app-menu-item">Help</button>
 					</div>
 				</div>
-				<div className="application-title electrobun-webkit-app-region-no-drag">
-					{projectName || "Novelty"}
+				<div className={styles.projectSwitcher}>
+					<button
+						className={`${styles.projectTitleBtn} electrobun-webkit-app-region-no-drag`}
+						onClick={onTitleClick}
+						title="Open Project Manager"
+					>
+						<span>{projectName || "Novelty"}</span>
+						<IconChevronDown className={styles.chevron} size={14} stroke={2} />
+					</button>
+
+					<div className={styles.projectSwitcherDivider} />
+
+					<button
+						className={styles.projectSwitcherBtn}
+						onClick={onProjectsClick}
+						title="Open Projects"
+					>
+						<IconFolder stroke={2} />
+					</button>
 				</div>
-				<div className="title-bar-left electrobun-webkit-app-region-no-drag" style={{ display: "flex"}}>
+				<div className="title-bar-left electrobun-webkit-app-region-no-drag" style={{ display: "flex" }}>
 					{extras && (
 						<div className="title-bar-extras">{extras}</div>
 					)}
@@ -109,6 +126,7 @@ export function TitleBar({
 							className={`${styles.iconBtn}`}
 							onClick={() => setIsCollapsed(!isCollapsed)}
 							title={`${isCollapsed ? "Open" : "Close"} Explorer`}
+							style={{ display: "none" }}
 						>
 							{isCollapsed ? (
 								<IconLayoutSidebar stroke={2} />
@@ -120,6 +138,7 @@ export function TitleBar({
 							className={`${styles.iconBtn}`}
 							onClick={() => setIsChatCollapsed(!isChatCollapsed)}
 							title={`${isChatCollapsed ? "Open" : "Close"} Chat`}
+							style={{ display: "none" }}
 						>
 							{isChatCollapsed ? (
 								<IconLayoutSidebarRight stroke={2} />
@@ -129,20 +148,6 @@ export function TitleBar({
 						</button>
 						<button className={`${styles.iconBtn}`} onClick={onTimelineClick} title="Timeline">
 							<IconTimelineEventText stroke={2} />
-						</button>
-						<button
-							className={`${styles.iconBtn}`}
-							onClick={onProjectManagerClick}
-							title="Project Manager"
-						>
-							<IconBook2 stroke={2} />
-						</button>
-						<button
-							className={`${styles.iconBtn}`}
-							onClick={onProjectsClick}
-							title="Open Projects"
-						>
-							<IconFolder stroke={2} />
 						</button>
 						<button
 							className={`${styles.iconBtn}`}
