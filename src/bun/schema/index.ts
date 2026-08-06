@@ -306,11 +306,31 @@ export const storyActs = sqliteTable("story_acts", {
 export const storySequences = sqliteTable("story_sequences", {
 	id: text("id").primaryKey(),
 	actId: text("act_id").references(() => storyActs.id, { onDelete: "cascade" }),
+	chapterId: text("chapter_id").references((): any => chapters.id),
 	projectId: text("project_id").references(() => projects.id),
 	title: text("title").notNull(),
 	summary: text("summary"),
 	orderIndex: integer("order_index").notNull().default(0),
 	status: text("status").notNull().default("outline"),
+	createdAt: integer("created_at", { mode: "timestamp" }).notNull().$defaultFn(() => new Date()),
+	updatedAt: integer("updated_at", { mode: "timestamp" }).notNull().$defaultFn(() => new Date()),
+});
+
+export const storyScenes = sqliteTable("story_scenes", {
+	id: text("id").primaryKey(),
+	projectId: text("project_id").references(() => projects.id),
+	actId: text("act_id").references(() => storyActs.id),
+	sequenceId: text("sequence_id").references(() => storySequences.id),
+	chapterId: text("chapter_id").references(() => chapters.id),
+	title: text("title").notNull(),
+	summary: text("summary"),
+	setting: text("setting"),
+	charactersPresent: text("characters_present"),
+	keyEvents: text("key_events"),
+	duration: text("duration"),
+	conflict: text("conflict"),
+	status: text("status").notNull().default("outline"),
+	orderIndex: integer("order_index").notNull().default(0),
 	createdAt: integer("created_at", { mode: "timestamp" }).notNull().$defaultFn(() => new Date()),
 	updatedAt: integer("updated_at", { mode: "timestamp" }).notNull().$defaultFn(() => new Date()),
 });

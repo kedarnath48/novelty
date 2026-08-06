@@ -1,5 +1,5 @@
 import { db } from "./index";
-import { chapters } from "../schema";
+import { chapters, storyScenes, storySequences } from "../schema";
 import { eq, asc } from "drizzle-orm";
 
 export type Chapter = {
@@ -97,5 +97,7 @@ export async function updateChapter(
 }
 
 export async function deleteChapter(id: string): Promise<void> {
+	await db.delete(storyScenes).where(eq(storyScenes.chapterId, id));
+	await db.delete(storySequences).where(eq(storySequences.chapterId, id));
 	await db.delete(chapters).where(eq(chapters.id, id));
 }

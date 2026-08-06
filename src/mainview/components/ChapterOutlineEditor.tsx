@@ -1,57 +1,132 @@
 import { useState } from "react";
-import type { Chapter, ChapterStatus, Character, PlotThread, ChapterPlotThread, SceneOutline, ChapterOutlineData, StoryAct, StorySequence } from "../types/index";
-import { IconPlus, IconTrash, IconArrowRight } from "@tabler/icons-react";
+import type { Chapter, ChapterStatus, Character, PlotThread, ChapterPlotThread, ChapterOutlineData, StoryAct, StoryScene, StorySequence } from "../types/index";
+import { IconPlus, IconTrash, IconArrowRight, IconGripVertical, IconChevronDown, IconChevronRight } from "@tabler/icons-react";
+import SceneCardEditor from "./SceneCardEditor";
+import { useCollapseState } from "../hooks/useCollapseState";
 
 interface Props {
+	projectId: string;
 	chapter: Chapter;
 	characters: Character[];
 	plotThreads: PlotThread[];
 	chapterPlotThreads: ChapterPlotThread[];
 	acts: StoryAct[];
+	scenes: StoryScene[];
 	sequences: StorySequence[];
 	onUpdate: (field: string, value: unknown) => void;
 	onMoveToDraft: () => void;
+	onSceneCreate: (sequenceId: string | null) => void;
+	onSceneDelete: (id: string) => void;
+	onSceneUpdate: (id: string, field: string, value: unknown) => void;
+	onSceneReorder: (container: string | null, orderedIds: string[]) => void;
+	onSequenceCreate: () => void;
+	onSequenceDelete: (id: string) => void;
+	onSequenceUpdate: (id: string, field: string, value: unknown) => void;
+	onSequenceReorder: (orderedIds: string[]) => void;
+}
+
+interface SceneListProps {
+	scenes: StoryScene[];
+	characters: Character[];
+	containerKey: string | null;
+	collapsedScenes: string[];
+	onToggleSceneCollapse: (id: string) => void;
+	onSceneCreate: (sequenceId: string | null) => void;
+	onSceneDelete: (id: string) => void;
+	onSceneUpdate: (id: string, field: string, value: unknown) => void;
+	onSceneReorder: (container: string | null, orderedIds: string[]) => void;
+}
+
+function SceneList({ scenes, characters, containerKey, collapsedScenes, onToggleSceneCollapse, onSceneCreate, onSceneDelete, onSceneUpdate, onSceneReorder }: SceneListProps) {
+	const [dragIndex, setDragIndex] = useState<number | null>(null);
+	const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+
+	function handleDrop() {
+		if (dragIndex === null || dragOverIndex === null || dragIndex === dragOverIndex) {
+			setDragIndex(null);
+			setDragOverIndex(null);
+			return;
+		}
+		const ids = scenes.map(s => s.id);
+		const [moved] = ids.splice(dragIndex, 1);
+		ids.splice(dragOverIndex, 0, moved);
+		onSceneReorder(containerKey, ids);
+		setDragIndex(null);
+		setDragOverIndex(null);
+	}
+
+	return (
+		<>
+			{scenes.length === 0 && <div className="empty-scenes">No scenes in this section yet.</div>}
+			{scenes.map((scene, idx) => (
+				<div
+					key={scene.id}
+					className={`scene-drag-wrap ${dragOverIndex === idx && dragIndex !== null && dragIndex !== idx ? "drop-target-line" : ""}`}
+					onDragOver={(e) => {
+						if (dragIndex === null) return;
+						e.preventDefault();
+						setDragOverIndex(idx);
+					}}
+					onDragLeave={(e) => {
+						const rel = e.relatedTarget as Node | null;
+						if (!e.currentTarget.contains(rel)) setDragOverIndex(null);
+					}}
+					onDrop={handleDrop}
+				>
+				<SceneCardEditor
+					scene={scene}
+					index={idx}
+					characters={characters}
+					collapsed={collapsedScenes.includes(scene.id)}
+					onToggleCollapsed={() => onToggleSceneCollapse(scene.id)}
+					onChange={onSceneUpdate}
+					onRemove={onSceneDelete}
+						dragHandle={(
+							<span
+								className="drag-handle"
+								draggable
+								onDragStart={(e) => {
+									e.dataTransfer.effectAllowed = "move";
+									setDragIndex(idx);
+								}}
+								onDragEnd={() => {
+									setDragIndex(null);
+									setDragOverIndex(null);
+								}}
+							>
+								<IconGripVertical size={12} />
+							</span>
+						)}
+					/>
+				</div>
+			))}
+			<button className="add-scene-btn" onClick={() => onSceneCreate(containerKey)}><IconPlus size={12} /> Add Scene</button>
+		</>
+	);
 }
 
 export default function ChapterOutlineEditor({
-	chapter, characters, plotThreads,
-	chapterPlotThreads, acts, sequences,
-	onUpdate, onMoveToDraft,
+	projectId, chapter, characters, plotThreads,
+	chapterPlotThreads, acts, scenes, sequences,
+	onUpdate, onMoveToDraft, onSceneCreate, onSceneDelete, onSceneUpdate, onSceneReorder,
+	onSequenceCreate, onSequenceDelete, onSequenceUpdate, onSequenceReorder,
 }: Props) {
+	const { collapsed, toggle } = useCollapseState(projectId);
 	const [outlineData, setOutlineData] = useState<ChapterOutlineData>(() => {
 		try {
-			return chapter.outline ? JSON.parse(chapter.outline) : { summary: "", scenes: [], keyEvents: [], notes: "" };
+			const parsed = chapter.outline ? JSON.parse(chapter.outline) : {};
+			return { summary: parsed.summary || "", scenes: [], keyEvents: parsed.keyEvents || [], notes: parsed.notes || "" };
 		} catch {
 			return { summary: "", scenes: [], keyEvents: [], notes: "" };
 		}
 	});
 
+	const [dragSeqIndex, setDragSeqIndex] = useState<number | null>(null);
+	const [dragOverSeqIndex, setDragOverSeqIndex] = useState<number | null>(null);
 	function updateOutline(field: keyof ChapterOutlineData, value: unknown) {
 		const newData = { ...outlineData, [field]: value };
 		setOutlineData(newData);
 		onUpdate("outline", JSON.stringify(newData));
-	}
-
-	function addScene() {
-		const newScene: SceneOutline = {
-			id: crypto.randomUUID(),
-			title: "",
-			summary: "",
-			setting: "",
-			charactersPresent: [],
-			keyEvents: [],
-			duration: null,
-			conflict: null,
-		};
-		updateOutline("scenes", [...outlineData.scenes, newScene]);
-	}
-
-	function removeScene(id: string) {
-		updateOutline("scenes", outlineData.scenes.filter(s => s.id !== id));
-	}
-
-	function updateScene(id: string, field: keyof SceneOutline, value: unknown) {
-		updateOutline("scenes", outlineData.scenes.map(s => s.id === id ? { ...s, [field]: value } : s));
 	}
 
 	function addKeyEvent() {
@@ -68,19 +143,30 @@ export default function ChapterOutlineEditor({
 		updateOutline("keyEvents", outlineData.keyEvents.filter((_, i) => i !== index));
 	}
 
-	function toggleCharacterInScene(sceneId: string, charId: string) {
-		const scene = outlineData.scenes.find(s => s.id === sceneId);
-		if (!scene) return;
-		const present = scene.charactersPresent.includes(charId);
-		updateScene(sceneId, "charactersPresent",
-			present
-				? scene.charactersPresent.filter(id => id !== charId)
-				: [...scene.charactersPresent, charId],
-		);
+	function toggleSequence(id: string) {
+		toggle("sequences", id);
+	}
+
+	function handleSequenceDrop() {
+		if (dragSeqIndex === null || dragOverSeqIndex === null || dragSeqIndex === dragOverSeqIndex) {
+			setDragSeqIndex(null);
+			setDragOverSeqIndex(null);
+			return;
+		}
+		const ids = sortedSequences.map(s => s.id);
+		const [moved] = ids.splice(dragSeqIndex, 1);
+		ids.splice(dragOverSeqIndex, 0, moved);
+		onSequenceReorder(ids);
+		setDragSeqIndex(null);
+		setDragOverSeqIndex(null);
 	}
 
 	const statusOptions: ChapterStatus[] = ["outline", "draft", "revision", "done"];
 	const activeThreadIds = new Set(chapterPlotThreads.map(t => t.plotThreadId));
+
+	const sortedSequences = [...sequences].sort((a, b) => a.orderIndex - b.orderIndex);
+	const directScenes = scenes.filter(s => !s.sequenceId).sort((a, b) => a.orderIndex - b.orderIndex);
+	const scenesOfSequence = (seqId: string) => scenes.filter(s => s.sequenceId === seqId).sort((a, b) => a.orderIndex - b.orderIndex);
 
 	return (
 		<div className="chapter-outline-editor">
@@ -139,19 +225,6 @@ export default function ChapterOutlineEditor({
 						{acts.map(a => <option key={a.id} value={a.id}>{a.title}</option>)}
 					</select>
 				</div>
-
-				<div className="outline-field">
-					<label>Sequence</label>
-					<select
-						value={chapter.sequenceId || ""}
-						onChange={e => onUpdate("sequenceId", e.target.value || null)}
-					>
-						<option value="">-- None --</option>
-						{sequences.filter(s => !chapter.actId || s.actId === chapter.actId).map(s => (
-							<option key={s.id} value={s.id}>{s.title}</option>
-						))}
-					</select>
-				</div>
 			</div>
 
 			<div className="outline-section">
@@ -167,59 +240,98 @@ export default function ChapterOutlineEditor({
 			<div className="outline-section">
 				<div className="section-header">
 					<label>Scenes</label>
-					<button className="icon-btn" onClick={addScene}><IconPlus size={14} /> Add Scene</button>
+					<button className="icon-btn" onClick={onSequenceCreate}><IconPlus size={14} /> Add Sequence</button>
 				</div>
-				{outlineData.scenes.map((scene, idx) => (
-					<div key={scene.id} className="scene-card">
-						<div className="scene-header">
-							<span className="scene-number">Scene {idx + 1}</span>
-							<button className="icon-btn icon-btn-sm" onClick={() => removeScene(scene.id)}><IconTrash size={12} /></button>
-						</div>
-						<input
-							className="scene-title"
-							placeholder="Scene title..."
-							value={scene.title}
-							onChange={e => updateScene(scene.id, "title", e.target.value)}
-						/>
-						<textarea
-							placeholder="What happens in this scene?"
-							value={scene.summary}
-							onChange={e => updateScene(scene.id, "summary", e.target.value)}
-							rows={2}
-						/>
-						<div className="scene-details">
-							<input
-								placeholder="Setting (e.g. The Throne Room)"
-								value={scene.setting}
-								onChange={e => updateScene(scene.id, "setting", e.target.value)}
-							/>
-							<input
-								placeholder="Duration (e.g. 10 minutes)"
-								value={scene.duration || ""}
-								onChange={e => updateScene(scene.id, "duration", e.target.value)}
-							/>
-							<input
-								placeholder="Core conflict..."
-								value={scene.conflict || ""}
-								onChange={e => updateScene(scene.id, "conflict", e.target.value)}
-							/>
-						</div>
-						<div className="scene-characters">
-							<label>Characters present:</label>
-							<div className="char-tags">
-								{characters.map(ch => (
-									<button
-										key={ch.id}
-										className={`char-tag ${scene.charactersPresent.includes(ch.id) ? "active" : ""}`}
-										onClick={() => toggleCharacterInScene(scene.id, ch.id)}
+				{sequences.length === 0 && directScenes.length === 0 && (
+					<div className="empty-scenes">No sequences or scenes attached to this chapter yet.</div>
+				)}
+
+				{sortedSequences.length > 0 && (
+					<div className="outline-sequences">
+						{sortedSequences.map((seq, seqIdx) => (
+							<div
+								key={seq.id}
+								className={`outline-sequence ${dragOverSeqIndex === seqIdx && dragSeqIndex !== null && dragSeqIndex !== seqIdx ? "drop-target-line" : ""}`}
+								onDragOver={(e) => {
+									if (dragSeqIndex === null) return;
+									e.preventDefault();
+									setDragOverSeqIndex(seqIdx);
+								}}
+								onDragLeave={(e) => {
+									const rel = e.relatedTarget as Node | null;
+									if (!e.currentTarget.contains(rel)) setDragOverSeqIndex(null);
+								}}
+								onDrop={handleSequenceDrop}
+							>
+								<div className="outline-sequence-header">
+									<span
+										className="drag-handle"
+										draggable
+										onDragStart={(e) => {
+											e.dataTransfer.effectAllowed = "move";
+											setDragSeqIndex(seqIdx);
+										}}
+										onDragEnd={() => {
+											setDragSeqIndex(null);
+											setDragOverSeqIndex(null);
+										}}
 									>
-										{ch.name}
+										<IconGripVertical size={12} />
+									</span>
+									<button className="collapse-btn" onClick={() => toggleSequence(seq.id)} title={collapsed.sequences.includes(seq.id) ? "Expand" : "Collapse"}>
+										{collapsed.sequences.includes(seq.id) ? <IconChevronRight size={14} /> : <IconChevronDown size={14} />}
 									</button>
-								))}
+									<input
+										className="sequence-title-input"
+										placeholder="Sequence title..."
+										value={seq.title}
+										onChange={e => onSequenceUpdate(seq.id, "title", e.target.value)}
+									/>
+									<span className="act-badge">{seq.status}</span>
+									<button className="icon-btn icon-btn-sm" onClick={() => onSequenceDelete(seq.id)}><IconTrash size={12} /></button>
+								</div>
+								<textarea
+									className="sequence-summary-input"
+									placeholder="Sequence summary..."
+									value={seq.summary || ""}
+									onChange={e => onSequenceUpdate(seq.id, "summary", e.target.value)}
+									rows={1}
+								/>
+								{!collapsed.sequences.includes(seq.id) && (
+									<div className="outline-sequence-scenes">
+										<SceneList
+											scenes={scenesOfSequence(seq.id)}
+											characters={characters}
+											containerKey={seq.id}
+											collapsedScenes={collapsed.scenes}
+											onToggleSceneCollapse={id => toggle("scenes", id)}
+											onSceneCreate={onSceneCreate}
+											onSceneDelete={onSceneDelete}
+											onSceneUpdate={onSceneUpdate}
+											onSceneReorder={onSceneReorder}
+										/>
+									</div>
+								)}
 							</div>
-						</div>
+						))}
 					</div>
-				))}
+				)}
+
+				{directScenes.length > 0 && (
+					<div className="outline-direct-scenes">
+						<SceneList
+							scenes={directScenes}
+							characters={characters}
+							containerKey={null}
+							collapsedScenes={collapsed.scenes}
+							onToggleSceneCollapse={id => toggle("scenes", id)}
+							onSceneCreate={onSceneCreate}
+							onSceneDelete={onSceneDelete}
+							onSceneUpdate={onSceneUpdate}
+							onSceneReorder={onSceneReorder}
+						/>
+					</div>
+				)}
 			</div>
 
 			<div className="outline-section">

@@ -379,6 +379,27 @@ CREATE TABLE IF NOT EXISTS scratch_notes (
 	`);
 
 	sqlite.exec(`
+		CREATE TABLE IF NOT EXISTS story_scenes (
+			id TEXT PRIMARY KEY,
+			project_id TEXT REFERENCES projects(id),
+			act_id TEXT REFERENCES story_acts(id),
+			sequence_id TEXT REFERENCES story_sequences(id),
+			chapter_id TEXT REFERENCES chapters(id),
+			title TEXT NOT NULL,
+			summary TEXT,
+			setting TEXT,
+			characters_present TEXT,
+			key_events TEXT,
+			duration TEXT,
+			conflict TEXT,
+			status TEXT NOT NULL DEFAULT 'outline',
+			order_index INTEGER NOT NULL DEFAULT 0,
+			created_at INTEGER NOT NULL,
+			updated_at INTEGER NOT NULL
+		);
+	`);
+
+	sqlite.exec(`
 		CREATE TABLE IF NOT EXISTS plot_threads (
 			id TEXT PRIMARY KEY,
 			project_id TEXT REFERENCES projects(id),
@@ -452,6 +473,7 @@ CREATE TABLE IF NOT EXISTS scratch_notes (
 		{ table: "chapters", name: "word_count_target", type: "INTEGER" },
 		{ table: "chapters", name: "act_id", type: "TEXT REFERENCES story_acts(id)" },
 		{ table: "chapters", name: "sequence_id", type: "TEXT REFERENCES story_sequences(id)" },
+		{ table: "story_sequences", name: "chapter_id", type: "TEXT REFERENCES chapters(id)" },
 		{ table: "projects", name: "cover_image_id", type: "TEXT" },
 		{ table: "projects", name: "cover_images_array", type: "TEXT" },
 		{ table: "projects", name: "project_scope", type: "TEXT" },
@@ -488,6 +510,8 @@ CREATE TABLE IF NOT EXISTS scratch_notes (
 		}
 	}
 
+	migrateOutlineScenesToStoryScenes();
+
 	try {
 		sqlite.exec(`UPDATE scratch_notes SET id = project_id WHERE id = 'scratch'`);
 	} catch {
@@ -497,6 +521,73 @@ CREATE TABLE IF NOT EXISTS scratch_notes (
 	seedGlobalData();
 
 	console.log("Database initialized at:", dbPath);
+}
+
+function migrateOutlineScenesToStoryScenes() {
+	try {
+		const chapters = sqlite.query(
+			`SELECT id, project_id, act_id, sequence_id, outline FROM chapters WHERE outline IS NOT NULL`
+		).all() as { id: string; project_id: string | null; act_id: string | null; sequence_id: string | null; outline: string }[];
+
+		for (const chapter of chapters) {
+			let parsed: { scenes?: unknown[] } | null = null;
+			try {
+				parsed = JSON.parse(chapter.outline);
+			} catch {
+				// outline isn't valid JSON - leave untouched
+			}
+			const scenes = Array.isArray(parsed?.scenes) ? parsed.scenes : [];
+			if (scenes.length === 0 || !parsed) continue;
+
+			const existing = sqlite.query(`SELECT COUNT(*) AS count FROM story_scenes WHERE chapter_id = ?`).get(chapter.id) as { count: number };
+			if (existing.count > 0) continue;
+
+			const now = Date.now();
+			const insertStmt = sqlite.prepare(
+				`INSERT INTO story_scenes
+					(id, project_id, act_id, sequence_id, chapter_id, title, summary, setting, characters_present, key_events, duration, conflict, status, order_index, created_at, updated_at)
+				 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'outline', ?, ?, ?)`
+			);
+			scenes.forEach((raw, index) => {
+				const scene = (raw || {}) as Record<string, unknown>;
+				const id = typeof scene.id === "string" && scene.id ? scene.id : crypto.randomUUID();
+				insertStmt.run(
+					id,
+					chapter.project_id,
+					chapter.act_id,
+					chapter.sequence_id,
+					chapter.id,
+					typeof scene.title === "string" ? scene.title : "",
+					typeof scene.summary === "string" ? scene.summary : null,
+					typeof scene.setting === "string" ? scene.setting : null,
+					JSON.stringify(Array.isArray(scene.charactersPresent) ? scene.charactersPresent : []),
+					JSON.stringify(Array.isArray(scene.keyEvents) ? scene.keyEvents : []),
+					typeof scene.duration === "string" ? scene.duration : null,
+					typeof scene.conflict === "string" ? scene.conflict : null,
+					index,
+					now,
+					now,
+				);
+			});
+
+			const { scenes: _stripped, ...rest } = parsed;
+			sqlite.prepare(`UPDATE chapters SET outline = ? WHERE id = ?`).run(JSON.stringify(rest), chapter.id);
+		}
+
+		const orphanedSequences = sqlite.query(
+			`SELECT id FROM story_sequences WHERE chapter_id IS NULL`
+		).all() as { id: string }[];
+		for (const seq of orphanedSequences) {
+			const firstChapter = sqlite.query(
+				`SELECT id FROM chapters WHERE sequence_id = ? ORDER BY order_index ASC LIMIT 1`
+			).get(seq.id) as { id: string } | undefined;
+			if (firstChapter) {
+				sqlite.prepare(`UPDATE story_sequences SET chapter_id = ? WHERE id = ?`).run(firstChapter.id, seq.id);
+			}
+		}
+	} catch (err) {
+		console.warn("Failed to migrate outline scenes:", err);
+	}
 }
 
 function seedGlobalData() {

@@ -1,5 +1,5 @@
 import { db } from "./index";
-import { storyActs, storySequences } from "../schema";
+import { storyActs, storySequences, storyScenes } from "../schema";
 import { eq, asc } from "drizzle-orm";
 
 export type StoryAct = {
@@ -19,6 +19,7 @@ export type NewStoryAct = Omit<StoryAct, "createdAt" | "updatedAt">;
 export type StorySequence = {
 	id: string;
 	actId: string | null;
+	chapterId: string | null;
 	projectId: string | null;
 	title: string;
 	summary: string | null;
@@ -48,6 +49,7 @@ function parseSequence(row: typeof storySequences.$inferSelect): StorySequence {
 	return {
 		id: row.id,
 		actId: row.actId,
+		chapterId: row.chapterId,
 		projectId: row.projectId,
 		title: row.title,
 		summary: row.summary,
@@ -92,6 +94,8 @@ export async function updateAct(id: string, data: Partial<NewStoryAct>): Promise
 }
 
 export async function deleteAct(id: string): Promise<void> {
+	await db.delete(storyScenes).where(eq(storyScenes.actId, id));
+	await db.delete(storySequences).where(eq(storySequences.actId, id));
 	await db.delete(storyActs).where(eq(storyActs.id, id));
 }
 
@@ -109,6 +113,15 @@ export async function getSequencesByAct(actId: string): Promise<StorySequence[]>
 		.select()
 		.from(storySequences)
 		.where(eq(storySequences.actId, actId))
+		.orderBy(asc(storySequences.orderIndex));
+	return rows.map(parseSequence);
+}
+
+export async function getSequencesByChapter(chapterId: string): Promise<StorySequence[]> {
+	const rows = await db
+		.select()
+		.from(storySequences)
+		.where(eq(storySequences.chapterId, chapterId))
 		.orderBy(asc(storySequences.orderIndex));
 	return rows.map(parseSequence);
 }
@@ -132,11 +145,35 @@ export async function updateSequence(id: string, data: Partial<NewStorySequence>
 	if (data.orderIndex !== undefined) updateData.orderIndex = data.orderIndex;
 	if (data.status !== undefined) updateData.status = data.status;
 	if (data.actId !== undefined) updateData.actId = data.actId;
+	if (data.chapterId !== undefined) updateData.chapterId = data.chapterId;
 	if (data.projectId !== undefined) updateData.projectId = data.projectId;
 	await db.update(storySequences).set(updateData).where(eq(storySequences.id, id));
 	return getSequenceById(id);
 }
 
 export async function deleteSequence(id: string): Promise<void> {
+	await db.delete(storyScenes).where(eq(storyScenes.sequenceId, id));
 	await db.delete(storySequences).where(eq(storySequences.id, id));
+}
+
+export async function reorderActs(updates: { id: string; orderIndex: number }[]): Promise<void> {
+	await db.transaction(async (tx) => {
+		for (const update of updates) {
+			await tx
+				.update(storyActs)
+				.set({ orderIndex: update.orderIndex, updatedAt: new Date() })
+				.where(eq(storyActs.id, update.id));
+		}
+	});
+}
+
+export async function reorderSequences(updates: { id: string; orderIndex: number }[]): Promise<void> {
+	await db.transaction(async (tx) => {
+		for (const update of updates) {
+			await tx
+				.update(storySequences)
+				.set({ orderIndex: update.orderIndex, updatedAt: new Date() })
+				.where(eq(storySequences.id, update.id));
+		}
+	});
 }

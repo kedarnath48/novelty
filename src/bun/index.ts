@@ -41,6 +41,7 @@ import * as usageDB from "./database/usage";
 import * as actsDB from "./database/acts";
 import * as plotThreadsDB from "./database/plotThreads";
 import * as storyBeatsDB from "./database/storyBeats";
+import * as scenesDB from "./database/scenes";
 import * as inspirationsDB from "./database/inspirations";
 import { indexProject, getIndexStatus, rebuildProjectEmbeddings } from "./services/embeddings/pipeline";
 import { buildContext } from "./services/contextEngine";
@@ -560,6 +561,42 @@ const mainRPC = defineElectrobunRPC<SelectorSchema>("bun", {
 			},
 			"db:get-sequences-by-act": async (actId: string) => {
 				return await actsDB.getSequencesByAct(actId) as any;
+			},
+			"db:get-sequences-by-chapter": async (chapterId: string) => {
+				return await actsDB.getSequencesByChapter(chapterId) as any;
+			},
+			"db:reorder-acts": async (updates: { id: string; orderIndex: number }[]) => {
+				await actsDB.reorderActs(updates);
+			},
+			"db:reorder-sequences": async (updates: { id: string; orderIndex: number }[]) => {
+				await actsDB.reorderSequences(updates);
+			},
+			"db:get-story-scenes": async (projectId: string) => {
+				return await scenesDB.getScenesByProject(projectId) as any;
+			},
+			"db:get-story-scene": async (id: string) => {
+				return await scenesDB.getSceneById(id) as any;
+			},
+			"db:get-scenes-by-sequence": async (sequenceId: string) => {
+				return await scenesDB.getScenesBySequence(sequenceId) as any;
+			},
+			"db:get-scenes-by-chapter": async (chapterId: string) => {
+				return await scenesDB.getScenesByChapter(chapterId) as any;
+			},
+			"db:create-story-scene": async (scene: scenesDB.NewStoryScene) => {
+				return await scenesDB.createScene(scene) as any;
+			},
+			"db:update-story-scene": async ({ id, data }: { id: string; data: Partial<scenesDB.NewStoryScene> }) => {
+				return await scenesDB.updateScene(id, data) as any;
+			},
+			"db:delete-story-scene": async (id: string) => {
+				await scenesDB.deleteScene(id);
+			},
+			"db:reorder-scenes": async (updates: { id: string; orderIndex: number }[]) => {
+				await scenesDB.reorderScenes(updates);
+			},
+			"db:move-scene": async ({ id, data }: { id: string; data: { sequenceId?: string | null; chapterId?: string | null; actId?: string | null; orderIndex?: number } }) => {
+				return await scenesDB.moveScene(id, data) as any;
 			},
 			"db:get-plot-threads": async (projectId: string) => {
 				return await plotThreadsDB.getThreadsByProject(projectId) as any;

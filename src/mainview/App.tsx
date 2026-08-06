@@ -18,6 +18,7 @@ import type {
   StoryBeat,
   StoryAct,
   StorySequence,
+  StoryScene,
   ChapterPlotThread,
 } from "./types/index";
 import { type TreeEdge, treeEdgeKey } from "./templates/tree";
@@ -135,6 +136,7 @@ function App() {
   const [storyBeats, setStoryBeats] = useState<StoryBeat[]>([]);
   const [storyActs, setStoryActs] = useState<StoryAct[]>([]);
   const [storySequences, setStorySequences] = useState<StorySequence[]>([]);
+  const [storyScenes, setStoryScenes] = useState<StoryScene[]>([]);
   const [chapterPlotThreads, setChapterPlotThreads] = useState<ChapterPlotThread[]>([]);
   const [showTimeline, setShowTimeline] = useState(false);
   const [showAnalysis, setShowAnalysis] = useState(false);
@@ -402,16 +404,24 @@ function App() {
   }
 
   async function loadPlotArchitecture(projectId: string) {
-    const [threads, beats, acts, seqs] = await Promise.all([
+    const [threads, beats, acts, seqs, scenes] = await Promise.all([
       rpc.request["db:get-plot-threads"](projectId),
       rpc.request["db:get-story-beats"](projectId),
       rpc.request["db:get-story-acts"](projectId),
       rpc.request["db:get-story-sequences"](projectId),
+      rpc.request["db:get-story-scenes"](projectId),
     ]);
     setPlotThreads(threads || []);
     setStoryBeats(beats || []);
     setStoryActs(acts || []);
     setStorySequences(seqs || []);
+    setStoryScenes(scenes || []);
+  }
+
+  async function handlePlotDataChange() {
+    if (!currentProject) return;
+    await loadPlotArchitecture(currentProject.id);
+    loadChapters(currentProject.id);
   }
 
   async function loadCompendium(projectId: string) {
@@ -1365,6 +1375,8 @@ function App() {
         <PlotArchitectureView
           projectId={currentProject.id}
           chapters={chapters}
+          characters={characters}
+          onDataChange={handlePlotDataChange}
           onNavigateChapter={(chapterId) => {
             const ch = chapters.find(c => c.id === chapterId);
             if (ch) openChapterTab(ch);
@@ -1376,15 +1388,17 @@ function App() {
     if (activeTab.type === "chapter" || activeTab.type === "file") {
       const chapter = chapters.find(c => c.id === activeTab.id);
 
-      if (chapter && (chapter.status === "outline" || skeletonMode) && !isTextFileTab()) {
+      if (chapter && currentProject && (chapter.status === "outline" || skeletonMode) && !isTextFileTab()) {
         return (
           <ChapterOutlineEditor
+            projectId={currentProject.id}
             chapter={chapter}
             characters={characters}
             plotThreads={plotThreads}
             chapterPlotThreads={chapterPlotThreads.filter(t => t.chapterId === chapter.id)}
             acts={storyActs}
-            sequences={storySequences}
+            scenes={storyScenes.filter(s => s.chapterId === chapter.id)}
+            sequences={storySequences.filter(s => s.chapterId === chapter.id)}
             onUpdate={async (field, value) => {
               if (field === "plotThreads") {
                 const threads = value as { chapterId: string; plotThreadId: string; intensity: number }[];
@@ -1418,6 +1432,67 @@ function App() {
                   [chapter.id]: chapter.outline || prev[chapter.id] || "",
                 }));
               }
+            }}
+            onSceneCreate={async (sequenceId) => {
+              const seq = sequenceId ? storySequences.find(s => s.id === sequenceId) : undefined;
+              const scene = await rpc.request["db:create-story-scene"]({
+                id: crypto.randomUUID(),
+                projectId: chapter.projectId,
+                chapterId: seq?.chapterId ?? chapter.id,
+                actId: seq?.actId ?? chapter.actId,
+                sequenceId: seq?.id ?? null,
+                title: "New Scene",
+                orderIndex: seq
+                  ? storyScenes.filter(s => s.sequenceId === seq.id).length
+                  : storyScenes.filter(s => s.chapterId === chapter.id && !s.sequenceId).length,
+              } as any);
+              if (scene) setStoryScenes(prev => [...prev, scene]);
+            }}
+            onSceneDelete={async (id) => {
+              await rpc.request["db:delete-story-scene"](id);
+              setStoryScenes(prev => prev.filter(s => s.id !== id));
+            }}
+            onSceneUpdate={async (id, field, value) => {
+              await rpc.request["db:update-story-scene"]({ id, data: { [field]: value } as any });
+              const updated = await rpc.request["db:get-story-scene"](id);
+              if (updated) setStoryScenes(prev => prev.map(s => s.id === id ? updated : s));
+            }}
+            onSceneReorder={async (_container, orderedIds) => {
+              await rpc.request["db:reorder-scenes"](orderedIds.map((id, orderIndex) => ({ id, orderIndex })));
+              setStoryScenes(prev => prev.map(s => {
+                const idx = orderedIds.indexOf(s.id);
+                return idx >= 0 ? { ...s, orderIndex: idx } : s;
+              }));
+            }}
+            onSequenceCreate={async () => {
+              const seq = await rpc.request["db:create-story-sequence"]({
+                id: crypto.randomUUID(),
+                projectId: chapter.projectId,
+                chapterId: chapter.id,
+                actId: chapter.actId,
+                title: "New Sequence",
+                summary: null,
+                orderIndex: storySequences.filter(s => s.chapterId === chapter.id).length,
+                status: "outline",
+              } as any);
+              if (seq) setStorySequences(prev => [...prev, seq]);
+            }}
+            onSequenceDelete={async (id) => {
+              await rpc.request["db:delete-story-sequence"](id);
+              setStorySequences(prev => prev.filter(s => s.id !== id));
+              setStoryScenes(prev => prev.filter(s => s.sequenceId !== id));
+            }}
+            onSequenceUpdate={async (id, field, value) => {
+              await rpc.request["db:update-story-sequence"]({ id, data: { [field]: value } as any });
+              const updated = await rpc.request["db:get-story-sequence"](id);
+              if (updated) setStorySequences(prev => prev.map(s => s.id === id ? updated : s));
+            }}
+            onSequenceReorder={async (orderedIds) => {
+              await rpc.request["db:reorder-sequences"](orderedIds.map((id, orderIndex) => ({ id, orderIndex })));
+              setStorySequences(prev => prev.map(s => {
+                const idx = orderedIds.indexOf(s.id);
+                return idx >= 0 ? { ...s, orderIndex: idx } : s;
+              }));
             }}
           />
         );
