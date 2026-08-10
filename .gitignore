@@ -13,3 +13,5 @@ package-lock.json
 .stfolder/
 
 .vscode/tmp
+public/assets/fonts
+.cottontail-tmp

@@ -1,4 +1,5 @@
 import type { ElectrobunConfig } from "electrobun";
+/*
 import { resolve } from "path";
 import { mkdirSync, copyFileSync, existsSync, cpSync } from "fs";
 
@@ -43,7 +44,8 @@ function setupViews() {
 	}
 }
 
-// setupViews();
+setupViews();
+*/
 
 export default {
 	app: {
