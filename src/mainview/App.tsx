@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, type ReactNode } from "react";
 import type { RichTextEditorHandle } from "./components/RichTextEditor";
 import { useRPC } from "./contexts/RPCContext";
 import type {
@@ -31,6 +31,7 @@ import SettingsDialog from "./dialogs/settingsDialog";
 import ProjectManager from "./dialogs/projectManagerDialog";
 import OpenFileDialog, { type RecentFile } from "./dialogs/openFileDialog";
 import RichTextEditor from "./components/RichTextEditor";
+import PreviewPane from "./components/PreviewPane";
 import FileTabs from "./components/FileTabs";
 import ChatPanel from "./components/ChatPanel";
 import CompendiumEntryEditor from "./components/CompendiumEntryEditor";
@@ -85,11 +86,30 @@ function App() {
   const dragStartWidthRef = useRef(0);
   const leftWidthRef = useRef(280);
   const rightWidthRef = useRef(550);
+  const [isPreviewDragging, setIsPreviewDragging] = useState(false);
+  const previewDragStartXRef = useRef(0);
+  const previewDragStartWidthRef = useRef(0);
   const { settings, updateAppearance } = useSettings();
   const sc = settings?.appearance?.sidebarConstraints;
   const [isCollapsed, setIsCollapsed] = useState(sc?.leftPanelCollapsed ?? false);
   const [isChatCollapsed, setIsChatCollapsed] = useState(sc?.rightPanelCollapsed ?? false);
   const [mode, setMode] = useState<'manuscript' | 'compendium'>('manuscript');
+  const [isReadingMode, setIsReadingMode] = useState(false);
+  const [readerMode, setReaderMode] = useState<'chapter' | 'book'>('chapter');
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [previewWidth, setPreviewWidth] = useState(
+    settings?.appearance?.previewWidth ?? 420,
+  );
+  const previewWidthRef = useRef(previewWidth);
+  const [chapterTitleEditId, setChapterTitleEditId] = useState<string | null>(null);
+  const [chapterTitleDraft, setChapterTitleDraft] = useState("");
+
+  const handleReaderModeChange = (m: "chapter" | "book") => {
+    setReaderMode(m);
+    if (m === "book" && currentProject) {
+      loadChapters(currentProject.id);
+    }
+  };
 
   const appliedPanelStateRef = useRef(false);
 
@@ -106,7 +126,11 @@ function App() {
       leftWidthRef.current = c.leftWidth;
       rightWidthRef.current = c.rightWidth;
     }
-  }, [settings?.appearance?.sidebarConstraints]);
+    if (typeof settings?.appearance?.previewWidth === "number") {
+      previewWidthRef.current = settings.appearance.previewWidth;
+      setPreviewWidth(settings.appearance.previewWidth);
+    }
+  }, [settings?.appearance?.sidebarConstraints, settings?.appearance?.previewWidth]);
 
   const [explorerTab, setExplorerTab] = useState<
     "chapters" | CompendiumCategory
@@ -351,6 +375,9 @@ function App() {
       setCompendiumEntries({});
       setIsScratchOpen(false);
       setScratchContent("");
+      setIsReadingMode(false);
+      setReaderMode("chapter");
+      setIsPreviewOpen(false);
       setShowProjectSelection(false);
 
       loadChapters(project.id);
@@ -581,6 +608,35 @@ function App() {
     };
     await rpc.request["db:create-chapter"](newChapter);
     loadChapters(currentProject.id);
+  }
+
+  async function renameChapter(id: string, title: string) {
+    const trimmed = title.trim();
+    if (!trimmed) return;
+    await rpc.request["db:update-chapter"]({ id, data: { title: trimmed } });
+    const updated = await rpc.request["db:get-chapter"](id);
+    if (updated) {
+      setChapters(prev => prev.map(c => c.id === id ? updated : c));
+    }
+    setOpenTabs(prev => prev.map(t => (t.id === id ? { ...t, name: trimmed } : t)));
+    setChapterTitleEditId(prev => (prev === id ? null : prev));
+    setChapterTitleDraft("");
+  }
+
+  async function handleChapterTitleDraftCommit() {
+    const id = chapterTitleEditId;
+    if (!id) {
+      setChapterTitleDraft("");
+      return;
+    }
+    const chapter = chapters.find((c) => c.id === id);
+    const trimmed = chapterTitleDraft.trim();
+    if (!trimmed || (chapter && trimmed === chapter.title)) {
+      setChapterTitleEditId(null);
+      setChapterTitleDraft("");
+      return;
+    }
+    await renameChapter(id, chapterTitleDraft);
   }
 
   async function openChapterTab(chapter: Chapter) {
@@ -1335,12 +1391,77 @@ function App() {
     return "Compendium Entry";
   }
 
+  const previewActive =
+    isPreviewOpen &&
+    !isScratchOpen &&
+    getActiveTab()?.type === "chapter" &&
+    isTextFileTab();
+
   function renderEditor() {
     const activeTab = getActiveTab();
     const showTextFormatting = isTextFileTab();
 
-    if (isScratchOpen) {
+    const widthCapEnabled = settings?.appearance?.editorWidthMode === "fixed";
+    const editorMaxWidth = settings?.appearance?.editorMaxWidth ?? 800;
+    const wrapWidth = (el: ReactNode) =>
+      widthCapEnabled ? (
+        <div className="editor-width-cap" style={{ maxWidth: editorMaxWidth }}>
+          {el}
+        </div>
+      ) : el;
+
+    const previewPosition = settings?.appearance?.previewPosition ?? "right";
+
+    const previewHandle = previewActive ? (
+      <div
+        className={`drag-handle preview-drag-handle ${isPreviewDragging ? "active" : ""}`}
+        onMouseDown={(e) => {
+          e.preventDefault();
+          setIsPreviewDragging(true);
+          previewDragStartXRef.current = e.clientX;
+          previewDragStartWidthRef.current = previewWidthRef.current;
+          document.body.style.userSelect = "none";
+          document.body.style.webkitUserSelect = "none";
+        }}
+      />
+    ) : null;
+
+    const previewPane = previewActive ? (
+      <PreviewPane
+        chapters={chapters}
+        tabContents={tabContents}
+        activeChapterId={activeTab?.type === "chapter" ? activeTab.id : null}
+        readerMode={readerMode}
+        onReaderModeChange={handleReaderModeChange}
+        onClose={() => setIsPreviewOpen(false)}
+        width={previewWidth}
+      />
+    ) : null;
+
+    const editorSplit = (content: ReactNode) => {
+      if (!previewPane) {
+        return <div className="editor-split-main">{content}</div>;
+      }
       return (
+        <>
+          {previewPosition === "left" ? (
+            <>
+              {previewPane}
+              {previewHandle}
+            </>
+          ) : (
+            <>
+              {previewHandle}
+              {previewPane}
+            </>
+          )}
+          <div className="editor-split-main">{content}</div>
+        </>
+      );
+    };
+
+    if (isScratchOpen) {
+      return wrapWidth(
         <RichTextEditor
           ref={editorRef}
           tabId="scratch"
@@ -1357,7 +1478,10 @@ function App() {
           }}
           showToolbar={showTextFormatting}
           showBubbleMenu={showTextFormatting}
-        />
+          editable={!isReadingMode}
+          onToggleEditable={() => setIsReadingMode((v) => !v)}
+          showPreview={false}
+        />,
       );
     }
 
@@ -1498,33 +1622,79 @@ function App() {
         );
       }
 
-      return (
-        <RichTextEditor
-          ref={editorRef}
-          tabId={activeTab.id}
-          initialContent={tabContents[activeTab.id] || ""}
-          onChange={(content) => {
-            setTabContents((prev) => ({
-              ...prev,
-              [activeTab.id]: content,
-            }));
-            setOpenTabs((prev) =>
-              prev.map((t) =>
-                t.id === activeTab.id ? { ...t, isModified: true } : t,
-              ),
-            );
-            computeMetrics(content);
-            modifiedTabIdsRef.current.add(activeTab.id);
-            setSaveState("saving");
-            debouncedSave(activeTab.id, content);
-          }}
-          onCursorPosition={(line, col) => {
-            setCursorLine(line);
-            setCursorCol(col);
-          }}
-          showToolbar={showTextFormatting}
-          showBubbleMenu={showTextFormatting}
-        />
+      const isChapterTab = activeTab.type === "chapter";
+      const editingTitle = chapterTitleEditId === activeTab.id;
+      const titleValue = isChapterTab
+        ? editingTitle
+          ? chapterTitleDraft
+          : (chapter?.title ?? "")
+        : "";
+
+      return editorSplit(
+        wrapWidth(
+          <>
+            {isChapterTab && (
+              <div className="chapter-title-row">
+                <input
+                  className="chapter-title-input"
+                  value={titleValue}
+                  placeholder="Chapter title"
+                  onChange={(e) => {
+                    setChapterTitleEditId(activeTab.id);
+                    setChapterTitleDraft(e.target.value);
+                  }}
+                  onFocus={() => {
+                    if (!editingTitle) {
+                      setChapterTitleEditId(activeTab.id);
+                      setChapterTitleDraft(chapter?.title ?? "");
+                    }
+                  }}
+                  onBlur={() => handleChapterTitleDraftCommit()}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      (e.target as HTMLInputElement).blur();
+                    } else if (e.key === "Escape") {
+                      setChapterTitleEditId(null);
+                      setChapterTitleDraft("");
+                    }
+                  }}
+                />
+              </div>
+            )}
+            <RichTextEditor
+              ref={editorRef}
+              tabId={activeTab.id}
+              initialContent={tabContents[activeTab.id] || ""}
+              onChange={(content) => {
+                setTabContents((prev) => ({
+                  ...prev,
+                  [activeTab.id]: content,
+                }));
+                setOpenTabs((prev) =>
+                  prev.map((t) =>
+                    t.id === activeTab.id ? { ...t, isModified: true } : t,
+                  ),
+                );
+                computeMetrics(content);
+                modifiedTabIdsRef.current.add(activeTab.id);
+                setSaveState("saving");
+                debouncedSave(activeTab.id, content);
+              }}
+              onCursorPosition={(line, col) => {
+                setCursorLine(line);
+                setCursorCol(col);
+              }}
+              showToolbar={showTextFormatting}
+              showBubbleMenu={showTextFormatting}
+              editable={!isReadingMode}
+              onToggleEditable={() => setIsReadingMode((v) => !v)}
+              isPreviewOpen={isPreviewOpen}
+              onTogglePreview={() => setIsPreviewOpen((v) => !v)}
+              showPreview={activeTab.type === "chapter"}
+            />
+          </>,
+        ),
       );
     }
 
@@ -1629,6 +1799,37 @@ function App() {
       document.removeEventListener("mouseup", handleMouseUp);
     };
   }, [isDragging, settings, updateAppearance]);
+
+  useEffect(() => {
+    if (!isPreviewDragging) return;
+
+    const previewPosition = settings?.appearance?.previewPosition ?? "right";
+
+    const handleMouseMove = (e: MouseEvent) => {
+      const delta = e.clientX - previewDragStartXRef.current;
+      const start = previewDragStartWidthRef.current;
+      const w = Math.min(
+        720,
+        Math.max(280, previewPosition === "left" ? start + delta : start - delta),
+      );
+      previewWidthRef.current = w;
+      setPreviewWidth(w);
+    };
+
+    const handleMouseUp = () => {
+      setIsPreviewDragging(false);
+      document.body.style.userSelect = "";
+      document.body.style.webkitUserSelect = "";
+      updateAppearance("previewWidth", previewWidthRef.current);
+    };
+
+    document.addEventListener("mousemove", handleMouseMove);
+    document.addEventListener("mouseup", handleMouseUp);
+    return () => {
+      document.removeEventListener("mousemove", handleMouseMove);
+      document.removeEventListener("mouseup", handleMouseUp);
+    };
+  }, [isPreviewDragging, settings, updateAppearance]);
 
   return (
     <>
@@ -1745,6 +1946,7 @@ function App() {
               );
             }
           }}
+          renameChapter={renameChapter}
           deleteCompendiumEntry={(id, _cat) => {
             handleDeleteCompendiumEntry(
               id,
@@ -1801,7 +2003,15 @@ function App() {
               <button className="skeleton-banner-close" onClick={() => setSkeletonMode(false)} title="Disable Skeleton Mode">&times;</button>
             </div>
           )}
-          <div className="editor-container">{renderEditor()}</div>
+          <div
+            className={`editor-container ${previewActive ? "with-preview" : ""} ${
+              previewActive && (settings?.appearance?.previewPosition ?? "right") === "left"
+                ? "preview-left"
+                : ""
+            }`}
+          >
+            {renderEditor()}
+          </div>
         </div>
         <RightPanel>
           <aside className={`app-panel app-panel-right ${isChatCollapsed ? "collapsed" : ""}`}>

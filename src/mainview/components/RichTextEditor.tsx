@@ -1,4 +1,4 @@
-import { forwardRef, useImperativeHandle, useRef, useEffect, useCallback } from "react";
+import { forwardRef, useImperativeHandle, useRef, useEffect, useCallback, useState } from "react";
 import {
 	EditorContent,
 	EditorRoot,
@@ -28,6 +28,11 @@ interface RichTextEditorProps {
 	showToolbar?: boolean;
 	showBubbleMenu?: boolean;
 	onCursorPosition?: (line: number, col: number) => void;
+	editable?: boolean;
+	onToggleEditable?: () => void;
+	isPreviewOpen?: boolean;
+	onTogglePreview?: () => void;
+	showPreview?: boolean;
 }
 
 export interface RichTextEditorHandle {
@@ -157,11 +162,36 @@ const parseContent = (html: string) => {
 };
 
 export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorProps>(
-	({ tabId, initialContent, onChange, showToolbar, showBubbleMenu, onCursorPosition }, forwardedRef) => {
+	(
+		{
+			tabId,
+			initialContent,
+			onChange,
+			showToolbar,
+			showBubbleMenu,
+			onCursorPosition,
+			editable,
+			onToggleEditable,
+			isPreviewOpen,
+			onTogglePreview,
+			showPreview,
+		},
+		forwardedRef,
+	) => {
 		const editorRef = useRef<any>(null);
+		const [editorInstance, setEditorInstance] = useState<any>(null);
+
+		useEffect(() => {
+			if (editorInstance && typeof editable === "boolean") {
+				if (editorInstance.isEditable !== editable) {
+					editorInstance.setEditable(editable);
+				}
+			}
+		}, [editorInstance, editable, tabId]);
 
 		const handleEditorReady = useCallback((editor: any) => {
 			editorRef.current = editor;
+			setEditorInstance(editor);
 			editor.on("selectionUpdate", () => {
 				if (onCursorPosition) {
 					const textBefore = editor.state.doc.textBetween(0, editor.state.selection.anchor);
@@ -173,11 +203,11 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
 
 		useImperativeHandle(forwardedRef, () => ({
 			insertContent(html: string) {
-				if (!editorRef.current) return;
+				if (!editorRef.current || editorRef.current.isDestroyed) return;
 				editorRef.current.chain().focus().insertContent(html).run();
 			},
 			replaceSelection(html: string) {
-				if (!editorRef.current) return;
+				if (!editorRef.current || editorRef.current.isDestroyed) return;
 				const { from, to } = editorRef.current.state.selection;
 				if (from === to) {
 					editorRef.current.chain().focus().insertContent(html).run();
@@ -186,7 +216,7 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
 				}
 			},
 			getSelectedText() {
-				if (!editorRef.current) return "";
+				if (!editorRef.current || editorRef.current.isDestroyed) return "";
 				const { from, to } = editorRef.current.state.selection;
 				return editorRef.current.state.doc.textBetween(from, to);
 			},
@@ -216,12 +246,20 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
 						editorRef.current = editor;
 						onChange(editor?.getHTML() || "");
 					}}
-					slotBefore={showToolbar ? <FormattingToolbar /> : null}
-				>
-					<EditorRefCapture onReady={handleEditorReady} />
-					{showBubbleMenu && <BubbleMenu />}
-					<SlashCommandMenu items={suggestionItems} />
-				</EditorContent>
+				slotBefore={showToolbar ? (
+				<FormattingToolbar
+					editable={editable}
+					onToggleEditable={onToggleEditable}
+					isPreviewOpen={isPreviewOpen}
+					onTogglePreview={onTogglePreview}
+					showPreview={showPreview}
+				/>
+			) : null}
+			>
+				<EditorRefCapture onReady={handleEditorReady} />
+				{showBubbleMenu && <BubbleMenu />}
+				<SlashCommandMenu items={suggestionItems} />
+			</EditorContent>
 			</EditorRoot>
 		);
 	},

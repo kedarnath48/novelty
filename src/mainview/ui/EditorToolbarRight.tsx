@@ -1,13 +1,19 @@
 import { useState, useRef, useEffect } from "react";
-import { IconBook, IconPencil, IconDotsVertical } from "@tabler/icons-react";
+import { IconBook, IconPencil, IconDotsVertical, IconEye } from "@tabler/icons-react";
 import styles from "../App.module.css";
 
 export function EditorToolbarRight({
 	isReadingMode,
 	onToggleMode,
+	isPreviewOpen,
+	onTogglePreview,
+	showPreview,
 }: {
 	isReadingMode: boolean;
 	onToggleMode: () => void;
+	isPreviewOpen?: boolean;
+	onTogglePreview?: () => void;
+	showPreview?: boolean;
 }) {
 	const [showOptions, setShowOptions] = useState(false);
 	const menuRef = useRef<HTMLDivElement>(null);
@@ -35,6 +41,21 @@ export function EditorToolbarRight({
 				marginLeft: "auto",
 			}}
 		>
+			{showPreview && (
+				<button
+					className={styles.iconBtn}
+					onClick={onTogglePreview}
+					title={isPreviewOpen ? "Close Preview" : "Open Preview"}
+					style={
+						isPreviewOpen
+							? { color: "var(--accent, #4c9aff)" }
+							: undefined
+					}
+				>
+					<IconEye size={18} stroke={2} />
+				</button>
+			)}
+
 			<button
 				className={styles.iconBtn}
 				onClick={onToggleMode}

@@ -711,9 +711,8 @@ function ProvidersTab() {
 						<div key={m} style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
 							<button
 								type="button"
-								className={`${styles.modelBtn}${
-									enabled ? ` ${styles.modelBtnActive}` : ""
-								}`}
+								className={`${styles.modelBtn}${enabled ? ` ${styles.modelBtnActive}` : ""
+									}`}
 								onClick={() => {
 									if (disabled) return;
 									updateProviderConfig(id, {
@@ -798,9 +797,9 @@ function ProvidersTab() {
 				value={
 					config.models
 						? Object.entries(config.models)
-								.filter(([, v]) => typeof v === "boolean" ? v : v.enabled)
-								.map(([k]) => k)
-								.join(", ")
+							.filter(([, v]) => typeof v === "boolean" ? v : v.enabled)
+							.map(([k]) => k)
+							.join(", ")
 						: ""
 				}
 				onChange={(e) =>
@@ -851,7 +850,7 @@ function ProvidersTab() {
 				{showNewProvider && (
 					<div className={styles.providerCard}>
 						<div className={styles.providerCardHeader}>
-							<Toggle checked={false} onChange={() => {}} disabled />
+							<Toggle checked={false} onChange={() => { }} disabled />
 							<div className={styles.providerStatus}></div>
 							<input
 								type="text"
@@ -935,9 +934,8 @@ function ProvidersTab() {
 													<div key={m} style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
 														<button
 															type="button"
-															className={`${styles.modelBtn}${
-																enabled ? ` ${styles.modelBtnActive}` : ""
-															}`}
+															className={`${styles.modelBtn}${enabled ? ` ${styles.modelBtnActive}` : ""
+																}`}
 															onClick={() =>
 																setPreviewConfig({
 																	...previewConfig,
@@ -1366,6 +1364,62 @@ function AppearanceTab() {
 					onChange={(v) => updateAppearance("sidebarConstraints", { ...c, enableAutoSwitchPanel: v })}
 					disabled={isLocked}
 				/>
+			</div>
+
+			<div className={styles.settingsSectionDivider} />
+			<div className={styles.settingsSectionLabel}>Editor Width</div>
+			<div className={styles.settingRow}>
+				<span>Editor Width Mode</span>
+				<div className={styles.periodToggle} style={{ marginBottom: 0 }}>
+					<button
+						className={settings.appearance.editorWidthMode !== "fixed" ? styles.activePeriod : ""}
+						onClick={() => updateAppearance("editorWidthMode", "full")}
+						disabled={isLocked}
+					>
+						Full Width (100%)
+					</button>
+					<button
+						className={settings.appearance.editorWidthMode === "fixed" ? styles.activePeriod : ""}
+						onClick={() => updateAppearance("editorWidthMode", "fixed")}
+						disabled={isLocked}
+					>
+						Fixed Width
+					</button>
+				</div>
+			</div>
+			{settings.appearance.editorWidthMode === "fixed" && (
+				<div className={styles.settingRow}>
+					<span>Max Editor Width (px)</span>
+					<NumberInput
+						value={settings.appearance.editorMaxWidth}
+						onChange={(v) => updateAppearance("editorMaxWidth", v || 800)}
+						min={400}
+						max={1600}
+						disabled={isLocked}
+					/>
+				</div>
+			)}
+
+			<div className={styles.settingsSectionDivider} />
+			<div className={styles.settingsSectionLabel}>Preview</div>
+			<div className={styles.settingRow}>
+				<span>Preview Position</span>
+				<div className={styles.periodToggle} style={{ marginBottom: 0 }}>
+					<button
+						className={settings.appearance.previewPosition !== "left" ? styles.activePeriod : ""}
+						onClick={() => updateAppearance("previewPosition", "right")}
+						disabled={isLocked}
+					>
+						Right
+					</button>
+					<button
+						className={settings.appearance.previewPosition === "left" ? styles.activePeriod : ""}
+						onClick={() => updateAppearance("previewPosition", "left")}
+						disabled={isLocked}
+					>
+						Left
+					</button>
+				</div>
 			</div>
 		</div>
 	);
@@ -1955,9 +2009,9 @@ function EmbeddingsTab() {
 			rpc.request["settings:get-all"]().then((s) => {
 				const recentProjects = s.projects?.recentProjects;
 				if (recentProjects && recentProjects.length > 0) {
-					rpc.request["embeddings:status"](recentProjects[0]).then(setIndexStatus).catch(() => {});
+					rpc.request["embeddings:status"](recentProjects[0]).then(setIndexStatus).catch(() => { });
 				}
-			}).catch(() => {});
+			}).catch(() => { });
 		}
 	}, [settings?.embeddings?.enabled, rpc]);
 
@@ -2075,7 +2129,7 @@ function EmbeddingsTab() {
 					</button>
 					<button
 						disabled={isLocked || !emb.enabled}
-						onClick={() => updateEmbeddings("endpoint", "http://localhost:11434")}
+						onClick={() => updateEmbeddings("endpoint", "http://192.168.29.201:11434")}
 						style={{
 							flex: 1,
 							padding: "6px 12px",
@@ -2364,11 +2418,11 @@ export default function SettingsDialog({
 					{activeTab === "projects" && <ProjectsTab />}
 					{activeTab === "templates" && <TemplatesTab />}
 					{activeTab === "asset library" && <AssetLibraryTab />}
-				{activeTab === "providers" && <ProvidersTab />}
-				{activeTab === "embeddings" && <EmbeddingsTab />}
-				{activeTab === "quota" && <QuotaTab />}
-				{activeTab === "storage" && <StorageTab />}
-				{activeTab === "about" && <AboutTab />}
+					{activeTab === "providers" && <ProvidersTab />}
+					{activeTab === "embeddings" && <EmbeddingsTab />}
+					{activeTab === "quota" && <QuotaTab />}
+					{activeTab === "storage" && <StorageTab />}
+					{activeTab === "about" && <AboutTab />}
 				</div>
 			</div>
 		</Dialog>

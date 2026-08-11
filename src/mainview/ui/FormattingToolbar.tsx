@@ -13,9 +13,24 @@ import {
 import styles from "../App.module.css";
 import { EditorToolbarRight } from "./EditorToolbarRight";
 
-export function FormattingToolbar() {
+export function FormattingToolbar({
+	editable,
+	onToggleEditable,
+	isPreviewOpen,
+	onTogglePreview,
+	showPreview,
+}: {
+	editable?: boolean;
+	onToggleEditable?: () => void;
+	isPreviewOpen?: boolean;
+	onTogglePreview?: () => void;
+	showPreview?: boolean;
+}) {
 	const { editor } = useEditor();
 	if (!editor) return null;
+
+	const isReadingMode =
+		typeof editable === "boolean" ? !editable : !editor.isEditable;
 
 	const groups = [
 		[
@@ -136,8 +151,14 @@ export function FormattingToolbar() {
 				</div>
 			))}
 			<EditorToolbarRight
-				isReadingMode={!editor.isEditable}
-				onToggleMode={() => editor.setEditable(!editor.isEditable)}
+				isReadingMode={isReadingMode}
+				onToggleMode={() => {
+					editor.setEditable(!editor.isEditable);
+					onToggleEditable?.();
+				}}
+				isPreviewOpen={isPreviewOpen}
+				onTogglePreview={onTogglePreview}
+				showPreview={showPreview}
 			/>
 		</div>
 	);

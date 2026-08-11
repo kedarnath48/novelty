@@ -619,6 +619,10 @@ export type AppearanceSettings = {
 	fontFamily: string;
 	lineHeight: number;
 	sidebarConstraints: SidebarConstraints;
+	editorWidthMode: "full" | "fixed";
+	editorMaxWidth: number;
+	previewWidth: number;
+	previewPosition: "left" | "right";
 };
 
 export type Settings = {

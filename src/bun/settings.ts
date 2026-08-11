@@ -55,6 +55,10 @@ interface SettingsFile {
 			rightPanelCollapsed: false,
 			enableAutoSwitchPanel: true,
 		},
+		editorWidthMode: "fixed",
+		editorMaxWidth: 800,
+		previewWidth: 420,
+		previewPosition: "right",
 	},
 	projects: {
 		defaultProjectsDir: join(Utils.paths.userData, "projects"),
@@ -175,6 +179,7 @@ export function getAllSettings(): Settings {
 	if (settingsCache) {
 		migrateEmbeddings(settingsCache);
 		migrateSidebarConstraints(settingsCache);
+		migrateEditorWidth(settingsCache);
 		return settingsCache;
 	}
 	const file = readSettingsFile();
@@ -205,6 +210,7 @@ export function getAllSettings(): Settings {
 	migrateModelEntries(settings);
 	migrateEmbeddings(settings);
 	migrateSidebarConstraints(settings);
+	migrateEditorWidth(settings);
 	ensureProjectsDir(settings);
 	return settings;
 }
@@ -227,6 +233,10 @@ function migrateSidebarConstraints(settings: Settings): void {
 				rightPanelCollapsed: false,
 				enableAutoSwitchPanel: true,
 			},
+			editorWidthMode: "fixed",
+			editorMaxWidth: 800,
+			previewWidth: 420,
+			previewPosition: "right",
 		};
 	} else if (!settings.appearance.sidebarConstraints) {
 		settings.appearance.sidebarConstraints = {
@@ -245,6 +255,45 @@ function migrateSidebarConstraints(settings: Settings): void {
 		if (c.leftPanelCollapsed === undefined) c.leftPanelCollapsed = false;
 		if (c.rightPanelCollapsed === undefined) c.rightPanelCollapsed = false;
 		if (c.enableAutoSwitchPanel === undefined) c.enableAutoSwitchPanel = true;
+	}
+}
+
+function migrateEditorWidth(settings: Settings): void {
+	if (!settings.appearance) {
+		settings.appearance = {
+			theme: "system",
+			fontSize: 14,
+			fontFamily: "Inter",
+			lineHeight: 1.5,
+			sidebarConstraints: {
+				enableCustomWidthCap: false,
+				maxLeftWidth: 400,
+				maxRightWidth: 700,
+				leftWidth: 280,
+				rightWidth: 550,
+				enableAutoExpandLeft: false,
+				leftPanelCollapsed: false,
+				rightPanelCollapsed: false,
+				enableAutoSwitchPanel: true,
+			},
+			editorWidthMode: "fixed",
+			editorMaxWidth: 800,
+			previewWidth: 420,
+			previewPosition: "right",
+		};
+	} else {
+		if (settings.appearance.editorWidthMode === undefined) {
+			settings.appearance.editorWidthMode = "fixed";
+		}
+		if (settings.appearance.editorMaxWidth === undefined) {
+			settings.appearance.editorMaxWidth = 800;
+		}
+		if (settings.appearance.previewWidth === undefined) {
+			settings.appearance.previewWidth = 420;
+		}
+		if (settings.appearance.previewPosition === undefined) {
+			settings.appearance.previewPosition = "right";
+		}
 	}
 }
 

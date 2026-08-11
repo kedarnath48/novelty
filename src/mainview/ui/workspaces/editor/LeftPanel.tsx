@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
     IconFiles,
@@ -9,7 +9,7 @@ import {
     IconSwords,
     IconPlus,
     IconTrash,
-    //IconEdit,
+    IconPencil,
     IconChevronRight,
     IconChevronLeft,
     IconPin,
@@ -58,6 +58,7 @@ type Props = {
     openChapter: (c: Chapter) => void;
     openCompendiumEntry: (id: string, cat: CompendiumCategory) => void;
     deleteChapter: (c: Chapter) => void;
+    renameChapter: (id: string, title: string) => void;
     deleteCompendiumEntry: (id: string, cat: CompendiumCategory) => void;
     isDragging: string | null;
     onDragStart: (direction: "left" | "right", x: number) => void;
@@ -71,13 +72,42 @@ export default function LeftPanel({
     chapters, characters, locations, organizations, items, loreEntries,
     chaptersLoading, onModeChange, onSubTabChange, onCollapseToggle,
     onAutoExpandToggle, handleNewChapter, handleNewCompendiumEntry,
-    handleEditTemplate, openChapter, openCompendiumEntry, deleteChapter, deleteCompendiumEntry, isDragging,
+    handleEditTemplate, openChapter, openCompendiumEntry, deleteChapter, renameChapter, deleteCompendiumEntry, isDragging,
     onDragStart,
     onMouseEnter,
     onMouseLeave,
     width
 
 }: Props) {
+
+    const [editingChapterId, setEditingChapterId] = useState<string | null>(null);
+    const [editValue, setEditValue] = useState("");
+    const editInputRef = useRef<HTMLInputElement>(null);
+
+    useEffect(() => {
+        if (editingChapterId && editInputRef.current) {
+            editInputRef.current.focus();
+            editInputRef.current.select();
+        }
+    }, [editingChapterId]);
+
+    const handleStartRename = (id: string, currentTitle: string) => {
+        setEditingChapterId(id);
+        setEditValue(currentTitle);
+    };
+
+    const handleCommitRename = () => {
+        if (editingChapterId && editValue.trim()) {
+            renameChapter(editingChapterId, editValue.trim());
+        }
+        setEditingChapterId(null);
+        setEditValue("");
+    };
+
+    const handleCancelRename = () => {
+        setEditingChapterId(null);
+        setEditValue("");
+    };
 
     const isHoverExpanding = isLeftHovered && enableAutoExpandLeft;
     const isExpanded = !isCollapsed || isHoverExpanding;
@@ -205,10 +235,35 @@ export default function LeftPanel({
                                                                     {isManuscript && (
                                                                         <span className="item-index">{index + 1}.</span>
                                                                     )}
-                                                                    <span className="item-label">{label}</span>
+                                                                    {isManuscript && editingChapterId === entry.id ? (
+                                                                        <input
+                                                                            ref={editInputRef}
+                                                                            className="chapter-rename-input"
+                                                                            value={editValue}
+                                                                            onChange={(e) => setEditValue(e.target.value)}
+                                                                            onKeyDown={(e) => {
+                                                                                if (e.key === "Enter") handleCommitRename();
+                                                                                if (e.key === "Escape") handleCancelRename();
+                                                                                e.stopPropagation();
+                                                                            }}
+                                                                            onBlur={handleCommitRename}
+                                                                            onClick={(e) => e.stopPropagation()}
+                                                                        />
+                                                                    ) : (
+                                                                        <span className="item-label">{label}</span>
+                                                                    )}
                                                                 </div>
 
-                                                                <button className="delete-btn" onClick={(e) => {
+                                                                {isManuscript && editingChapterId !== entry.id && (
+                                                                    <button className="listActionBtn edit-btn" title="Rename Chapter" onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        handleStartRename(entry.id, entry.title || "");
+                                                                    }}>
+                                                                        <IconPencil size={14} />
+                                                                    </button>
+                                                                )}
+
+                                                                <button className="listActionBtn delete-btn" onClick={(e) => {
                                                                     e.stopPropagation();
                                                                     isManuscript ? deleteChapter(entry) : deleteCompendiumEntry(entry.id, explorerTab as CompendiumCategory);
                                                                 }}>
