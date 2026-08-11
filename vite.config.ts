@@ -29,7 +29,18 @@ export default defineConfig({
 			output: {
 				// Force the JS to be inside the view folder
 				entryFileNames: "[name]/[name].js",
-				assetFileNames: "[name]/[name].[ext]",
+				assetFileNames: (assetInfo) => {
+					const name = assetInfo.name ?? "";
+					// Keep fonts + icons inside the view folder so electrobun
+					// (which only packages dist/mainview) includes them
+					if (/\.(ttf|otf|woff2?|eot)$/i.test(name)) {
+						return `mainview/assets/fonts/${name}`;
+					}
+					if (/\.(ico|png|svg|jpg|jpeg|webp|gif)$/i.test(name)) {
+						return `mainview/${name}`;
+					}
+					return "[name]/[name].[ext]";
+				},
 
 				// CRITICAL: Disable code splitting
 				// This forces 'client-Xk-RIFYY.js' content INTO projectsview.js
