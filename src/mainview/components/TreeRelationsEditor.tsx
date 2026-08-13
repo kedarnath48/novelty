@@ -63,7 +63,7 @@ export default function TreeRelationsEditor({
 						value={r.inverse}
 						onChange={(e) => updateRow(i, { inverse: e.target.value })}
 					/>
-					<button type="button" className="tree-relation-remove" aria-label="Remove" onClick={() => removeRow(i)}>×</button>
+					<button type="button" className="tree-relation-remove danger" aria-label="Remove" onClick={() => removeRow(i)}>×</button>
 				</div>
 			))}
 			<button type="button" className="tree-add-relation-btn" onClick={addRow}>+ Add relation</button>

@@ -21,6 +21,7 @@ import type {
 	NewSeries,
 	Inspiration,
 	NewInspiration,
+	CompendiumCategory,
 } from "../types/index";
 import { PREDEFINED_ASPECTS } from "../types/index";
 import { PROJECT_SCOPE_TARGETS } from "../types/index";
@@ -45,6 +46,8 @@ interface ProjectManagerProps {
 	project: Project | null;
 	onProjectUpdated?: () => void;
 	onTemplatesChanged?: () => void;
+	initialTab?: string;
+	initialCategory?: CompendiumCategory;
 }
 
 const projectScopes: { value: ProjectScope; label: string }[] = [
@@ -124,9 +127,11 @@ export default function ProjectManager({
 	project,
 	onProjectUpdated,
 	onTemplatesChanged,
+	initialTab,
+	initialCategory,
 }: ProjectManagerProps) {
 	const rpc = useRPC();
-	const [activeTab, setActiveTab] = useState("general");
+	const [activeTab, setActiveTab] = useState(initialTab ?? "general");
 
 	const [name, setName] = useState("");
 	const [description, setDescription] = useState("");
@@ -621,8 +626,8 @@ export default function ProjectManager({
 			large
 			className={localStyles.projectManagerDialog}
 		>
-			<div className={styles.dialogContent}>
-				<div className={styles.sideBar}>
+			<div className={`${styles.dialogContent} ${localStyles.dialogContent}`}>
+				<div className={`${styles.sideBar} ${localStyles.sideBar}`}>
 					<button
 						className={activeTab === "general" ? styles.active : ""}
 						onClick={() => setActiveTab("general")}
@@ -656,7 +661,7 @@ export default function ProjectManager({
 					</button>
 				</div>
 
-				<div className={styles.tabPanel}>
+				<div className={`${styles.tabPanel} ${localStyles.tabPanel}`}>
 					{activeTab === "general" && (
 						<div className={localStyles.tabContent}>
 							<div className={styles.tabPanelHeader}>
@@ -1329,6 +1334,7 @@ export default function ProjectManager({
 									projectId={project.id}
 									seriesId={selectedSeriesId}
 									onTemplatesChanged={onTemplatesChanged ?? (() => {})}
+									initialCategory={initialCategory}
 								/>
 							</div>
 						</div>

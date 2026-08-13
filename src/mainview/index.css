@@ -1,4 +1,4 @@
-@import "highlight.js/styles/github-dark.css";
+﻿@import "highlight.js/styles/github-dark.css";
 
 
 @font-face {
@@ -52,7 +52,6 @@
 :root {
 	--text-primary: #e4e4e7;
 	--text-secondary: #9aa0a6;
-	--font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
 	--accent-subtle: rgba(240, 160, 80, 0.08);
 	--accent-focus: rgba(240, 160, 80, 0.45);
 	--bg-primary: #0f1117;
@@ -65,6 +64,8 @@
 	--text-muted: #6b7280;
 	--text-accent: #f0a050;
 	--accent: #f0a050;
+
+	--font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
 
 	--font-editor: "Inter", sans-serif;
 	--font-editor-body: "Inter", sans-serif;
@@ -840,6 +841,15 @@ button {
 		color: bisque;
 		background-color: #222;
 	}
+
+
+	&.danger {
+
+		&:hover {
+			color: red;
+			background-color: rgb(231 76 60 / 25%);
+		}
+	}
 }
 
 input {
@@ -851,8 +861,23 @@ input {
 	font-size: 16px;
 	padding: 4px;
 	border-radius: 4px;
+
+	padding: 8px 10px;
+	background: #2a2b2c;
+	border: 1px solid #393a3b;
+	border-radius: 4px;
+	color: #fff;
+	/*font-size: 13px;*/
 }
 
+
+select {
+	padding: 8px 10px !important;
+	background: #2a2b2c;
+	border: 1px solid #393a3b;
+	border-radius: 4px;
+
+}
 
 @media (prefers-color-scheme: dark) {
 	html {
@@ -3186,265 +3211,6 @@ input {
 	text-transform: uppercase;
 }
 
-.template-editor .field-row input[type="text"]::placeholder {
-	color: #666;
-}
-
-.template-editor .field-row input[type="text"],
-.template-editor .field-row input[type="number"] {
-	flex: 1;
-	min-width: 100px;
-}
-
-.template-editor .field-row select {
-	min-width: 100px;
-}
-
-.template-editor .checkbox-label {
-	display: flex;
-	align-items: center;
-	gap: 4px;
-	color: #aaa;
-	font-size: 12px;
-	cursor: pointer;
-}
-
-.template-editor .checkbox-label input[type="checkbox"] {
-	width: 14px;
-	height: 14px;
-	cursor: pointer;
-}
-
-.template-editor .field-row .remove-btn {
-	background: transparent;
-	border: none;
-	color: #ff4a4a;
-	font-size: 18px;
-	cursor: pointer;
-	padding: 4px 8px;
-	border-radius: 4px;
-}
-
-.template-editor .field-row .remove-btn:hover {
-	background: #2a2b2c;
-}
-
-.template-editor .add-field-btn {
-	padding: 10px;
-	background: #393a3b;
-	border: none;
-	border-radius: 6px;
-	color: #fff;
-	cursor: pointer;
-	font-size: 14px;
-	transition: background 0.2s;
-}
-
-.template-editor .add-field-btn:hover {
-	background: #494a4b;
-}
-
-.template-editor .dialog-actions {
-	display: flex;
-	justify-content: flex-end;
-	gap: 8px;
-	padding-top: 16px;
-	border-top: 1px solid #393a3b;
-}
-
-.template-editor .dialog-actions .cancel-btn {
-	padding: 10px 16px;
-	background: transparent;
-	border: 1px solid #393a3b;
-	border-radius: 6px;
-	color: #aaa;
-	cursor: pointer;
-	font-size: 14px;
-}
-
-.template-editor .dialog-actions .cancel-btn:hover {
-	color: #fff;
-	border-color: #666;
-}
-
-.template-editor .dialog-actions .save-btn {
-	padding: 10px 16px;
-	background: #4a9eff;
-	border: none;
-	border-radius: 6px;
-	color: #fff;
-	cursor: pointer;
-	font-size: 14px;
-}
-
-.template-editor .dialog-actions .save-btn:hover {
-	background: #3a8eef;
-}
-
-.template-editor-dialog {
-	display: flex;
-	flex-direction: column;
-	gap: 20px;
-}
-
-.template-editor-dialog h3 {
-	margin: 0;
-	font-size: 20px;
-	font-weight: 600;
-}
-
-.template-editor-dialog .template-description {
-	margin: 0;
-	color: #888;
-	font-size: 14px;
-}
-
-.template-editor-dialog .new-metafield {
-	padding: 16px;
-	background: #1a1b1c;
-	border-radius: 8px;
-}
-
-.template-editor-dialog .new-metafield>label {
-	display: block;
-	margin-bottom: 10px;
-	color: #aaa;
-	font-size: 13px;
-	font-weight: 500;
-}
-
-.template-editor-dialog .new-metafield-row {
-	display: flex;
-	gap: 10px;
-}
-
-.template-editor-dialog .new-metafield-row input {
-	flex: 1;
-	padding: 10px 12px;
-	background: #2a2b2c;
-	border: 1px solid #393a3b;
-	border-radius: 6px;
-	color: #fff;
-	font-size: 14px;
-}
-
-.template-editor-dialog .new-metafield-row input:focus {
-	outline: none;
-	border-color: #4a9eff;
-}
-
-.template-editor-dialog .new-metafield-row select {
-	padding: 10px 12px;
-	background: #2a2b2c;
-	border: 1px solid #393a3b;
-	border-radius: 6px;
-	color: #fff;
-	min-width: 120px;
-}
-
-.template-editor-dialog .new-metafield-row button {
-	padding: 10px 20px;
-	background: #4a9eff;
-	border: none;
-	border-radius: 6px;
-	color: #fff;
-	font-size: 14px;
-	cursor: pointer;
-}
-
-.template-editor-dialog .new-metafield-row button:disabled {
-	opacity: 0.5;
-	cursor: not-allowed;
-}
-
-.template-editor-dialog .new-metafield-row button:hover:not(:disabled) {
-	background: #3a8eef;
-}
-
-.template-editor-dialog .fields-grid {
-	display: grid;
-	grid-template-columns: repeat(auto-fill, minmax(420px, 1fr));
-	gap: 12px;
-}
-
-.template-editor-dialog .field-card {
-	padding: 14px;
-	background: #1a1b1c;
-	border: 1px solid #393a3b;
-	border-radius: 8px;
-	display: flex;
-	flex-direction: column;
-	gap: 10px;
-}
-
-.template-editor-dialog .field-card-header {
-	display: flex;
-	justify-content: space-between;
-	align-items: center;
-}
-
-.template-editor-dialog .field-name {
-	color: #fff;
-	font-weight: 600;
-	font-size: 14px;
-}
-
-.template-editor-dialog .field-type {
-	color: #4a9eff;
-	font-size: 12px;
-	text-transform: uppercase;
-}
-
-.template-editor-dialog .field-card-body {
-	display: flex;
-	flex-direction: column;
-	gap: 8px;
-}
-
-.template-editor-dialog .field-card-body input[type="text"] {
-	padding: 8px 10px;
-	background: #2a2b2c;
-	border: 1px solid #393a3b;
-	border-radius: 4px;
-	color: #fff;
-	font-size: 13px;
-}
-
-.template-editor-dialog .field-card-body input[type="text"]:focus {
-	outline: none;
-	border-color: #4a9eff;
-}
-
-.template-editor-dialog .field-required {
-	display: flex;
-	align-items: center;
-	gap: 6px;
-	color: #aaa;
-	font-size: 13px;
-}
-
-.template-editor-dialog .field-card-remove {
-	padding: 6px 12px;
-	background: transparent;
-	border: 1px solid #ff4a4a;
-	border-radius: 4px;
-	color: #ff4a4a;
-	font-size: 12px;
-	cursor: pointer;
-}
-
-.template-editor-dialog .field-card-remove:hover {
-	background: #ff4a4a;
-	color: #fff;
-}
-
-.template-editor-dialog .empty-fields {
-	grid-column: 1 / -1;
-	padding: 30px;
-	text-align: center;
-	color: #666;
-}
-
 .custom-field {
 	margin-bottom: 12px;
 }
@@ -3579,13 +3345,6 @@ input {
 	background: rgba(74, 158, 255, 0.1);
 }
 
-
-#templateEditorDialog {
-	width: 70%;
-	max-width: 70%;
-	height: 80%;
-	max-height: 80%;
-}
 
 /* ======= Plot Architecture View ======= */
 .plot-architecture-view {
@@ -5332,7 +5091,7 @@ textarea {
 	border-radius: var(--radius-sm, 4px);
 	color: #fff;
 	font-size: 12px;
-	padding: 4px 8px;
+	padding: 8px 12px;
 }
 
 .tree-relation-arrow {
@@ -5344,7 +5103,7 @@ textarea {
 	background: none;
 	border: none;
 	color: #e74c3c;
-	font-size: 16px;
+	font-size: 24px;
 	cursor: pointer;
 	padding: 0 4px;
 	line-height: 1;
@@ -5352,6 +5111,8 @@ textarea {
 
 .tree-relation-remove:hover {
 	color: #ff6b5e;
+	color: red;
+	background-color: rgb(231 76 60 / 25%);
 }
 
 .tree-add-relation-btn {

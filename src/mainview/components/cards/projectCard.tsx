@@ -67,7 +67,10 @@ export default function ProjectCard({
 		onDelete?.(project.id);
 	}
 
-	console.warn("[genres]", project.genres);
+	/*console.warn("[genres]", project.genres);*/
+	console.warn("[primary genre]", project.primaryGenre);
+	console.warn("[primary theme]", project.primaryTheme);
+
 
 	return (
 		<div className={styles.projectCard} onClick={handleCardClick}>
@@ -84,7 +87,7 @@ export default function ProjectCard({
 					</span>
 				)}
 				{(project.genres.length > 0 || project.tags.length > 0) && (
-					<div className={styles.projectMeta}>/\+
+					<div className={styles.projectMeta}>
 						{project.genres.length > 0 && (
 							<p className={styles.projectGenres}>
 								{project.genres.slice(0, 3).join(", ")}

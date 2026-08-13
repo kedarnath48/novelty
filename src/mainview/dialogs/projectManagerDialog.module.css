@@ -1,6 +1,47 @@
-.projectManagerDialog {
-	max-width: 1600px !important;
-	max-height: 1000px !important;
+dialog.projectManagerDialog {
+	width: 70%;
+	max-width: 70% !important;
+	height: 80%;
+	max-height: 80% !important;
+}
+
+/* Make the dialog wrapper a bounded flex column so the header stays pinned
+   and the body gets a definite height (flex: 1 on the body becomes effective). */
+.projectManagerDialog > .projectManagerDialog {
+	display: flex;
+	flex-direction: column;
+	min-height: 0;
+}
+
+/* The body no longer scrolls as a whole; only the tab content area scrolls. */
+.projectManagerDialog > .projectManagerDialog > .projectManagerDialog {
+	flex: 1;
+	min-height: 0;
+	overflow: hidden;
+}
+
+/* Content row fills the body. */
+.dialogContent {
+	flex: 1;
+	min-height: 0;
+	display: flex;
+}
+
+/* Sidebar stays pinned beside the scrolling content. */
+.sideBar {
+	flex-shrink: 0;
+	min-height: 0;
+	overflow-y: auto;
+}
+
+/* Only the tab panel content scrolls. */
+.tabPanel {
+	flex: 1;
+	min-width: 0;
+	min-height: 0;
+	height: 100%;
+	overflow-y: auto;
+	overflow-x: hidden;
 }
 
 .subTab {

@@ -43,7 +43,7 @@ export default function Dialog({ open, onClose, title, large, children, id, clas
 					onClose();
 				}
 			}}
-		>	<div className={styles.dialogWrapper}>
+		>	<div className={`${styles.dialogWrapper} ${className ?? ""}`}>
 				<div className={styles.header} onClick={(e) => e.stopPropagation()}>
 					<h2>{title}</h2>
 					<button className={styles.closeBtn} onClick={onClose}>
@@ -64,7 +64,7 @@ export default function Dialog({ open, onClose, title, large, children, id, clas
 						</svg>
 					</button>
 				</div>
-				<div className={styles.body} onClick={(e) => e.stopPropagation()}>
+				<div className={`${styles.body} ${className ?? ""}`} onClick={(e) => e.stopPropagation()}>
 					{children}
 				</div>
 			</div>

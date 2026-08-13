@@ -160,7 +160,7 @@ export default function VisibilityEditor({
 								<button
 									type="button"
 									onClick={() => removeCondition(i)}
-									style={{ fontSize: "0.85em", color: "#e74c3c", background: "transparent", border: "none", cursor: "pointer" }}
+									style={{ fontSize: "1.5em", color: "#e74c3c", background: "transparent", border: "none", cursor: "pointer" }}
 									title="Remove condition"
 								>
 									×

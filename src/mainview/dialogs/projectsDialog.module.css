@@ -179,6 +179,7 @@
 .sideBar {
 	width: 30%;
 	max-width: 300px;
+	max-width: 250px;
 	display: flex;
 	flex-direction: column;
 	gap: 12px;

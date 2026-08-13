@@ -54,7 +54,6 @@ import {
   //IconSwords,
 } from "@tabler/icons-react";
 import UIDialog from "./dialogs/uiDialog";
-import TemplateEditorDialog from "./dialogs/TemplateEditorDialog";
 import { StatusBar } from "./ui/statusBar";
 import type { SaveState } from "./ui/statusBar";
 import { useSettings } from "./contexts/SettingsContext";
@@ -165,7 +164,10 @@ function App() {
   const [showTimeline, setShowTimeline] = useState(false);
   const [showAnalysis, setShowAnalysis] = useState(false);
   const [skeletonMode, setSkeletonMode] = useState(false);
-  const [showTemplateEditor, setShowTemplateEditor] = useState(false);
+  const [projectManagerInitial, setProjectManagerInitial] = useState<{
+    tab: string;
+    category?: CompendiumCategory;
+  }>({ tab: "general" });
   const [templates, setTemplates] = useState<
     Record<CompendiumCategory, EntityTemplate | null>
   >({
@@ -477,16 +479,13 @@ function App() {
     );
   }
 
-  async function handleEditTemplate() {
-    if (!currentProject || explorerTab === "chapters") return;
-    const category = explorerTab as CompendiumCategory;
-    const [template, resolved] = await Promise.all([
-      rpc.request["db:get-template"]({ projectId: currentProject.id, baseType: category }),
-      rpc.request["db:get-resolved-template"]({ projectId: currentProject.id, baseType: category }),
-    ]);
-    setTemplates((prev) => ({ ...prev, [category]: template || null }));
-    setResolvedTemplateFields((prev) => ({ ...prev, [category]: resolved?.fields || [] }));
-    setShowTemplateEditor(true);
+  function handleEditTemplate(category?: CompendiumCategory) {
+    if (!currentProject) return;
+    setProjectManagerInitial({
+      tab: "templates",
+      category: category ?? (explorerTab as CompendiumCategory),
+    });
+    setActiveDialog("projectManager");
   }
 
   async function loadTemplateForCategory(
@@ -513,29 +512,6 @@ function App() {
     await Promise.all(
       categories.map((cat) => loadTemplateForCategory(currentProject.id, cat)),
     );
-  }
-
-  async function handleSaveTemplate(
-    baseType: CompendiumCategory,
-    fields: FieldDefinition[],
-    globalTemplateId?: string | null,
-    seriesTemplateId?: string | null,
-  ) {
-    if (!currentProject) return;
-    await rpc.request["db:save-template"]({
-      projectId: currentProject.id,
-      baseType,
-      customFields: fields,
-      globalTemplateId: globalTemplateId ?? undefined,
-      seriesTemplateId: seriesTemplateId ?? undefined,
-    });
-    const [updatedTemplate, resolved] = await Promise.all([
-      rpc.request["db:get-template"]({ projectId: currentProject.id, baseType }),
-      rpc.request["db:get-resolved-template"]({ projectId: currentProject.id, baseType }),
-    ]);
-    setTemplates((prev) => ({ ...prev, [baseType]: updatedTemplate || null }));
-    setResolvedTemplateFields((prev) => ({ ...prev, [baseType]: resolved?.fields || [] }));
-    setShowTemplateEditor(false);
   }
 
   async function saveChapterContent(tabId: string, content: string) {
@@ -1723,7 +1699,7 @@ function App() {
               value,
             )
           }
-          onEditTemplate={handleEditTemplate}
+          onEditTemplate={() => handleEditTemplate(category)}
         />
       );
     }
@@ -1840,7 +1816,14 @@ function App() {
         setIsChatCollapsed={setIsChatCollapsed}
         onProjectsClick={() => setActiveDialog("projects")}
         onSettingsClick={() => setActiveDialog("settings")}
-        onTitleClick={() => setActiveDialog(currentProject ? "projectManager" : "projects")}
+        onTitleClick={() => {
+          if (currentProject) {
+            setProjectManagerInitial({ tab: "general" });
+            setActiveDialog("projectManager");
+          } else {
+            setActiveDialog("projects");
+          }
+        }}
         onTimelineClick={() => setShowTimeline(true)}
         projectName={currentProject?.name ?? null}
         extras={
@@ -2096,6 +2079,8 @@ function App() {
           project={currentProject}
           onProjectUpdated={refreshCurrentProject}
           onTemplatesChanged={refreshResolvedTemplates}
+          initialTab={projectManagerInitial.tab}
+          initialCategory={projectManagerInitial.category}
         />
       )}
       {activeDialog === "settings" && (
@@ -2128,18 +2113,6 @@ function App() {
           }}
         />
       )}
-      {showTemplateEditor && (
-        <TemplateEditorDialog
-          open={showTemplateEditor}
-          onClose={() => setShowTemplateEditor(false)}
-          projectId={currentProject?.id || ""}
-          seriesId={currentProject?.seriesId || null}
-          baseType={explorerTab as CompendiumCategory}
-          template={templates[explorerTab as CompendiumCategory]}
-          onSave={handleSaveTemplate}
-        />
-      )}
-
       {/* Bulk extraction dialog */}
       {extractDialogOpen && (
         <BulkExtractDialog

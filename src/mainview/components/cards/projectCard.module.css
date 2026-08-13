@@ -62,7 +62,7 @@
 
 .projectInfo {
     padding: 0 8px 8px;
-    margin-right: auto;
+    margin: 0px auto auto 0px;
 
     p {
         margin: 0;
@@ -76,38 +76,41 @@
 }
 
 .ratingBadge {
-	display: inline-block;
-	padding: 1px 6px;
-	border-radius: 3px;
-	font-size: 10px;
-	font-weight: 700;
-	letter-spacing: 0.3px;
-	margin-bottom: 4px;
+    position: absolute;
+    top: 226px;
+    right: 22px;
+    display: inline-block;
+    padding: 1px 6px;
+    border-radius: 3px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+    margin-bottom: 4px;
 }
 
 .rating_g {
-	background: #2d7d46;
-	color: #fff;
+    background: #2d7d46;
+    color: #fff;
 }
 
 .rating_pg {
-	background: #2a6fdb;
-	color: #fff;
+    background: #2a6fdb;
+    color: #fff;
 }
 
 .rating_pg_13 {
-	background: #c8a427;
-	color: #fff;
+    background: #c8a427;
+    color: #fff;
 }
 
 .rating_r {
-	background: #d96c1a;
-	color: #fff;
+    background: #d96c1a;
+    color: #fff;
 }
 
 .rating_nc_17 {
-	background: #c72a2a;
-	color: #fff;
+    background: #c72a2a;
+    color: #fff;
 }
 
 .projectDate {

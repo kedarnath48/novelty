@@ -15,13 +15,16 @@ import type {
 	FieldDefinition,
 	GlobalTemplate,
 	SeriesTemplate,
+	NewGlobalTemplate,
 	NewSeriesTemplate,
 } from "../types/index";
+import { IconTrash } from "@tabler/icons-react";
 
 interface TemplateManagerTabProps {
 	projectId: string;
 	seriesId: string | null;
 	onTemplatesChanged: () => void;
+	initialCategory?: CompendiumCategory;
 }
 
 const CATEGORIES: CompendiumCategory[] = [
@@ -83,11 +86,19 @@ interface SeriesEditorState {
 	fields: FieldDefinition[];
 }
 
+interface GlobalEditorState {
+	id: string | null;
+	name: string;
+	description: string;
+	fields: FieldDefinition[];
+}
+
 interface CategoryDraft {
 	globalTemplateId: string | null;
 	seriesTemplateId: string | null;
 	projectFields: FieldDefinition[];
 	seriesEditor: SeriesEditorState | null;
+	globalEditor: GlobalEditorState | null;
 	seriesDeletes: string[];
 	dirty: boolean;
 }
@@ -96,12 +107,13 @@ export default function TemplateManagerTab({
 	projectId,
 	seriesId,
 	onTemplatesChanged,
+	initialCategory,
 }: TemplateManagerTabProps) {
 	const rpc = useRPC();
 	const [globalTemplates, setGlobalTemplates] = useState<GlobalTemplate[]>([]);
 	const [seriesTemplates, setSeriesTemplates] = useState<SeriesTemplate[]>([]);
 	const [drafts, setDrafts] = useState<Partial<Record<CompendiumCategory, CategoryDraft>>>({});
-	const [activeCat, setActiveCat] = useState<CompendiumCategory>("character");
+	const [activeCat, setActiveCat] = useState<CompendiumCategory>(initialCategory ?? "character");
 	const [loading, setLoading] = useState(true);
 	const [savingCat, setSavingCat] = useState<CompendiumCategory | null>(null);
 	const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({});
@@ -143,6 +155,7 @@ export default function TemplateManagerTab({
 						sl,
 					),
 					seriesEditor: null,
+					globalEditor: null,
 					seriesDeletes: [],
 					dirty: false,
 				};
@@ -187,6 +200,7 @@ export default function TemplateManagerTab({
 					sl,
 				),
 				seriesEditor: null,
+				globalEditor: null,
 				seriesDeletes: [],
 				dirty: false,
 			},
@@ -325,6 +339,178 @@ export default function TemplateManagerTab({
 		});
 	}
 
+	function openGlobalCreate(cat: CompendiumCategory) {
+		updateDraft(cat, {
+			globalEditor: { id: null, name: "", description: "", fields: [] },
+		});
+	}
+
+	function openGlobalEdit(cat: CompendiumCategory, tpl: GlobalTemplate) {
+		updateDraft(cat, {
+			globalEditor: {
+				id: tpl.id,
+				name: tpl.name,
+				description: tpl.description || "",
+				fields: tpl.customFields || [],
+			},
+		});
+	}
+
+	function cancelGlobalEditor(cat: CompendiumCategory) {
+		updateDraft(cat, { globalEditor: null });
+	}
+
+	function updateGlobalEditor(cat: CompendiumCategory, patch: Partial<GlobalEditorState>) {
+		setDrafts((prev) => {
+			const d = prev[cat];
+			if (!d?.globalEditor) return prev;
+			return { ...prev, [cat]: { ...d, globalEditor: { ...d.globalEditor, ...patch }, dirty: true } };
+		});
+	}
+
+	async function saveGlobalEditor(cat: CompendiumCategory) {
+		const d = drafts[cat];
+		const ge = d?.globalEditor;
+		if (!ge) return;
+		try {
+			const savable = ge.fields.filter((f) => f.name.trim() && f.label.trim());
+			if (ge.id) {
+				await rpc.request["db:update-global-template"]({
+					id: ge.id,
+					data: {
+						name: ge.name.trim(),
+						description: ge.description.trim() || null,
+						baseType: cat,
+						customFields: savable,
+					},
+				});
+			} else if (ge.name.trim()) {
+				const data: NewGlobalTemplate = {
+					id: crypto.randomUUID(),
+					name: ge.name.trim(),
+					description: ge.description.trim() || null,
+					baseType: cat,
+					customFields: savable,
+				};
+				await rpc.request["db:create-global-template"](data);
+			}
+			await refreshGlobals(cat, null);
+		} catch (e) {
+			console.error("Failed to save global template:", e);
+		}
+	}
+
+	async function handleDeleteGlobal(cat: CompendiumCategory, id: string) {
+		const d = drafts[cat];
+		if (!d) return;
+		if (!confirm(`Delete this global template? Projects using it will lose the inherited fields.`)) return;
+		try {
+			await rpc.request["db:delete-global-template"](id);
+			await refreshGlobals(cat, id);
+		} catch (e) {
+			console.error("Failed to delete global template:", e);
+		}
+	}
+
+	async function refreshGlobals(cat: CompendiumCategory, deletedGlobalId: string | null) {
+		const res = await rpc.request["db:list-global-templates"]();
+		const gl = Array.isArray(res) ? res : [];
+		setGlobalTemplates(gl);
+		setDrafts((prev) => {
+			const d = prev[cat];
+			if (!d) return prev;
+			const appliedDeleted = deletedGlobalId !== null && d.globalTemplateId === deletedGlobalId;
+			let globalTemplateId = d.globalTemplateId;
+			let projectFields = d.projectFields;
+			if (appliedDeleted) {
+				const deleted = globalTemplates.find((g) => g.id === deletedGlobalId);
+				const removedNames = new Set((deleted?.customFields || []).map((f) => f.name));
+				const cleaned = d.projectFields.filter((f) => !(f.disabled && removedNames.has(f.name)));
+				globalTemplateId = null;
+				projectFields = fullMerge(cleaned, null, gl, d.seriesTemplateId, seriesTemplates);
+			} else {
+				const cleaned = d.projectFields.filter((f) => !getInheritedNames(d.globalTemplateId, gl).has(f.name));
+				projectFields = fullMerge(cleaned, d.globalTemplateId, gl, d.seriesTemplateId, seriesTemplates);
+			}
+			return {
+				...prev,
+				[cat]: {
+					...d,
+					globalTemplateId,
+					projectFields,
+					globalEditor: null,
+					dirty: d.dirty || appliedDeleted,
+				},
+			};
+		});
+	}
+
+	async function persistSeriesEditor(cat: CompendiumCategory) {
+		const d = drafts[cat];
+		const se = d?.seriesEditor;
+		if (!se || !seriesId) return false;
+		const inheritedNames = getInheritedNames(se.refGlobalId, globalTemplates);
+		const savable = se.fields
+			.filter((f) => {
+				if (!inheritedNames.has(f.name)) return true;
+				if (f.disabled) return true;
+				return false;
+			})
+			.filter((f) => f.name.trim() && f.label.trim());
+		if (se.id) {
+			await rpc.request["db:update-series-template"]({
+				id: se.id,
+				data: {
+					name: se.name.trim(),
+					description: se.description.trim() || null,
+					customFields: savable,
+				},
+			});
+			return true;
+		}
+		if (!se.name.trim()) return false;
+		const data: NewSeriesTemplate = {
+			id: crypto.randomUUID(),
+			seriesId,
+			name: se.name.trim(),
+			description: se.description.trim() || null,
+			baseType: cat,
+			customFields: savable,
+		};
+		await rpc.request["db:create-series-template"](data);
+		return true;
+	}
+
+	async function refreshSeries(cat: CompendiumCategory) {
+		if (!seriesId) return;
+		const res = await rpc.request["db:list-series-templates"]({ seriesId });
+		const sl = Array.isArray(res) ? res : [];
+		setSeriesTemplates(sl);
+		setDrafts((prev) => {
+			const d = prev[cat];
+			if (!d) return prev;
+			const cleaned = d.projectFields.filter((f) => !getSeriesInheritedNames(d.seriesTemplateId, sl).has(f.name));
+			return {
+				...prev,
+				[cat]: {
+					...d,
+					projectFields: fullMerge(cleaned, d.globalTemplateId, globalTemplates, d.seriesTemplateId, sl),
+					seriesEditor: null,
+				},
+			};
+		});
+	}
+
+	async function saveSeriesEditor(cat: CompendiumCategory) {
+		try {
+			const saved = await persistSeriesEditor(cat);
+			if (saved) await refreshSeries(cat);
+		} catch (e) {
+			console.error("Failed to save series template:", e);
+		}
+	}
+
+
 	async function handleSaveCategory(cat: CompendiumCategory) {
 		const d = drafts[cat];
 		if (!d) return;
@@ -334,37 +520,7 @@ export default function TemplateManagerTab({
 				await rpc.request["db:delete-series-template"](id);
 			}
 
-			const se = d.seriesEditor;
-			if (se && seriesId) {
-				const inheritedNames = getInheritedNames(se.refGlobalId, globalTemplates);
-				const savable = se.fields
-					.filter((f) => {
-						if (!inheritedNames.has(f.name)) return true;
-						if (f.disabled) return true;
-						return false;
-					})
-					.filter((f) => f.name.trim() && f.label.trim());
-				if (se.id) {
-					await rpc.request["db:update-series-template"]({
-						id: se.id,
-						data: {
-							name: se.name.trim(),
-							description: se.description.trim() || null,
-							customFields: savable,
-						},
-					});
-				} else if (se.name.trim()) {
-					const data: NewSeriesTemplate = {
-						id: crypto.randomUUID(),
-						seriesId,
-						name: se.name.trim(),
-						description: se.description.trim() || null,
-						baseType: cat,
-						customFields: savable,
-					};
-					await rpc.request["db:create-series-template"](data);
-				}
-			}
+			await persistSeriesEditor(cat);
 
 			const globalInherited = getInheritedNames(d.globalTemplateId, globalTemplates);
 			const seriesInherited = getSeriesInheritedNames(d.seriesTemplateId, seriesTemplates);
@@ -461,29 +617,129 @@ export default function TemplateManagerTab({
 		const selected = globalTemplates.find((g) => g.id === d.globalTemplateId);
 		return (
 			<div>
-				<select
-					value={d.globalTemplateId || ""}
-					onChange={(e) => handleGlobalChange(cat, e.target.value)}
-					style={{ width: "100%" }}
-				>
-					<option value="">None (no global template)</option>
-					{globalsForCat.map((gt) => (
-						<option key={gt.id} value={gt.id}>
-							{gt.name}
-							{gt.description ? ` — ${gt.description}` : ""} ({gt.customFields?.length || 0} fields)
-						</option>
-					))}
-				</select>
-				<p style={{ fontSize: "0.8em", color: "#888", margin: "0.25rem 0 0.5rem 0" }}>
-					Global templates apply to every project. Edit them under Settings → Templates.
+				<div style={{ marginBottom: "0.5rem" }}>
+					<label>Apply a global template to this project</label>
+					<select
+						value={d.globalTemplateId || ""}
+						onChange={(e) => handleGlobalChange(cat, e.target.value)}
+						style={{ width: "100%", marginTop: "0.5rem" }}
+					>
+						<option value="">None (no global template)</option>
+						{globalsForCat.map((gt) => (
+							<option key={gt.id} value={gt.id}>
+								{gt.name}
+								{gt.description ? ` — ${gt.description}` : ""} ({gt.customFields?.length || 0} fields)
+							</option>
+						))}
+					</select>
+				</div>
+				<p style={{ fontSize: "0.8em", color: "#888", margin: "0 0 0.5rem 0" }}>
+					Global templates apply to every project. Inherited fields appear in the Project Fields section below.
 				</p>
 				{selected ? (
 					<div style={{ padding: "0.5rem", background: "var(--bg-secondary, #1a1a1a)", borderRadius: "4px" }}>
 						{renderFieldPreview(selected.customFields, (name) => d.projectFields.find((p) => p.name === name)?.label || name)}
 					</div>
 				) : (
-					<div style={{ color: "#888", fontSize: "0.85em" }}>No global template selected.</div>
+					<div style={{ color: "#888", fontSize: "0.85em" }}>No global template applied to this project.</div>
 				)}
+
+				<div style={{ marginTop: "0.75rem" }}>
+					<div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.5rem" }}>
+						<span style={{ fontSize: "0.9em", color: "#ccc" }}>
+							Global templates for {categoryLabels[cat]} (shared across all projects)
+						</span>
+						<button type="button" onClick={() => openGlobalCreate(cat)}>+ New Global Template</button>
+					</div>
+					{globalsForCat.length === 0 ? (
+						<div style={{ color: "#888", fontSize: "0.85em" }}>No global templates for this category yet.</div>
+					) : (
+						<div style={{ display: "flex", flexDirection: "column", gap: "0.35rem" }}>
+							{globalsForCat.map((g) => (
+								<div
+									key={g.id}
+									style={{
+										display: "flex",
+										alignItems: "center",
+										justifyContent: "space-between",
+										padding: "0.5rem",
+										border: "1px solid var(--border, #333)",
+										borderRadius: "4px",
+									}}
+								>
+									<div>
+										<strong>{g.name}</strong>
+										{g.description && (
+											<span style={{ marginLeft: "0.5rem", color: "#888", fontSize: "0.85em" }}>
+												— {g.description}
+											</span>
+										)}
+										<span style={{ marginLeft: "0.5rem", color: "#888", fontSize: "0.85em" }}>
+											({g.customFields?.length || 0} fields)
+										</span>
+										{g.id === d.globalTemplateId && (
+											<span style={{ marginLeft: "0.5rem", fontSize: "0.7em", color: "#4A9EFF", background: "rgba(74,158,255,0.15)", padding: "1px 6px", borderRadius: "3px" }}>
+												APPLIED
+											</span>
+										)}
+									</div>
+									<div style={{ display: "flex", gap: "0.5rem" }}>
+										<button type="button" onClick={() => openGlobalEdit(cat, g)}>Edit</button>
+										<button type="button" className="danger" onClick={() => handleDeleteGlobal(cat, g.id)} style={{ color: "#e74c3c" }}>
+											Delete
+										</button>
+									</div>
+								</div>
+							))}
+						</div>
+					)}
+				</div>
+
+				{d.globalEditor && renderGlobalEditor(cat, d)}
+			</div>
+		);
+	}
+
+	function renderGlobalEditor(cat: CompendiumCategory, d: CategoryDraft) {
+		const ge = d.globalEditor!;
+		return (
+			<div style={{ marginTop: "0.5rem", padding: "0.75rem", border: "1px solid #4A9EFF", borderRadius: "4px" }}>
+				<div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.5rem" }}>
+					<strong>{ge.id ? "Editing Global Template" : "New Global Template"}</strong>
+					<button type="button" onClick={() => cancelGlobalEditor(cat)}>Cancel</button>
+				</div>
+				<div style={{ marginBottom: "0.5rem" }}>
+					<label>Template Name</label>
+					<input
+						type="text"
+						value={ge.name}
+						onChange={(e) => updateGlobalEditor(cat, { name: e.target.value })}
+						style={{ width: "100%" }}
+					/>
+				</div>
+				<div style={{ marginBottom: "0.5rem" }}>
+					<label>Description</label>
+					<textarea
+						value={ge.description}
+						onChange={(e) => updateGlobalEditor(cat, { description: e.target.value })}
+						rows={2}
+						style={{ width: "100%" }}
+					/>
+				</div>
+				<div>
+					<label>Fields</label>
+					<SimpleFieldsEditor
+						fields={ge.fields}
+						onChange={(fields) => updateGlobalEditor(cat, { fields })}
+						inheritedNames={new Set()}
+					/>
+				</div>
+				<div style={{ display: "flex", justifyContent: "flex-end", gap: "0.5rem", marginTop: "0.5rem" }}>
+					<button type="button" onClick={() => cancelGlobalEditor(cat)}>Cancel</button>
+					<button type="button" className="save-btn" onClick={() => saveGlobalEditor(cat)} disabled={!ge.name.trim()}>
+						Save Global Template
+					</button>
+				</div>
 			</div>
 		);
 	}
@@ -536,6 +792,12 @@ export default function TemplateManagerTab({
 						inheritedNames={getInheritedNames(se.refGlobalId, globalTemplates)}
 					/>
 				</div>
+				<div style={{ display: "flex", justifyContent: "flex-end", gap: "0.5rem", marginTop: "0.5rem" }}>
+					<button type="button" onClick={() => cancelSeriesEditor(cat)}>Cancel</button>
+					<button type="button" className="save-btn" onClick={() => saveSeriesEditor(cat)} disabled={!se.name.trim()}>
+						Save Series Template
+					</button>
+				</div>
 			</div>
 		);
 	}
@@ -569,7 +831,7 @@ export default function TemplateManagerTab({
 				</select>
 				{applied && (
 					<div style={{ padding: "0.5rem", background: "var(--bg-secondary, #1a1a1a)", borderRadius: "4px", marginTop: "0.5rem" }}>
-						<div style={{ color: "#888", fontSize: "0.8em", marginBottom: "0.25rem" }}>
+						<div style={{ color: "#888", fontSize: "0.8em", marginBottom: "0.5rem" }}>
 							Applied series fields (also shown as inherited below):
 						</div>
 						{renderFieldPreview(applied.customFields, (name) => d.projectFields.find((p) => p.name === name)?.label || name)}
@@ -620,7 +882,7 @@ export default function TemplateManagerTab({
 										</div>
 										<div style={{ display: "flex", gap: "0.5rem" }}>
 											<button type="button" onClick={() => openSeriesEdit(cat, st)} disabled={stagedDelete}>Edit</button>
-											<button type="button" onClick={() => stageSeriesDelete(cat, st.id)} style={{ color: "#e74c3c" }} disabled={stagedDelete}>
+											<button type="button" className="danger" onClick={() => stageSeriesDelete(cat, st.id)} style={{ color: "#e74c3c" }} disabled={stagedDelete}>
 												Delete
 											</button>
 										</div>
@@ -857,6 +1119,7 @@ function ProjectFieldsEditor({
 	const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
 	const [newFieldName, setNewFieldName] = useState("");
 	const [newFieldType, setNewFieldType] = useState<FieldDefinition["type"]>("text");
+	const [showAddField, setShowAddField] = useState(false);
 
 	function addField() {
 		if (!newFieldName.trim()) return;
@@ -872,6 +1135,7 @@ function ProjectFieldsEditor({
 		};
 		onChange([...fields, field]);
 		setNewFieldName("");
+		setShowAddField(false);
 	}
 
 	function updateField(index: number, updates: Partial<FieldDefinition>) {
@@ -928,23 +1192,42 @@ function ProjectFieldsEditor({
 
 	return (
 		<div>
-			<div style={{ display: "flex", gap: "0.5rem", marginBottom: "0.5rem" }}>
-				<input
-					type="text"
-					placeholder="Field name"
-					value={newFieldName}
-					onChange={(e) => setNewFieldName(e.target.value)}
-					onKeyDown={(e) => e.key === "Enter" && addField()}
-					style={{ flex: 1 }}
-				/>
-				<button type="button" onClick={addField} disabled={!newFieldName.trim()}>Create</button>
-			</div>
-			<FieldTypePills value={newFieldType} onChange={setNewFieldType} />
+			{showAddField ? (
+				<>
+					<div style={{ display: "flex", gap: "0.5rem", marginBottom: "0.5rem" }}>
+						<input
+							type="text"
+							placeholder="Field name"
+							value={newFieldName}
+							onChange={(e) => setNewFieldName(e.target.value)}
+							onKeyDown={(e) => e.key === "Enter" && addField()}
+							style={{
+								flex: 1,
+								padding: "10px 12px",
+								background: "#2a2b2c",
+								border: "1px solid #393a3b",
+								borderRadius: "6px",
+								color: "#fff",
+								fontSize: "14px",
+							}}
+						/>
+						<button type="button" onClick={addField} disabled={!newFieldName.trim()}>Create</button>
+					</div>
+					<FieldTypePills value={newFieldType} onChange={setNewFieldType} />
+				</>
+			) : (
+				<button type="button" onClick={() => setShowAddField(true)} style={{ marginBottom: "0.5rem" }}>
+					+ Add New Field
+				</button>
+			)}
 
 			{fields.length === 0 ? (
 				<div style={{ color: "#888", fontSize: "0.85em" }}>No fields defined.</div>
 			) : (
-				<div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+				<div style={{ /*display: "flex", flexDirection: "column", gap: "0.5rem",*/  display: "grid",
+					gridTemplateColumns: "repeat(auto-fill, minmax(420px, 1fr))",
+					gap: "12px"
+				}}>
 					{fields.map((field, index) => {
 						const isOver = dragOverIndex === index && dragIndex !== index;
 						return (
@@ -963,12 +1246,17 @@ function ProjectFieldsEditor({
 									borderStyle: isOver ? "dashed" : "solid",
 									opacity: dragIndex === index ? 0.4 : 1,
 									cursor: field.disabled ? "default" : "grab",
+									backgroundColor: "#1a1b1c"
 								}}
 							>
-								<div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-									<div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-										<span style={{ cursor: field.disabled ? "default" : "grab", color: "#888", userSelect: "none" }}>≡</span>
-										<span style={{ fontWeight: "bold" }}>{field.name}</span>
+								<div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+									<div style={{ display: "flex", alignItems: "baseline", gap: "0.5rem" }}>
+										<span style={{ cursor: field.disabled ? "default" : "grab", color: "#888", userSelect: "none", fontSize: "22px", lineHeight: "16px" }}>≡</span>
+										<div className="" style={{ display: "flex", flexDirection: "column" }}>
+											<span style={{ fontFamily: "var(--ui)", fontSize: "14px", fontWeight: "bold", textTransform: "uppercase" }}>{field.name}</span>
+											<span style={{ fontFamily: "var(--mono)", color: "#888", fontSize: "0.85em" }}>{field.type}</span>
+
+										</div>
 										{isInherited(field.name) && (
 											<span style={{ fontSize: "0.7em", color: "#FFA500", background: "rgba(255,165,0,0.15)", padding: "1px 6px", borderRadius: "3px", fontWeight: 500 }}>
 												INHERITED
@@ -983,7 +1271,7 @@ function ProjectFieldsEditor({
 											</span>
 										)}
 									</div>
-									<div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+									<div style={{ display: "flex", alignItems: "center", gap: "0.5rem", margin: "0px 12px 0px auto" }}>
 										<label style={{ display: "flex", alignItems: "center", gap: "0.2rem", fontSize: "0.8em", color: "#888" }}>
 											Span
 											<select
@@ -997,22 +1285,25 @@ function ProjectFieldsEditor({
 												<option value={4}>4</option>
 											</select>
 										</label>
-										<span style={{ color: "#888", fontSize: "0.85em" }}>{field.type}</span>
+
 									</div>
+									<button type="button" className="danger" onClick={() => removeField(index)} style={{ marginTop: "0.5rem", color: "#e74c3c", fontSize: "0.85em" }}>
+										<IconTrash size={"18px"} />
+									</button>
 								</div>
-								<div style={{ marginTop: "0.25rem" }}>
+								<div style={{ marginTop: "0.5rem" }}>
 									{isInherited(field.name) ? (
 										<div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
 											<span style={{ flex: 1, color: "#aaa", fontSize: "0.9em" }}>{field.label}</span>
 											{field.required && <span style={{ color: "#e74c3c", fontSize: "0.85em" }}>Required *</span>}
-											<label style={{ display: "flex", alignItems: "center", gap: "0.25rem", fontSize: "0.85em", cursor: "pointer", color: field.disabled ? "#e74c3c" : "#aaa" }}>
+											<label style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.85em", cursor: "pointer", color: field.disabled ? "#e74c3c" : "#aaa" }}>
 												<input type="checkbox" checked={!field.disabled} onChange={() => toggleFieldDisabled(field.name)} />
 												Enabled
 											</label>
 										</div>
 									) : (
 										<>
-											<div style={{ display: "flex", gap: "0.5rem", marginBottom: "0.25rem" }}>
+											<div style={{ display: "flex", gap: "0.5rem", marginBottom: "0.5rem" }}>
 												<input
 													type="text"
 													placeholder="Label"
@@ -1020,7 +1311,7 @@ function ProjectFieldsEditor({
 													onChange={(e) => updateField(index, { label: e.target.value })}
 													style={{ flex: 1 }}
 												/>
-												<label style={{ display: "flex", alignItems: "center", gap: "0.25rem", fontSize: "0.85em" }}>
+												<label style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.85em" }}>
 													<input type="checkbox" checked={field.required} onChange={(e) => updateField(index, { required: e.target.checked })} />
 													Required
 												</label>
@@ -1035,14 +1326,14 @@ function ProjectFieldsEditor({
 												/>
 											)}
 											{field.type === "range" && (
-												<div style={{ display: "flex", gap: "0.5rem", marginTop: "0.25rem" }}>
+												<div style={{ display: "flex", gap: "0.5rem", marginTop: "0.5rem" }}>
 													<input type="number" placeholder="Min" value={field.rangeMin ?? 0} onChange={(e) => updateField(index, { rangeMin: Number(e.target.value) })} />
 													<input type="number" placeholder="Max" value={field.rangeMax ?? 100} onChange={(e) => updateField(index, { rangeMax: Number(e.target.value) })} />
 													<input type="number" placeholder="Step" value={field.rangeStep ?? 1} onChange={(e) => updateField(index, { rangeStep: Number(e.target.value) })} />
 												</div>
 											)}
 											{(field.type === "entitylink" || field.type === "tree") && (
-												<div style={{ marginTop: "0.25rem" }}>
+												<div style={{ marginTop: "0.5rem" }}>
 													<label style={{ fontSize: "0.85em" }}>Allowed Categories:</label>
 													<div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
 														{(["character", "location", "organization", "item", "lore"] as CompendiumCategory[]).map((c) => (
@@ -1074,9 +1365,6 @@ function ProjectFieldsEditor({
 												value={field.visibleWhen}
 												onChange={(v) => updateField(index, { visibleWhen: v })}
 											/>
-											<button type="button" onClick={() => removeField(index)} style={{ marginTop: "0.25rem", color: "#e74c3c", fontSize: "0.85em" }}>
-												Remove
-											</button>
 										</>
 									)}
 								</div>
@@ -1100,6 +1388,7 @@ function SimpleFieldsEditor({
 }) {
 	const [newFieldName, setNewFieldName] = useState("");
 	const [newFieldType, setNewFieldType] = useState<FieldDefinition["type"]>("text");
+	const [showAddField, setShowAddField] = useState(false);
 
 	function addField() {
 		if (!newFieldName.trim()) return;
@@ -1115,6 +1404,7 @@ function SimpleFieldsEditor({
 		};
 		onChange([...fields, field]);
 		setNewFieldName("");
+		setShowAddField(false);
 	}
 
 	function updateField(index: number, updates: Partial<FieldDefinition>) {
@@ -1141,20 +1431,28 @@ function SimpleFieldsEditor({
 
 	return (
 		<div>
-			<div style={{ display: "flex", gap: "0.5rem", marginBottom: "0.5rem" }}>
-				<input
-					type="text"
-					placeholder="Field name"
-					value={newFieldName}
-					onChange={(e) => setNewFieldName(e.target.value)}
-					onKeyDown={(e) => e.key === "Enter" && addField()}
-					style={{ flex: 1 }}
-				/>
-				<button type="button" onClick={addField} disabled={!newFieldName.trim()}>
-					Add
+			{showAddField ? (
+				<>
+					<div style={{ display: "flex", gap: "0.5rem", marginBottom: "0.5rem" }}>
+						<input
+							type="text"
+							placeholder="Field name"
+							value={newFieldName}
+							onChange={(e) => setNewFieldName(e.target.value)}
+							onKeyDown={(e) => e.key === "Enter" && addField()}
+							style={{ flex: 1 }}
+						/>
+						<button type="button" onClick={addField} disabled={!newFieldName.trim()}>
+							Add
+						</button>
+					</div>
+					<FieldTypePills value={newFieldType} onChange={setNewFieldType} />
+				</>
+			) : (
+				<button type="button" onClick={() => setShowAddField(true)} style={{ marginBottom: "0.5rem" }}>
+					+ Add New Field
 				</button>
-			</div>
-			<FieldTypePills value={newFieldType} onChange={setNewFieldType} />
+			)}
 			{fields.length === 0 ? (
 				<div style={{ color: "#888", fontSize: "0.85em" }}>No fields defined</div>
 			) : (
@@ -1185,17 +1483,17 @@ function SimpleFieldsEditor({
 								</div>
 							</div>
 							{inheritedNames.has(f.name) ? (
-								<div style={{ display: "flex", gap: "0.5rem", marginTop: "0.25rem", alignItems: "center" }}>
+								<div style={{ display: "flex", gap: "0.5rem", marginTop: "0.5rem", alignItems: "center" }}>
 									<span style={{ flex: 1, color: "#aaa", fontSize: "0.9em" }}>{f.label}</span>
 									{f.required && <span style={{ color: "#e74c3c", fontSize: "0.85em" }}>Required *</span>}
-									<label style={{ display: "flex", alignItems: "center", gap: "0.25rem", fontSize: "0.85em", cursor: "pointer", color: f.disabled ? "#e74c3c" : "#aaa" }}>
+									<label style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.85em", cursor: "pointer", color: f.disabled ? "#e74c3c" : "#aaa" }}>
 										<input type="checkbox" checked={!f.disabled} onChange={() => toggleFieldDisabled(f.name)} />
 										Enabled
 									</label>
 								</div>
 							) : (
 								<>
-									<div style={{ display: "flex", gap: "0.5rem", marginTop: "0.25rem" }}>
+									<div style={{ display: "flex", gap: "0.5rem", marginTop: "0.5rem" }}>
 										<input
 											type="text"
 											placeholder="Label"
@@ -1203,7 +1501,7 @@ function SimpleFieldsEditor({
 											onChange={(e) => updateField(i, { label: e.target.value })}
 											style={{ flex: 1 }}
 										/>
-										<label style={{ display: "flex", alignItems: "center", gap: "0.25rem", fontSize: "0.85em" }}>
+										<label style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.85em" }}>
 											<input type="checkbox" checked={f.required} onChange={(e) => updateField(i, { required: e.target.checked })} />
 											Required
 										</label>
@@ -1214,11 +1512,11 @@ function SimpleFieldsEditor({
 											placeholder="Options (comma-separated)"
 											value={f.options?.join(", ") || ""}
 											onChange={(e) => updateField(i, { options: e.target.value.split(",").map((o) => o.trim()).filter(Boolean) })}
-											style={{ width: "100%", marginTop: "0.25rem" }}
+											style={{ width: "100%", marginTop: "0.5rem" }}
 										/>
 									)}
 									{f.type === "range" && (
-										<div style={{ display: "flex", gap: "0.5rem", marginTop: "0.25rem" }}>
+										<div style={{ display: "flex", gap: "0.5rem", marginTop: "0.5rem" }}>
 											<input type="number" placeholder="Min" value={f.rangeMin ?? 0} onChange={(e) => updateField(i, { rangeMin: Number(e.target.value) })} />
 											<input type="number" placeholder="Max" value={f.rangeMax ?? 100} onChange={(e) => updateField(i, { rangeMax: Number(e.target.value) })} />
 											<input type="number" placeholder="Step" value={f.rangeStep ?? 1} onChange={(e) => updateField(i, { rangeStep: Number(e.target.value) })} />
@@ -1230,7 +1528,7 @@ function SimpleFieldsEditor({
 										value={f.visibleWhen}
 										onChange={(v) => updateField(i, { visibleWhen: v })}
 									/>
-									<button type="button" onClick={() => removeField(i)} style={{ marginTop: "0.25rem", color: "#e74c3c", fontSize: "0.85em" }}>
+									<button type="button" className="danger" onClick={() => removeField(i)} style={{ marginTop: "0.5rem", color: "#e74c3c", fontSize: "0.85em" }}>
 										Remove
 									</button>
 								</>
