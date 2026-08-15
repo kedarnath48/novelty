@@ -20,7 +20,7 @@
     button {
         width: 100%;
         padding: 10px 16px;
-        background: #4A9EFF;
+        background: #4a9eff;
         border: none;
         border-radius: 6px;
         color: #fff;
@@ -32,7 +32,7 @@
         gap: 6px;
 
         &:hover {
-            background: #3A8EEF;
+            background: #3a8eef;
         }
     }
 }
@@ -53,8 +53,8 @@
 .assetItem {
     position: relative;
     aspect-ratio: 2/3;
-    background: #1A1B1C;
-    border: 1px solid #393A3B;
+    background: #1a1b1c;
+    border: 1px solid #393a3b;
     border-radius: 6px;
     overflow: hidden;
     cursor: pointer;
@@ -62,7 +62,7 @@
     transition: all 0.15s;
 
     &:hover {
-        border-color: #4A9EFF;
+        border-color: #4a9eff;
     }
 
     img {
@@ -85,8 +85,8 @@
 }
 
 .assetItemActive {
-    border-color: #4A9EFF;
-    box-shadow: 0 0 0 2px #4A9EFF;
+    border-color: #4a9eff;
+    box-shadow: 0 0 0 2px #4a9eff;
 }
 
 .activeBadge {
@@ -97,7 +97,7 @@
     align-items: center;
     gap: 3px;
     padding: 2px 6px;
-    background: #4A9EFF;
+    background: #4a9eff;
     border-radius: 4px;
     color: #fff;
     font-size: 11px;

@@ -1,26 +1,34 @@
-import "./theme/theme.css";
-import { initTheme, toggleTheme, getStoredTheme, getThemeIcon, getResolvedTheme } from "./theme";
+import './theme/theme.css';
+import {
+    initTheme,
+    toggleTheme,
+    getStoredTheme,
+    getThemeIcon,
+    getResolvedTheme,
+} from './theme';
 
 initTheme();
 
-const app = document.getElementById("app")!;
+const app = document.getElementById('app')!;
 
 let count = 0;
 
 async function openSettings() {
-	try {
-		await fetch("http://localhost:50001/api/open-settings", { method: "POST" });
-	} catch {
-		console.log("Could not open settings");
-	}
+    try {
+        await fetch('http://localhost:50001/api/open-settings', {
+            method: 'POST',
+        });
+    } catch {
+        console.log('Could not open settings');
+    }
 }
 
 function render() {
-	const currentTheme = getStoredTheme();
-	const resolvedTheme = getResolvedTheme();
-	const themeIcon = getThemeIcon(currentTheme);
+    const currentTheme = getStoredTheme();
+    const resolvedTheme = getResolvedTheme();
+    const themeIcon = getThemeIcon(currentTheme);
 
-	app.innerHTML = `
+    app.innerHTML = `
 		<main>
 			<div class="container">
 				<div class="header">
@@ -114,27 +122,31 @@ function render() {
 		</main>
 	`;
 
-	document.getElementById("increment-btn")!.addEventListener("click", () => {
-		count++;
-		render();
-	});
+    document.getElementById('increment-btn')!.addEventListener('click', () => {
+        count++;
+        render();
+    });
 
-	document.getElementById("reset-btn")!.addEventListener("click", () => {
-		count = 0;
-		render();
-	});
+    document.getElementById('reset-btn')!.addEventListener('click', () => {
+        count = 0;
+        render();
+    });
 
-	document.getElementById("theme-btn")!.addEventListener("click", () => {
-		toggleTheme();
-		render();
-	});
+    document.getElementById('theme-btn')!.addEventListener('click', () => {
+        toggleTheme();
+        render();
+    });
 
-	document.getElementById("theme-toggle-btn")!.addEventListener("click", () => {
-		toggleTheme();
-		render();
-	});
+    document
+        .getElementById('theme-toggle-btn')!
+        .addEventListener('click', () => {
+            toggleTheme();
+            render();
+        });
 
-	document.getElementById("settings-btn")!.addEventListener("click", openSettings);
+    document
+        .getElementById('settings-btn')!
+        .addEventListener('click', openSettings);
 }
 
 render();

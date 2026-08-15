@@ -1,48 +1,53 @@
-import { drizzle } from "drizzle-orm/bun-sqlite";
-import { Database } from "bun:sqlite";
-import { Utils } from "electrobun/bun";
-import { join } from "path";
-import { mkdirSync, existsSync } from "fs";
-import * as schema from "../schema";
-import * as sqliteVec from "sqlite-vec";
+import { drizzle } from 'drizzle-orm/bun-sqlite';
+import { Database } from 'bun:sqlite';
+import { Utils } from 'electrobun/bun';
+import { join } from 'path';
+import { mkdirSync, existsSync } from 'fs';
+import * as schema from '../schema';
+import * as sqliteVec from 'sqlite-vec';
 
-const dbPath = join(Utils.paths.userData, "novelty.db");
+const dbPath = join(Utils.paths.userData, 'novelty.db');
 const dbDir = Utils.paths.userData;
 
-console.log("Database path:", dbPath);
-console.log("Database directory:", dbDir);
+console.log('Database path:', dbPath);
+console.log('Database directory:', dbDir);
 
 if (!existsSync(dbDir)) {
-	mkdirSync(dbDir, { recursive: true });
+    mkdirSync(dbDir, { recursive: true });
 }
 
 let sqliteVecAvailable = false;
 
-if (process.platform === "darwin") {
-	try {
-		const homebrewPaths = [
-			"/opt/homebrew/opt/sqlite/lib/libsqlite3.dylib",
-			"/usr/local/opt/sqlite/lib/libsqlite3.dylib",
-		];
-		for (const p of homebrewPaths) {
-			if (existsSync(p)) {
-				Database.setCustomSQLite(p);
-				break;
-			}
-		}
-	} catch {
-		console.warn("Could not set custom SQLite on macOS, using system SQLite. Vector features may be unavailable.");
-	}
+if (process.platform === 'darwin') {
+    try {
+        const homebrewPaths = [
+            '/opt/homebrew/opt/sqlite/lib/libsqlite3.dylib',
+            '/usr/local/opt/sqlite/lib/libsqlite3.dylib',
+        ];
+        for (const p of homebrewPaths) {
+            if (existsSync(p)) {
+                Database.setCustomSQLite(p);
+                break;
+            }
+        }
+    } catch {
+        console.warn(
+            'Could not set custom SQLite on macOS, using system SQLite. Vector features may be unavailable.'
+        );
+    }
 }
 
 const sqlite = new Database(dbPath);
 
 try {
-	sqliteVec.load(sqlite);
-	sqliteVecAvailable = true;
-	console.log("sqlite-vec loaded successfully");
+    sqliteVec.load(sqlite);
+    sqliteVecAvailable = true;
+    console.log('sqlite-vec loaded successfully');
 } catch (err) {
-	console.warn("Failed to load sqlite-vec extension. Vector features will be unavailable.", err);
+    console.warn(
+        'Failed to load sqlite-vec extension. Vector features will be unavailable.',
+        err
+    );
 }
 
 export { sqliteVecAvailable };
@@ -52,32 +57,42 @@ export const db = drizzle(sqlite, { schema });
 export { sqlite as rawSqlite };
 
 export function ensureVecTable(dimension: number): void {
-	if (!sqliteVecAvailable) return;
-	try {
-		const info = sqlite.prepare(`SELECT sql FROM sqlite_master WHERE name = 'embeddings_vec'`).get() as any;
-		if (info && info.sql) {
-			const match = info.sql.match(/float\[(\d+)\]/);
-			if (match) {
-				const currentDim = parseInt(match[1]);
-				if (currentDim !== dimension) {
-					console.log(`Dimension mismatch (${currentDim} vs ${dimension}), recreating embeddings_vec`);
-					sqlite.exec(`DROP TABLE embeddings_vec`);
-				}
-			}
-		}
-	} catch {
-		// Table might not exist yet, that's fine
-	}
-	try {
-		sqlite.exec(`CREATE VIRTUAL TABLE IF NOT EXISTS embeddings_vec USING vec0(embedding float[${dimension}])`);
-		console.log(`embeddings_vec virtual table ready with dimension ${dimension}`);
-	} catch (err: any) {
-		console.warn("Failed to create embeddings_vec virtual table:", err);
-	}
+    if (!sqliteVecAvailable) return;
+    try {
+        const info = sqlite
+            .prepare(
+                `SELECT sql FROM sqlite_master WHERE name = 'embeddings_vec'`
+            )
+            .get() as any;
+        if (info && info.sql) {
+            const match = info.sql.match(/float\[(\d+)\]/);
+            if (match) {
+                const currentDim = parseInt(match[1]);
+                if (currentDim !== dimension) {
+                    console.log(
+                        `Dimension mismatch (${currentDim} vs ${dimension}), recreating embeddings_vec`
+                    );
+                    sqlite.exec(`DROP TABLE embeddings_vec`);
+                }
+            }
+        }
+    } catch {
+        // Table might not exist yet, that's fine
+    }
+    try {
+        sqlite.exec(
+            `CREATE VIRTUAL TABLE IF NOT EXISTS embeddings_vec USING vec0(embedding float[${dimension}])`
+        );
+        console.log(
+            `embeddings_vec virtual table ready with dimension ${dimension}`
+        );
+    } catch (err: any) {
+        console.warn('Failed to create embeddings_vec virtual table:', err);
+    }
 }
 
 export async function initDatabase() {
-	sqlite.exec(`
+    sqlite.exec(`
 		CREATE TABLE IF NOT EXISTS projects (
 			id TEXT PRIMARY KEY,
 			name TEXT NOT NULL,
@@ -312,7 +327,7 @@ CREATE TABLE IF NOT EXISTS scratch_notes (
 	);
 `);
 
-	sqlite.exec(`
+    sqlite.exec(`
 		CREATE TABLE IF NOT EXISTS token_usage (
 			id TEXT PRIMARY KEY,
 			session_id TEXT REFERENCES chat_sessions(id) ON DELETE SET NULL,
@@ -325,7 +340,7 @@ CREATE TABLE IF NOT EXISTS scratch_notes (
 		);
 	`);
 
-	sqlite.exec(`
+    sqlite.exec(`
 		CREATE TABLE IF NOT EXISTS timeline_events (
 			id TEXT PRIMARY KEY,
 			project_id TEXT REFERENCES projects(id),
@@ -344,13 +359,15 @@ CREATE TABLE IF NOT EXISTS scratch_notes (
 		);
 	`);
 
-	try {
-		sqlite.exec(`ALTER TABLE timeline_events ADD COLUMN auto_generated INTEGER NOT NULL DEFAULT 0`);
-	} catch {
-		// Column already exists - ignore error
-	}
+    try {
+        sqlite.exec(
+            `ALTER TABLE timeline_events ADD COLUMN auto_generated INTEGER NOT NULL DEFAULT 0`
+        );
+    } catch {
+        // Column already exists - ignore error
+    }
 
-	sqlite.exec(`
+    sqlite.exec(`
 		CREATE TABLE IF NOT EXISTS story_acts (
 			id TEXT PRIMARY KEY,
 			project_id TEXT REFERENCES projects(id),
@@ -364,7 +381,7 @@ CREATE TABLE IF NOT EXISTS scratch_notes (
 		);
 	`);
 
-	sqlite.exec(`
+    sqlite.exec(`
 		CREATE TABLE IF NOT EXISTS story_sequences (
 			id TEXT PRIMARY KEY,
 			act_id TEXT REFERENCES story_acts(id) ON DELETE CASCADE,
@@ -378,7 +395,7 @@ CREATE TABLE IF NOT EXISTS scratch_notes (
 		);
 	`);
 
-	sqlite.exec(`
+    sqlite.exec(`
 		CREATE TABLE IF NOT EXISTS story_scenes (
 			id TEXT PRIMARY KEY,
 			project_id TEXT REFERENCES projects(id),
@@ -399,7 +416,7 @@ CREATE TABLE IF NOT EXISTS scratch_notes (
 		);
 	`);
 
-	sqlite.exec(`
+    sqlite.exec(`
 		CREATE TABLE IF NOT EXISTS plot_threads (
 			id TEXT PRIMARY KEY,
 			project_id TEXT REFERENCES projects(id),
@@ -412,7 +429,7 @@ CREATE TABLE IF NOT EXISTS scratch_notes (
 		);
 	`);
 
-	sqlite.exec(`
+    sqlite.exec(`
 		CREATE TABLE IF NOT EXISTS chapter_plot_threads (
 			chapter_id TEXT NOT NULL REFERENCES chapters(id) ON DELETE CASCADE,
 			plot_thread_id TEXT NOT NULL REFERENCES plot_threads(id) ON DELETE CASCADE,
@@ -421,7 +438,7 @@ CREATE TABLE IF NOT EXISTS scratch_notes (
 		);
 	`);
 
-	sqlite.exec(`
+    sqlite.exec(`
 		CREATE TABLE IF NOT EXISTS story_beats (
 			id TEXT PRIMARY KEY,
 			project_id TEXT REFERENCES projects(id),
@@ -447,7 +464,7 @@ CREATE TABLE IF NOT EXISTS scratch_notes (
 		);
 	`);
 
-	sqlite.exec(`
+    sqlite.exec(`
 		CREATE TABLE IF NOT EXISTS embeddings (
 			id TEXT PRIMARY KEY,
 			project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
@@ -462,177 +479,310 @@ CREATE TABLE IF NOT EXISTS scratch_notes (
 		);
 	`);
 
-	sqlite.exec(`CREATE INDEX IF NOT EXISTS idx_embeddings_project ON embeddings(project_id)`);
-	sqlite.exec(`CREATE INDEX IF NOT EXISTS idx_embeddings_entity ON embeddings(entity_type, entity_id)`);
-	sqlite.exec(`CREATE INDEX IF NOT EXISTS idx_embeddings_hash ON embeddings(content_hash)`);
+    sqlite.exec(
+        `CREATE INDEX IF NOT EXISTS idx_embeddings_project ON embeddings(project_id)`
+    );
+    sqlite.exec(
+        `CREATE INDEX IF NOT EXISTS idx_embeddings_entity ON embeddings(entity_type, entity_id)`
+    );
+    sqlite.exec(
+        `CREATE INDEX IF NOT EXISTS idx_embeddings_hash ON embeddings(content_hash)`
+    );
 
-	const migrations = [
-		{ table: "chapters", name: "status", type: "TEXT NOT NULL DEFAULT 'outline'" },
-		{ table: "chapters", name: "outline", type: "TEXT" },
-		{ table: "chapters", name: "pov_character_id", type: "TEXT REFERENCES characters(id)" },
-		{ table: "chapters", name: "word_count_target", type: "INTEGER" },
-		{ table: "chapters", name: "act_id", type: "TEXT REFERENCES story_acts(id)" },
-		{ table: "chapters", name: "sequence_id", type: "TEXT REFERENCES story_sequences(id)" },
-		{ table: "story_sequences", name: "chapter_id", type: "TEXT REFERENCES chapters(id)" },
-		{ table: "projects", name: "cover_image_id", type: "TEXT" },
-		{ table: "projects", name: "cover_images_array", type: "TEXT" },
-		{ table: "projects", name: "project_scope", type: "TEXT" },
-		{ table: "projects", name: "series_arch", type: "TEXT" },
-		{ table: "projects", name: "series_id", type: "TEXT REFERENCES series(id)" },
-		{ table: "projects", name: "pov", type: "TEXT" },
-		{ table: "projects", name: "pacing", type: "TEXT" },
-		{ table: "projects", name: "work_type", type: "TEXT" },
-		{ table: "projects", name: "project_structure", type: "TEXT" },
-		{ table: "projects", name: "target_age", type: "TEXT" },
-		{ table: "projects", name: "project_status", type: "TEXT NOT NULL DEFAULT 'planning'" },
-		{ table: "projects", name: "tonal_type", type: "TEXT" },
-		{ table: "projects", name: "description", type: "TEXT" },
-		{ table: "projects", name: "system_prompt", type: "TEXT" },
-		{ table: "characters", name: "template_data", type: "TEXT" },
-		{ table: "locations", name: "template_data", type: "TEXT" },
-		{ table: "organizations", name: "template_data", type: "TEXT" },
-		{ table: "items", name: "template_data", type: "TEXT" },
-		{ table: "lore_entries", name: "template_data", type: "TEXT" },
-		{ table: "chat_sessions", name: "is_archived", type: "INTEGER NOT NULL DEFAULT 0" },
-		{ table: "chat_sessions", name: "is_manually_named", type: "INTEGER NOT NULL DEFAULT 0" },
-		{ table: "project_genres", name: "is_primary", type: "INTEGER NOT NULL DEFAULT 0" },
-		{ table: "projects", name: "content_rating", type: "TEXT NOT NULL DEFAULT 'Unrated'" },
-		{ table: "entity_templates", name: "global_template_id", type: "TEXT REFERENCES global_templates(id)" },
-		{ table: "entity_templates", name: "series_template_id", type: "TEXT REFERENCES series_templates(id)" },
-		{ table: "lore_entries", name: "file_path", type: "TEXT" },
-	];
+    const migrations = [
+        {
+            table: 'chapters',
+            name: 'status',
+            type: "TEXT NOT NULL DEFAULT 'outline'",
+        },
+        { table: 'chapters', name: 'outline', type: 'TEXT' },
+        {
+            table: 'chapters',
+            name: 'pov_character_id',
+            type: 'TEXT REFERENCES characters(id)',
+        },
+        { table: 'chapters', name: 'word_count_target', type: 'INTEGER' },
+        {
+            table: 'chapters',
+            name: 'act_id',
+            type: 'TEXT REFERENCES story_acts(id)',
+        },
+        {
+            table: 'chapters',
+            name: 'sequence_id',
+            type: 'TEXT REFERENCES story_sequences(id)',
+        },
+        {
+            table: 'story_sequences',
+            name: 'chapter_id',
+            type: 'TEXT REFERENCES chapters(id)',
+        },
+        { table: 'projects', name: 'cover_image_id', type: 'TEXT' },
+        { table: 'projects', name: 'cover_images_array', type: 'TEXT' },
+        { table: 'projects', name: 'project_scope', type: 'TEXT' },
+        { table: 'projects', name: 'series_arch', type: 'TEXT' },
+        {
+            table: 'projects',
+            name: 'series_id',
+            type: 'TEXT REFERENCES series(id)',
+        },
+        { table: 'projects', name: 'pov', type: 'TEXT' },
+        { table: 'projects', name: 'pacing', type: 'TEXT' },
+        { table: 'projects', name: 'work_type', type: 'TEXT' },
+        { table: 'projects', name: 'project_structure', type: 'TEXT' },
+        { table: 'projects', name: 'target_age', type: 'TEXT' },
+        {
+            table: 'projects',
+            name: 'project_status',
+            type: "TEXT NOT NULL DEFAULT 'planning'",
+        },
+        { table: 'projects', name: 'tonal_type', type: 'TEXT' },
+        { table: 'projects', name: 'description', type: 'TEXT' },
+        { table: 'projects', name: 'system_prompt', type: 'TEXT' },
+        { table: 'characters', name: 'template_data', type: 'TEXT' },
+        { table: 'locations', name: 'template_data', type: 'TEXT' },
+        { table: 'organizations', name: 'template_data', type: 'TEXT' },
+        { table: 'items', name: 'template_data', type: 'TEXT' },
+        { table: 'lore_entries', name: 'template_data', type: 'TEXT' },
+        {
+            table: 'chat_sessions',
+            name: 'is_archived',
+            type: 'INTEGER NOT NULL DEFAULT 0',
+        },
+        {
+            table: 'chat_sessions',
+            name: 'is_manually_named',
+            type: 'INTEGER NOT NULL DEFAULT 0',
+        },
+        {
+            table: 'project_genres',
+            name: 'is_primary',
+            type: 'INTEGER NOT NULL DEFAULT 0',
+        },
+        {
+            table: 'projects',
+            name: 'content_rating',
+            type: "TEXT NOT NULL DEFAULT 'Unrated'",
+        },
+        {
+            table: 'entity_templates',
+            name: 'global_template_id',
+            type: 'TEXT REFERENCES global_templates(id)',
+        },
+        {
+            table: 'entity_templates',
+            name: 'series_template_id',
+            type: 'TEXT REFERENCES series_templates(id)',
+        },
+        { table: 'lore_entries', name: 'file_path', type: 'TEXT' },
+    ];
 
-	for (const col of migrations) {
-		try {
-			sqlite.exec(`ALTER TABLE ${col.table} ADD COLUMN ${col.name} ${col.type}`);
-		} catch {
-			// Column already exists - ignore error
-		}
-	}
+    for (const col of migrations) {
+        try {
+            sqlite.exec(
+                `ALTER TABLE ${col.table} ADD COLUMN ${col.name} ${col.type}`
+            );
+        } catch {
+            // Column already exists - ignore error
+        }
+    }
 
-	migrateOutlineScenesToStoryScenes();
+    migrateOutlineScenesToStoryScenes();
 
-	try {
-		sqlite.exec(`UPDATE scratch_notes SET id = project_id WHERE id = 'scratch'`);
-	} catch {
-		// ignore if table doesn't exist yet
-	}
+    try {
+        sqlite.exec(
+            `UPDATE scratch_notes SET id = project_id WHERE id = 'scratch'`
+        );
+    } catch {
+        // ignore if table doesn't exist yet
+    }
 
-	seedGlobalData();
+    seedGlobalData();
 
-	console.log("Database initialized at:", dbPath);
+    console.log('Database initialized at:', dbPath);
 }
 
 function migrateOutlineScenesToStoryScenes() {
-	try {
-		const chapters = sqlite.query(
-			`SELECT id, project_id, act_id, sequence_id, outline FROM chapters WHERE outline IS NOT NULL`
-		).all() as { id: string; project_id: string | null; act_id: string | null; sequence_id: string | null; outline: string }[];
+    try {
+        const chapters = sqlite
+            .query(
+                `SELECT id, project_id, act_id, sequence_id, outline FROM chapters WHERE outline IS NOT NULL`
+            )
+            .all() as {
+            id: string;
+            project_id: string | null;
+            act_id: string | null;
+            sequence_id: string | null;
+            outline: string;
+        }[];
 
-		for (const chapter of chapters) {
-			let parsed: { scenes?: unknown[] } | null = null;
-			try {
-				parsed = JSON.parse(chapter.outline);
-			} catch {
-				// outline isn't valid JSON - leave untouched
-			}
-			const scenes = Array.isArray(parsed?.scenes) ? parsed.scenes : [];
-			if (scenes.length === 0 || !parsed) continue;
+        for (const chapter of chapters) {
+            let parsed: { scenes?: unknown[] } | null = null;
+            try {
+                parsed = JSON.parse(chapter.outline);
+            } catch {
+                // outline isn't valid JSON - leave untouched
+            }
+            const scenes = Array.isArray(parsed?.scenes) ? parsed.scenes : [];
+            if (scenes.length === 0 || !parsed) continue;
 
-			const existing = sqlite.query(`SELECT COUNT(*) AS count FROM story_scenes WHERE chapter_id = ?`).get(chapter.id) as { count: number };
-			if (existing.count > 0) continue;
+            const existing = sqlite
+                .query(
+                    `SELECT COUNT(*) AS count FROM story_scenes WHERE chapter_id = ?`
+                )
+                .get(chapter.id) as { count: number };
+            if (existing.count > 0) continue;
 
-			const now = Date.now();
-			const insertStmt = sqlite.prepare(
-				`INSERT INTO story_scenes
+            const now = Date.now();
+            const insertStmt = sqlite.prepare(
+                `INSERT INTO story_scenes
 					(id, project_id, act_id, sequence_id, chapter_id, title, summary, setting, characters_present, key_events, duration, conflict, status, order_index, created_at, updated_at)
 				 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'outline', ?, ?, ?)`
-			);
-			scenes.forEach((raw, index) => {
-				const scene = (raw || {}) as Record<string, unknown>;
-				const id = typeof scene.id === "string" && scene.id ? scene.id : crypto.randomUUID();
-				insertStmt.run(
-					id,
-					chapter.project_id,
-					chapter.act_id,
-					chapter.sequence_id,
-					chapter.id,
-					typeof scene.title === "string" ? scene.title : "",
-					typeof scene.summary === "string" ? scene.summary : null,
-					typeof scene.setting === "string" ? scene.setting : null,
-					JSON.stringify(Array.isArray(scene.charactersPresent) ? scene.charactersPresent : []),
-					JSON.stringify(Array.isArray(scene.keyEvents) ? scene.keyEvents : []),
-					typeof scene.duration === "string" ? scene.duration : null,
-					typeof scene.conflict === "string" ? scene.conflict : null,
-					index,
-					now,
-					now,
-				);
-			});
+            );
+            scenes.forEach((raw, index) => {
+                const scene = (raw || {}) as Record<string, unknown>;
+                const id =
+                    typeof scene.id === 'string' && scene.id
+                        ? scene.id
+                        : crypto.randomUUID();
+                insertStmt.run(
+                    id,
+                    chapter.project_id,
+                    chapter.act_id,
+                    chapter.sequence_id,
+                    chapter.id,
+                    typeof scene.title === 'string' ? scene.title : '',
+                    typeof scene.summary === 'string' ? scene.summary : null,
+                    typeof scene.setting === 'string' ? scene.setting : null,
+                    JSON.stringify(
+                        Array.isArray(scene.charactersPresent)
+                            ? scene.charactersPresent
+                            : []
+                    ),
+                    JSON.stringify(
+                        Array.isArray(scene.keyEvents) ? scene.keyEvents : []
+                    ),
+                    typeof scene.duration === 'string' ? scene.duration : null,
+                    typeof scene.conflict === 'string' ? scene.conflict : null,
+                    index,
+                    now,
+                    now
+                );
+            });
 
-			const { scenes: _stripped, ...rest } = parsed;
-			sqlite.prepare(`UPDATE chapters SET outline = ? WHERE id = ?`).run(JSON.stringify(rest), chapter.id);
-		}
+            const { scenes: _stripped, ...rest } = parsed;
+            sqlite
+                .prepare(`UPDATE chapters SET outline = ? WHERE id = ?`)
+                .run(JSON.stringify(rest), chapter.id);
+        }
 
-		const orphanedSequences = sqlite.query(
-			`SELECT id FROM story_sequences WHERE chapter_id IS NULL`
-		).all() as { id: string }[];
-		for (const seq of orphanedSequences) {
-			const firstChapter = sqlite.query(
-				`SELECT id FROM chapters WHERE sequence_id = ? ORDER BY order_index ASC LIMIT 1`
-			).get(seq.id) as { id: string } | undefined;
-			if (firstChapter) {
-				sqlite.prepare(`UPDATE story_sequences SET chapter_id = ? WHERE id = ?`).run(firstChapter.id, seq.id);
-			}
-		}
-	} catch (err) {
-		console.warn("Failed to migrate outline scenes:", err);
-	}
+        const orphanedSequences = sqlite
+            .query(`SELECT id FROM story_sequences WHERE chapter_id IS NULL`)
+            .all() as { id: string }[];
+        for (const seq of orphanedSequences) {
+            const firstChapter = sqlite
+                .query(
+                    `SELECT id FROM chapters WHERE sequence_id = ? ORDER BY order_index ASC LIMIT 1`
+                )
+                .get(seq.id) as { id: string } | undefined;
+            if (firstChapter) {
+                sqlite
+                    .prepare(
+                        `UPDATE story_sequences SET chapter_id = ? WHERE id = ?`
+                    )
+                    .run(firstChapter.id, seq.id);
+            }
+        }
+    } catch (err) {
+        console.warn('Failed to migrate outline scenes:', err);
+    }
 }
 
 function seedGlobalData() {
-	const globalGenres = [
-		"fantasy", "sci-fi", "romance", "thriller", "horror", "mystery",
-		"historical", "contemporary", "western", "literary-fiction",
-		"young-adult", "dystopian", "cyberpunk", "steampunk", "urban-fantasy"
-	];
+    const globalGenres = [
+        'fantasy',
+        'sci-fi',
+        'romance',
+        'thriller',
+        'horror',
+        'mystery',
+        'historical',
+        'contemporary',
+        'western',
+        'literary-fiction',
+        'young-adult',
+        'dystopian',
+        'cyberpunk',
+        'steampunk',
+        'urban-fantasy',
+    ];
 
-	const globalTags = [
-		"dragons", "magic", "space", "aliens", "vampires", "zombies",
-		"romance", "mystery", "war", "political", "supernatural",
-		"dystopia", "time-travel", "post-apocalyptic", "coming-of-age"
-	];
+    const globalTags = [
+        'dragons',
+        'magic',
+        'space',
+        'aliens',
+        'vampires',
+        'zombies',
+        'romance',
+        'mystery',
+        'war',
+        'political',
+        'supernatural',
+        'dystopia',
+        'time-travel',
+        'post-apocalyptic',
+        'coming-of-age',
+    ];
 
-	for (const genre of globalGenres) {
-		try {
-			const id = genre.replace(/-/g, "_");
-			sqlite.exec(`INSERT OR IGNORE INTO genres (id, name, is_global, created_at) VALUES ('${id}', '${genre}', 1, ${Date.now()})`);
-		} catch {
-			// Ignore duplicates
-		}
-	}
+    for (const genre of globalGenres) {
+        try {
+            const id = genre.replace(/-/g, '_');
+            sqlite.exec(
+                `INSERT OR IGNORE INTO genres (id, name, is_global, created_at) VALUES ('${id}', '${genre}', 1, ${Date.now()})`
+            );
+        } catch {
+            // Ignore duplicates
+        }
+    }
 
-	for (const tag of globalTags) {
-		try {
-			const id = tag.replace(/-/g, "_");
-			sqlite.exec(`INSERT OR IGNORE INTO tags (id, name, is_global, created_at) VALUES ('${id}', '${tag}', 1, ${Date.now()})`);
-		} catch {
-			// Ignore duplicates
-		}
-	}
+    for (const tag of globalTags) {
+        try {
+            const id = tag.replace(/-/g, '_');
+            sqlite.exec(
+                `INSERT OR IGNORE INTO tags (id, name, is_global, created_at) VALUES ('${id}', '${tag}', 1, ${Date.now()})`
+            );
+        } catch {
+            // Ignore duplicates
+        }
+    }
 
-	const globalThemes = [
-		"redemption", "revenge", "betrayal", "identity", "coming-of-age",
-		"good-vs-evil", "love", "death", "power", "freedom",
-		"survival", "justice", "sacrifice", "transformation", "war-and-peace"
-	];
+    const globalThemes = [
+        'redemption',
+        'revenge',
+        'betrayal',
+        'identity',
+        'coming-of-age',
+        'good-vs-evil',
+        'love',
+        'death',
+        'power',
+        'freedom',
+        'survival',
+        'justice',
+        'sacrifice',
+        'transformation',
+        'war-and-peace',
+    ];
 
-	for (const theme of globalThemes) {
-		try {
-			const id = theme.replace(/-/g, "_");
-			sqlite.exec(`INSERT OR IGNORE INTO themes (id, name, is_global, created_at) VALUES ('${id}', '${theme}', 1, ${Date.now()})`);
-		} catch {
-			// Ignore duplicates
-		}
-	}
+    for (const theme of globalThemes) {
+        try {
+            const id = theme.replace(/-/g, '_');
+            sqlite.exec(
+                `INSERT OR IGNORE INTO themes (id, name, is_global, created_at) VALUES ('${id}', '${theme}', 1, ${Date.now()})`
+            );
+        } catch {
+            // Ignore duplicates
+        }
+    }
 }

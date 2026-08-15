@@ -1,16 +1,22 @@
-import "./theme/theme.css";
-import { initTheme, setTheme, getStoredTheme, getThemeIcon, type Theme } from "./theme";
+import './theme/theme.css';
+import {
+    initTheme,
+    setTheme,
+    getStoredTheme,
+    getThemeIcon,
+    type Theme,
+} from './theme';
 
 initTheme();
 
-const app = document.getElementById("app")!;
+const app = document.getElementById('app')!;
 
-const themeOptions: Theme[] = ["system", "light", "dark"];
+const themeOptions: Theme[] = ['system', 'light', 'dark'];
 
 function render() {
-	const currentTheme = getStoredTheme();
+    const currentTheme = getStoredTheme();
 
-	app.innerHTML = `
+    app.innerHTML = `
 		<main>
 			<div class="container" style="max-width: 500px;">
 				<h1>Settings</h1>
@@ -20,14 +26,18 @@ function render() {
 					<h2>Appearance</h2>
 					<p>Choose your preferred theme:</p>
 					<div class="button-group" style="flex-wrap: wrap;">
-						${themeOptions.map(theme => `
+						${themeOptions
+                            .map(
+                                (theme) => `
 							<button
 								class="${currentTheme === theme ? 'primary' : 'secondary'}"
 								data-theme="${theme}"
 							>
 								${getThemeIcon(theme)} ${theme.charAt(0).toUpperCase() + theme.slice(1)}
 							</button>
-						`).join('')}
+						`
+                            )
+                            .join('')}
 					</div>
 				</div>
 
@@ -49,13 +59,13 @@ function render() {
 		</main>
 	`;
 
-	document.querySelectorAll("[data-theme]").forEach(btn => {
-		btn.addEventListener("click", () => {
-			const theme = btn.getAttribute("data-theme") as Theme;
-			setTheme(theme);
-			render();
-		});
-	});
+    document.querySelectorAll('[data-theme]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+            const theme = btn.getAttribute('data-theme') as Theme;
+            setTheme(theme);
+            render();
+        });
+    });
 }
 
 render();

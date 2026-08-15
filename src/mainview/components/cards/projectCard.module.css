@@ -2,18 +2,18 @@
     display: flex;
     justify-content: center;
     padding: 12px;
-    border-bottom: 1px solid #393A3B;
+    border-bottom: 1px solid #393a3b;
 
     button {
         padding: 8px 16px;
-        background: #4A9EFF;
+        background: #4a9eff;
         border: none;
         border-radius: 6px;
         color: #fff;
         cursor: pointer;
 
         &:hover {
-            background: #3A8EEF;
+            background: #3a8eef;
         }
     }
 }
@@ -28,8 +28,8 @@
     position: relative;
     width: 200px;
     aspect-ratio: 2/3;
-    background: #2A2B2C;
-    border: 1px solid #393A3B;
+    background: #2a2b2c;
+    border: 1px solid #393a3b;
     border-radius: 8px;
     cursor: pointer;
     transition: all 0.2s;
@@ -39,7 +39,7 @@
     align-items: center;
 
     &:hover {
-        border-color: #4A9EFF;
+        border-color: #4a9eff;
     }
 }
 
@@ -50,7 +50,7 @@
     aspect-ratio: 1/3;
     border-radius: 6px;
     margin: 8px;
-    border: 1px solid #393A3B;
+    border: 1px solid #393a3b;
     object-fit: contain;
     overflow: hidden;
 
@@ -133,7 +133,7 @@
     align-items: center;
     justify-content: center;
     background: rgba(42, 43, 44, 0.9);
-    border: 1px solid #393A3B;
+    border: 1px solid #393a3b;
     border-radius: 4px;
     color: #fff;
     cursor: pointer;
@@ -145,7 +145,7 @@
     }
 
     &:hover {
-        background: #3A9EFF;
+        background: #3a9eff;
     }
 }
 
@@ -154,8 +154,8 @@
     top: 100%;
     right: 0;
     margin-top: 4px;
-    background: #2A2B2C;
-    border: 1px solid #393A3B;
+    background: #2a2b2c;
+    border: 1px solid #393a3b;
     border-radius: 6px;
     overflow: hidden;
     min-width: 150px;
@@ -175,15 +175,15 @@
         text-align: left;
 
         &:hover {
-            background: #3A9EFF;
+            background: #3a9eff;
         }
     }
 
     .deleteOption {
-        color: #FF4A4A;
+        color: #ff4a4a;
 
         &:hover {
-            background: #FF4A4A;
+            background: #ff4a4a;
             color: #fff;
         }
     }

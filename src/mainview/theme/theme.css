@@ -1,4 +1,4 @@
-@import "./variables.css";
+@import './variables.css';
 
 * {
     box-sizing: border-box;
@@ -10,7 +10,9 @@ body {
     font-family: var(--font-sans);
     background: var(--color-background);
     color: var(--color-text);
-    transition: background var(--transition-base), color var(--transition-base);
+    transition:
+        background var(--transition-base),
+        color var(--transition-base);
 }
 
 #app {
@@ -53,7 +55,9 @@ h1 {
     margin-bottom: var(--spacing-md);
     box-shadow: var(--shadow-lg);
     color: var(--color-text-secondary);
-    transition: background var(--transition-base), color var(--transition-base);
+    transition:
+        background var(--transition-base),
+        color var(--transition-base);
 }
 
 h2 {

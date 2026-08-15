@@ -1,538 +1,535 @@
 .toolbar {
-	display: flex;
-	justify-content: center;
-	padding: 16px;
-	border-bottom: 1px solid #393A3B;
+    display: flex;
+    justify-content: center;
+    padding: 16px;
+    border-bottom: 1px solid #393a3b;
 
-	button {
-		padding: 8px 16px;
-		background: #4A9EFF;
-		border: none;
-		border-radius: 6px;
-		color: #fff;
-		cursor: pointer;
+    button {
+        padding: 8px 16px;
+        background: #4a9eff;
+        border: none;
+        border-radius: 6px;
+        color: #fff;
+        cursor: pointer;
 
-		&:hover {
-			background: #3A8EEF;
-		}
-	}
+        &:hover {
+            background: #3a8eef;
+        }
+    }
 }
 
 .content {
-	display: flex;
-	flex-wrap: wrap;
-	gap: 12px;
-	overflow-y: auto;
-	flex: 1;
-	min-height: 100px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    overflow-y: auto;
+    flex: 1;
+    min-height: 100px;
 }
 
 .formGroup {
-	margin-bottom: 16px;
+    margin-bottom: 16px;
 
-	label {
-		display: block;
-		margin-bottom: 8px;
-		color: #aaa;
-		font-size: 14px;
-	}
+    label {
+        display: block;
+        margin-bottom: 8px;
+        color: #aaa;
+        font-size: 14px;
+    }
 
-	input,
-	select {
-		width: 100%;
-		padding: 10px 12px;
-		background: #1A1B1C;
-		border: 1px solid #393A3B;
-		border-radius: 6px;
-		color: #fff;
-		box-sizing: border-box;
+    input,
+    select {
+        width: 100%;
+        padding: 10px 12px;
+        background: #1a1b1c;
+        border: 1px solid #393a3b;
+        border-radius: 6px;
+        color: #fff;
+        box-sizing: border-box;
 
-		&:focus {
-			outline: none;
-			border-color: #4A9EFF;
-		}
-	}
+        &:focus {
+            outline: none;
+            border-color: #4a9eff;
+        }
+    }
 }
 
 .tagSelector {
-	display: flex;
-	flex-wrap: wrap;
-	gap: 6px;
-	margin-bottom: 8px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 8px;
 }
 
 .tagBtn {
-	padding: 6px 10px;
-	background: #1A1B1C;
-	border: 1px solid #393A3B;
-	border-radius: 4px;
-	color: #aaa;
-	font-size: 13px;
-	cursor: pointer;
-	transition: all 0.15s;
+    padding: 6px 10px;
+    background: #1a1b1c;
+    border: 1px solid #393a3b;
+    border-radius: 4px;
+    color: #aaa;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.15s;
 
-	&:hover {
-		border-color: #4A9EFF;
-		color: #fff;
-	}
+    &:hover {
+        border-color: #4a9eff;
+        color: #fff;
+    }
 
-	&.selected {
-		background: #4A9EFF;
-		border-color: #4A9EFF;
-		color: #fff;
-	}
+    &.selected {
+        background: #4a9eff;
+        border-color: #4a9eff;
+        color: #fff;
+    }
 }
 
 .customTagInput {
-	display: flex;
-	gap: 8px;
+    display: flex;
+    gap: 8px;
 
-	input {
-		flex: 1;
-		margin-bottom: 0;
-	}
+    input {
+        flex: 1;
+        margin-bottom: 0;
+    }
 
-	button {
-		padding: 8px 12px;
-		background: #393A3B;
-		border: none;
-		border-radius: 4px;
-		color: #fff;
-		font-size: 13px;
-		cursor: pointer;
+    button {
+        padding: 8px 12px;
+        background: #393a3b;
+        border: none;
+        border-radius: 4px;
+        color: #fff;
+        font-size: 13px;
+        cursor: pointer;
 
-		&:hover {
-			background: #494A4B;
-		}
-	}
+        &:hover {
+            background: #494a4b;
+        }
+    }
 }
 
 .actions {
-	display: flex;
-	justify-content: flex-end;
-	gap: 8px;
-	padding-top: 8px;
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    padding-top: 8px;
 
-	button {
-		padding: 8px 16px;
-		border: none;
-		border-radius: 6px;
-		cursor: pointer;
-		font-size: 14px;
+    button {
+        padding: 8px 16px;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 14px;
 
-		&:first-child {
-			background: transparent;
-			color: #aaa;
+        &:first-child {
+            background: transparent;
+            color: #aaa;
 
-			&:hover {
-				color: #fff;
-			}
-		}
+            &:hover {
+                color: #fff;
+            }
+        }
 
-		&:last-child {
-			background: #4A9EFF;
-			color: #fff;
+        &:last-child {
+            background: #4a9eff;
+            color: #fff;
 
-			&:hover {
-				background: #3A8EEF;
-			}
+            &:hover {
+                background: #3a8eef;
+            }
 
-			&:disabled {
-				opacity: 0.5;
-				cursor: not-allowed;
-			}
-		}
-	}
+            &:disabled {
+                opacity: 0.5;
+                cursor: not-allowed;
+            }
+        }
+    }
 
-	.dangerBtn {
-		background: #FF4A4A;
+    .dangerBtn {
+        background: #ff4a4a;
 
-		&:hover {
-			background: #E03A3A;
-		}
-	}
+        &:hover {
+            background: #e03a3a;
+        }
+    }
 }
-
-
 
 #projectsDialog {
-	width: 70%;
-	max-width: 70%;
-	height: 80%;
-	max-height: 80%;
+    width: 70%;
+    max-width: 70%;
+    height: 80%;
+    max-height: 80%;
 }
 
-
 #settingsDialog {
-	background-color: red;
+    background-color: red;
 }
 
 .settingRow {
-	margin-bottom: 10px;
-	padding-bottom: 10px;
+    margin-bottom: 10px;
+    padding-bottom: 10px;
 }
 
 .dialogContent {
-	display: flex;
+    display: flex;
 }
 
 .sideBar {
-	width: 30%;
-	max-width: 300px;
-	max-width: 250px;
-	display: flex;
-	flex-direction: column;
-	gap: 12px;
+    width: 30%;
+    max-width: 300px;
+    max-width: 250px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
 
-	button {
-		padding: 8px 16px;
-		background: #1A1B1C;
-		border: 1px solid #393A3B;
-		border-radius: 6px;
-		color: #aaa;
-		font-size: 13px;
-		cursor: pointer;
-		transition: all 0.15s;
-		display: flex;
-		align-items: center;
-		gap: 6px;
+    button {
+        padding: 8px 16px;
+        background: #1a1b1c;
+        border: 1px solid #393a3b;
+        border-radius: 6px;
+        color: #aaa;
+        font-size: 13px;
+        cursor: pointer;
+        transition: all 0.15s;
+        display: flex;
+        align-items: center;
+        gap: 6px;
 
-		&:hover {
-			border-color: #4A9EFF;
-			color: #fff;
-			border: 1px solid var(--accent);
-			color: var(--accent);
-		}
+        &:hover {
+            border-color: #4a9eff;
+            color: #fff;
+            border: 1px solid var(--accent);
+            color: var(--accent);
+        }
 
-		&.active {
-			/*background: #4A9EFF;*/
-			/*border-color: #4A9EFF;*/
-			/*color: #fff;*/
-			background: var(--accent-subtle, rgba(240, 160, 80, 0.08));
-			border: 1px solid var(--accent);
-			color: var(--accent);
+        &.active {
+            /*background: #4A9EFF;*/
+            /*border-color: #4A9EFF;*/
+            /*color: #fff;*/
+            background: var(--accent-subtle, rgba(240, 160, 80, 0.08));
+            border: 1px solid var(--accent);
+            color: var(--accent);
 
-			svg {
-				/*stroke: #fff;*/
-				color: var(--accent);
-			}
-		}
+            svg {
+                /*stroke: #fff;*/
+                color: var(--accent);
+            }
+        }
 
-		svg {
-			width: 18px;
-			height: 18px;
-		}
-	}
+        svg {
+            width: 18px;
+            height: 18px;
+        }
+    }
 }
 
 .tabPanel {
-	width: 100%;
-	padding: 0 12px 12px 18px;
+    width: 100%;
+    padding: 0 12px 12px 18px;
 
-	h3,
-	p {
-		margin: 0px;
-	}
+    h3,
+    p {
+        margin: 0px;
+    }
 
-	.tabPanelHeader {
-		margin-bottom: 12px;
-		/*border-bottom: 1px solid #393A3B;*/
-		padding-bottom: 12px;
-	}
+    .tabPanelHeader {
+        margin-bottom: 12px;
+        /*border-bottom: 1px solid #393A3B;*/
+        padding-bottom: 12px;
+    }
 
-	.tabPanelContent {
-		display: flex;
-		flex-direction: column;
-		gap: 12px;
-	}
+    .tabPanelContent {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
 }
 
 .providerSectionHeader {
-	display: flex;
-	;
-	align-items: center;
-	margin-bottom: 12px;
-	gap: 12px;
+    display: flex;
+    align-items: center;
+    margin-bottom: 12px;
+    gap: 12px;
 
-	button {
-		padding: 8px 16px;
-		background: #1A1B1C;
-		border: 1px solid #393A3B;
-		border-radius: 6px;
-		color: #aaa;
-		font-size: 13px;
-		cursor: pointer;
-		transition: all 0.15s;
-		display: flex;
-		align-items: center;
-		gap: 6px;
+    button {
+        padding: 8px 16px;
+        background: #1a1b1c;
+        border: 1px solid #393a3b;
+        border-radius: 6px;
+        color: #aaa;
+        font-size: 13px;
+        cursor: pointer;
+        transition: all 0.15s;
+        display: flex;
+        align-items: center;
+        gap: 6px;
 
-		&:hover {
-			border-color: #4A9EFF;
-			color: #fff;
-		}
-	}
+        &:hover {
+            border-color: #4a9eff;
+            color: #fff;
+        }
+    }
 }
 
 .providerCard {
-	background-color: #1A1B1C;
-	border: 1px solid #393A3B;
-	border-radius: 6px;
-	padding: 12px;
-	margin-top: 12px;
-	margin-bottom: 12px;
+    background-color: #1a1b1c;
+    border: 1px solid #393a3b;
+    border-radius: 6px;
+    padding: 12px;
+    margin-top: 12px;
+    margin-bottom: 12px;
 
-	.providerCardHeader {
-		display: flex;
-		justify-content: space-between;
-		align-items: center;
-		margin-bottom: 12px;
-		gap: 12px;
+    .providerCardHeader {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 12px;
+        gap: 12px;
 
-		.providerStatus {
-			width: 12px;
-			height: 12px;
-			border-radius: 50%;
+        .providerStatus {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
 
-			&.connecting {
-				background-color: #10b981;
-				animation: blink 1s infinite;
-			}
+            &.connecting {
+                background-color: #10b981;
+                animation: blink 1s infinite;
+            }
 
-			&.connected {
-				background-color: #10b981;
-			}
+            &.connected {
+                background-color: #10b981;
+            }
 
-			&.disconnected {
-				background-color: #ef4444;
-			}
+            &.disconnected {
+                background-color: #ef4444;
+            }
 
-			&.reconnecting {
-				background-color: #facc15;
-				animation: blink-animation 1s infinite;
-			}
+            &.reconnecting {
+                background-color: #facc15;
+                animation: blink-animation 1s infinite;
+            }
 
-			&.error {
-				background-color: #ef4444;
-			}
+            &.error {
+                background-color: #ef4444;
+            }
 
-			@keyframes blink-animation {
+            @keyframes blink-animation {
+                0%,
+                100% {
+                    opacity: 1;
+                }
 
-				0%,
-				100% {
-					opacity: 1;
-				}
+                50% {
+                    opacity: 0.5;
+                }
+            }
+        }
 
-				50% {
-					opacity: 0.5;
-				}
-			}
-		}
+        .providerCardName {
+            margin-right: auto;
+        }
 
-		.providerCardName {
-			margin-right: auto;
-		}
+        button {
+            padding: 8px 16px;
+            background: #1a1b1c;
+            border: 1px solid #393a3b;
+            border-radius: 6px;
+            color: #aaa;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.15s;
 
-		button {
-			padding: 8px 16px;
-			background: #1A1B1C;
-			border: 1px solid #393A3B;
-			border-radius: 6px;
-			color: #aaa;
-			font-size: 13px;
-			cursor: pointer;
-			transition: all 0.15s;
+            &.iconBtnSmall {
+                padding: 6px 10px;
+            }
 
-			&.iconBtnSmall {
-				padding: 6px 10px;
-			}
+            &:hover {
+                border-color: #4a9eff;
+                color: #fff;
+            }
 
-			&:hover {
-				border-color: #4A9EFF;
-				color: #fff;
-			}
+            &.deleteBtn:hover {
+                border-color: #ef4444;
+                color: #ef4444;
+            }
 
-			&.deleteBtn:hover {
-				border-color: #ef4444;
-				color: #ef4444;
-			}
+            &.deleteBtn svg {
+                color: #ef4444;
+            }
+        }
 
-			&.deleteBtn svg {
-				color: #ef4444;
-			}
-		}
+        .headerSelect {
+            padding: 6px 10px;
+            background: #1a1b1c;
+            border: 1px solid #393a3b;
+            border-radius: 6px;
+            color: #aaa;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.15s;
 
-		.headerSelect {
-			padding: 6px 10px;
-			background: #1A1B1C;
-			border: 1px solid #393A3B;
-			border-radius: 6px;
-			color: #aaa;
-			font-size: 13px;
-			cursor: pointer;
-			transition: all 0.15s;
+            &:hover {
+                border-color: #4a9eff;
+                color: #fff;
+            }
+        }
+    }
 
-			&:hover {
-				border-color: #4A9EFF;
-				color: #fff;
-			}
-		}
-	}
+    .providerCardName {
+        font-size: 14px;
+        font-weight: bold;
+    }
 
-	.providerCardName {
-		font-size: 14px;
-		font-weight: bold;
-	}
+    .providerCardContent,
+    .providerFields {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
 
-	.providerCardContent,
-	.providerFields {
-		display: flex;
-		flex-direction: column;
-		gap: 12px;
-	}
+    .urlRow {
+        display: flex;
+        gap: 8px;
+        align-items: center;
 
-	.urlRow {
-		display: flex;
-		gap: 8px;
-		align-items: center;
+        input {
+            flex: 1;
+        }
 
-		input {
-			flex: 1;
-		}
+        .pathInput {
+            flex: 0 0 140px;
+        }
+    }
 
-		.pathInput {
-			flex: 0 0 140px;
-		}
-	}
+    .urlPreview {
+        font-size: 12px;
+        color: #888;
+        padding: 4px 0;
+        font-family: monospace;
+    }
 
-	.urlPreview {
-		font-size: 12px;
-		color: #888;
-		padding: 4px 0;
-		font-family: monospace;
-	}
+    .modelBtn {
+        display: inline-flex;
+        align-items: center;
+        padding: 6px 14px;
+        font-size: 12px;
+        border: 2px solid #393a3b;
+        border-radius: 6px;
+        background: transparent;
+        color: #888;
+        cursor: pointer;
+        transition: all 0.15s;
+        margin: 3px;
 
-	.modelBtn {
-		display: inline-flex;
-		align-items: center;
-		padding: 6px 14px;
-		font-size: 12px;
-		border: 2px solid #393A3B;
-		border-radius: 6px;
-		background: transparent;
-		color: #888;
-		cursor: pointer;
-		transition: all 0.15s;
-		margin: 3px;
+        &:hover {
+            border-color: #666;
+            color: #ccc;
+        }
 
-		&:hover {
-			border-color: #666;
-			color: #ccc;
-		}
-
-		&.modelBtnActive {
-			border-color: #4A9EFF;
-			color: #fff;
-			background: rgba(74, 158, 255, 0.1);
-		}
-	}
+        &.modelBtnActive {
+            border-color: #4a9eff;
+            color: #fff;
+            background: rgba(74, 158, 255, 0.1);
+        }
+    }
 }
 
 .settingSectionDivider {
-	border: none;
-	border-top: 1px solid #393A3B;
-	margin: 16px 0;
+    border: none;
+    border-top: 1px solid #393a3b;
+    margin: 16px 0;
 }
 
 .settingsSectionLabel {
-	font-size: 12px;
-	font-weight: 600;
-	text-transform: uppercase;
-	letter-spacing: 0.5px;
-	color: #d4a853;
-	margin-bottom: 12px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #d4a853;
+    margin-bottom: 12px;
 }
 
 .periodToggle {
-	display: flex;
-	gap: 8px;
-	margin-bottom: 16px;
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
 }
 
 .periodToggle button {
-	padding: 6px 16px;
-	font-size: 13px;
-	border: 1px solid #393A3B;
-	border-radius: 6px;
-	background: transparent;
-	color: #8e8e93;
-	cursor: pointer;
-	transition: all 0.15s;
+    padding: 6px 16px;
+    font-size: 13px;
+    border: 1px solid #393a3b;
+    border-radius: 6px;
+    background: transparent;
+    color: #8e8e93;
+    cursor: pointer;
+    transition: all 0.15s;
 }
 
 .periodToggle button:hover {
-	border-color: #4A9EFF;
-	color: #fff;
+    border-color: #4a9eff;
+    color: #fff;
 }
 
 .periodToggle button.activePeriod {
-	background: #4A9EFF;
-	border-color: #4A9EFF;
-	color: #fff;
+    background: #4a9eff;
+    border-color: #4a9eff;
+    color: #fff;
 }
 
 .overlay {
-	position: fixed;
-	inset: 0;
-	background: rgba(0, 0, 0, 0.6);
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	z-index: 1000;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
 }
 
 .subDialog {
-	background: #1A1B1C;
-	border: 1px solid #393A3B;
-	border-radius: 8px;
-	padding: 1.5rem;
-	min-width: 400px;
-	max-width: 600px;
-	max-height: 80vh;
-	overflow-y: auto;
+    background: #1a1b1c;
+    border: 1px solid #393a3b;
+    border-radius: 8px;
+    padding: 1.5rem;
+    min-width: 400px;
+    max-width: 600px;
+    max-height: 80vh;
+    overflow-y: auto;
 }
 
 .usageCard {
-	background: #1A1B1C;
-	border: 1px solid #393A3B;
-	border-radius: 8px;
-	padding: 16px;
-	margin-bottom: 12px;
+    background: #1a1b1c;
+    border: 1px solid #393a3b;
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 12px;
 }
 
 .usageLabel {
-	font-size: 12px;
-	color: #8e8e93;
-	margin-bottom: 4px;
+    font-size: 12px;
+    color: #8e8e93;
+    margin-bottom: 4px;
 }
 
 .usageValue {
-	font-size: 18px;
-	font-weight: 600;
-	color: #fff;
-	margin-bottom: 8px;
+    font-size: 18px;
+    font-weight: 600;
+    color: #fff;
+    margin-bottom: 8px;
 }
 
 .progressBar {
-	width: 100%;
-	height: 8px;
-	background: #2a2a2e;
-	border-radius: 4px;
-	overflow: hidden;
+    width: 100%;
+    height: 8px;
+    background: #2a2a2e;
+    border-radius: 4px;
+    overflow: hidden;
 }
 
 .progressFill {
-	height: 100%;
-	border-radius: 4px;
-	transition: width 0.3s ease, background-color 0.3s ease;
+    height: 100%;
+    border-radius: 4px;
+    transition:
+        width 0.3s ease,
+        background-color 0.3s ease;
 }
