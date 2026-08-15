@@ -225,6 +225,7 @@ export const seriesTemplates = sqliteTable("series_templates", {
 	name: text("name").notNull(),
 	description: text("description"),
 	baseType: text("base_type").notNull(),
+	globalTemplateId: text("global_template_id").references(() => globalTemplates.id),
 	customFields: text("custom_fields"),
 	createdAt: integer("created_at", { mode: "timestamp" }).notNull().$defaultFn(() => new Date()),
 	updatedAt: integer("updated_at", { mode: "timestamp" }).notNull().$defaultFn(() => new Date()),

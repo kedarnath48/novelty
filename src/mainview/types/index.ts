@@ -64,30 +64,30 @@ export type NewProject = Omit<Project, "createdAt" | "updatedAt">;
 export type SourceType = "book" | "movie" | "tv_show" | "game" | "anime" | "manga" | "web_novel" | "web_series" | "comic" | "mythology" | "history" | "other";
 
 export const PREDEFINED_ASPECTS = [
-  "atmosphere",
-  "characters",
-  "story_arc",
-  "worldbuilding",
-  "themes",
-  "prose_style",
-  "magic_system",
-  "dialogue",
-  "pacing",
-  "aesthetic",
+	"atmosphere",
+	"characters",
+	"story_arc",
+	"worldbuilding",
+	"themes",
+	"prose_style",
+	"magic_system",
+	"dialogue",
+	"pacing",
+	"aesthetic",
 ] as const;
 
 export type InspiredAspect = (typeof PREDEFINED_ASPECTS)[number] | string;
 
 export type Inspiration = {
-  id: string;
-  projectId: string;
-  sourceName: string;
-  sourceType: SourceType;
-  sourceYear: number | null;
-  inspiredAspects: string[];
-  inspiredNotes: string;
-  createdAt: Date;
-  updatedAt: Date;
+	id: string;
+	projectId: string;
+	sourceName: string;
+	sourceType: SourceType;
+	sourceYear: number | null;
+	inspiredAspects: string[];
+	inspiredNotes: string;
+	createdAt: Date;
+	updatedAt: Date;
 };
 
 export type NewInspiration = Omit<Inspiration, "createdAt" | "updatedAt">;
@@ -442,6 +442,7 @@ export type SeriesTemplate = {
 	seriesId: string;
 	name: string;
 	description: string | null;
+	globalTemplateId: string | null;
 	baseType: CompendiumCategory;
 	customFields: FieldDefinition[];
 	createdAt: Date;
@@ -487,8 +488,8 @@ export type FieldVisibility = {
 export type FieldDefinition = {
 	name: string;
 	type: "text" | "number" | "textarea" | "select" | "checkbox" | "date"
-		| "file" | "multiselect" | "entitylink" | "richtext" | "color" | "toggle" | "range"
-		| "portrait" | "images" | "tree";
+	| "file" | "multiselect" | "entitylink" | "richtext" | "color" | "toggle" | "range"
+	| "portrait" | "images" | "tree";
 	label: string;
 	required: boolean;
 	disabled?: boolean;

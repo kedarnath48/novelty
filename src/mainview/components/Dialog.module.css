@@ -19,7 +19,8 @@
 .dialog::backdrop {
 	background: rgba(0, 0, 0, 0.7);
 }
-.dialogWrapper{
+
+.dialogWrapper {
 	width: 100%;
 	height: 100%;
 }
@@ -41,6 +42,7 @@
 		margin: 0;
 		text-transform: uppercase;
 		font-size: 18px;
+		color: var(--text-primary);
 	}
 }
 
@@ -97,7 +99,8 @@
 			font-size: 14px;
 		}
 
-		input, select {
+		input,
+		select {
 			width: 100%;
 			padding: 10px 12px;
 			background: #1A1B1C;
@@ -319,16 +322,16 @@
 	}
 }
 
-.toggle input:checked + .toggleSlider {
+.toggle input:checked+.toggleSlider {
 	background-color: #4A9EFF;
 }
 
-.toggle input:checked + .toggleSlider:before {
+.toggle input:checked+.toggleSlider:before {
 	transform: translateX(24px);
 	background-color: #fff;
 }
 
-.toggle input:disabled + .toggleSlider {
+.toggle input:disabled+.toggleSlider {
 	opacity: 0.5;
 	cursor: not-allowed;
 }

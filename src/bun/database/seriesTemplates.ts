@@ -32,8 +32,8 @@ export type FieldVisibility = {
 export type FieldDefinition = {
 	name: string;
 	type: "text" | "number" | "textarea" | "select" | "checkbox" | "date"
-		| "file" | "multiselect" | "entitylink" | "richtext" | "color" | "toggle" | "range"
-		| "portrait" | "images" | "tree";
+	| "file" | "multiselect" | "entitylink" | "richtext" | "color" | "toggle" | "range"
+	| "portrait" | "images" | "tree";
 	label: string;
 	required: boolean;
 	disabled?: boolean;
@@ -53,6 +53,7 @@ export type SeriesTemplate = {
 	name: string;
 	description: string | null;
 	baseType: CompendiumCategory;
+	globalTemplateId: string | null;
 	customFields: FieldDefinition[];
 	createdAt: Date;
 	updatedAt: Date;
@@ -67,6 +68,7 @@ function parseTemplate(row: typeof seriesTemplates.$inferSelect): SeriesTemplate
 		name: row.name,
 		description: row.description,
 		baseType: row.baseType as CompendiumCategory,
+		globalTemplateId: row.globalTemplateId || null,
 		customFields: normalizeTreeFields(row.customFields ? JSON.parse(row.customFields) : []),
 		createdAt: row.createdAt,
 		updatedAt: row.updatedAt,
@@ -118,9 +120,14 @@ export async function updateSeriesTemplate(
 	if (data.description !== undefined) updateData.description = data.description;
 	if (data.baseType !== undefined) updateData.baseType = data.baseType;
 	if (data.customFields !== undefined) updateData.customFields = JSON.stringify(data.customFields);
+	if (data.globalTemplateId !== undefined) updateData.globalTemplateId = data.globalTemplateId;
 
 	await db.update(seriesTemplates).set(updateData).where(eq(seriesTemplates.id, id));
-	return getSeriesTemplateById(id);
+	const newData = getSeriesTemplateById(id);
+	newData.then((data) => {
+		console.log("[new data]", data)
+	})
+	return newData
 }
 
 export async function deleteSeriesTemplate(id: string): Promise<void> {

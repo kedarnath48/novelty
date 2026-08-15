@@ -355,6 +355,13 @@ export default function TemplateManagerTab({
 			},
 		});
 	}
+	function handleCreateTemplate(type: "global" | "series", cat: CompendiumCategory) {
+		if (type === "global") {
+			openGlobalCreate(cat);
+		} else {
+			openSeriesCreate(cat);
+		}
+	}
 
 	function cancelGlobalEditor(cat: CompendiumCategory) {
 		updateDraft(cat, { globalEditor: null });
@@ -449,22 +456,26 @@ export default function TemplateManagerTab({
 		const d = drafts[cat];
 		const se = d?.seriesEditor;
 		if (!se || !seriesId) return false;
-		const inheritedNames = getInheritedNames(se.refGlobalId, globalTemplates);
+		/*const inheritedNames = getInheritedNames(se.refGlobalId, globalTemplates);*/
 		const savable = se.fields
 			.filter((f) => {
-				if (!inheritedNames.has(f.name)) return true;
-				if (f.disabled) return true;
+				/*if (!inheritedNames.has(f.name)) return true;*/
+				if (!f.disabled) return true;
 				return false;
 			})
 			.filter((f) => f.name.trim() && f.label.trim());
+
 		if (se.id) {
+			const data = {
+				name: se.name.trim(),
+				description: se.description.trim() || null,
+				customFields: savable,
+				globalTemplateId: se.refGlobalId
+			}
+			console.log("[data to save]", se.refGlobalId, data)
 			await rpc.request["db:update-series-template"]({
 				id: se.id,
-				data: {
-					name: se.name.trim(),
-					description: se.description.trim() || null,
-					customFields: savable,
-				},
+				data
 			});
 			return true;
 		}
@@ -474,9 +485,11 @@ export default function TemplateManagerTab({
 			seriesId,
 			name: se.name.trim(),
 			description: se.description.trim() || null,
+			globalTemplateId: se.refGlobalId,
 			baseType: cat,
 			customFields: savable,
 		};
+		console.log("[new series temp data]", data)
 		await rpc.request["db:create-series-template"](data);
 		return true;
 	}
@@ -502,6 +515,7 @@ export default function TemplateManagerTab({
 	}
 
 	async function saveSeriesEditor(cat: CompendiumCategory) {
+		console.log("[saving]", cat)
 		try {
 			const saved = await persistSeriesEditor(cat);
 			if (saved) await refreshSeries(cat);
@@ -773,14 +787,17 @@ export default function TemplateManagerTab({
 				</div>
 				<div style={{ marginBottom: "0.5rem" }}>
 					<label>Reference Global Template (optional, for inherited fields)</label>
+					{/*Need Work 1 */}
 					<select
-						value={se.refGlobalId || ""}
+						value={se.refGlobalId || seriesTemplates?.[0]?.globalTemplateId || ""}
 						onChange={(e) => handleSeriesEditorRefGlobal(cat, e.target.value)}
 						style={{ width: "100%" }}
 					>
 						<option value="">— None —</option>
 						{globalsForCat.map((g) => (
-							<option key={g.id} value={g.id}>{g.name}</option>
+							<option key={g.id} value={g.id}>
+								{g.name}
+							</option>
 						))}
 					</select>
 				</div>
@@ -973,24 +990,33 @@ export default function TemplateManagerTab({
 					{(() => {
 						const d = drafts[activeCat];
 						if (!d) return null;
+						const seriesForCat = seriesTemplates.filter((s) => s.baseType === activeCat);
+						/*console.log("[series temp]", seriesTemplates, activeCat)*/
+						console.log("[series temp]", seriesTemplates, activeCat, seriesTemplates[0].globalTemplateId)
 						return (
 							<div style={{ display: "flex", flexDirection: "column", gap: "1rem", padding: "0.25rem 0.25rem 0.5rem" }}>
-								<CollapsibleSection
-									title="Global Template"
-									collapsed={isSectionCollapsed(activeCat, "global")}
-									onToggle={() => toggleSection(activeCat, "global")}
-									summary={globalSummary(d)}
-								>
-									{renderGlobalSection(activeCat, d)}
-								</CollapsibleSection>
-								<CollapsibleSection
-									title="Series Template"
-									collapsed={isSectionCollapsed(activeCat, "series") && !d.seriesEditor}
-									onToggle={() => toggleSection(activeCat, "series")}
-									summary={seriesSummary(d)}
-								>
-									{renderSeriesSection(activeCat, d)}
-								</CollapsibleSection>
+								{!seriesTemplates[0].globalTemplateId ? (
+									<CollapsibleSection
+										title="Global Template"
+										collapsed={isSectionCollapsed(activeCat, "global")}
+										onToggle={() => toggleSection(activeCat, "global")}
+										summary={globalSummary(d)}
+									>
+										{renderGlobalSection(activeCat, d)}
+									</CollapsibleSection>
+
+								) : ("")}
+								{seriesForCat.length !== 0 ? (
+									<CollapsibleSection
+										title="Series Template"
+										collapsed={isSectionCollapsed(activeCat, "series") && !d.seriesEditor}
+										onToggle={() => toggleSection(activeCat, "series")}
+										summary={seriesSummary(d)}
+									>
+										{renderSeriesSection(activeCat, d)}
+									</CollapsibleSection>
+
+								) : ("")}
 								<CollapsibleSection
 									title="Project Fields"
 									collapsed={isSectionCollapsed(activeCat, "project")}

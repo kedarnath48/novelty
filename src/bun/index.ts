@@ -495,6 +495,7 @@ const mainRPC = defineElectrobunRPC<SelectorSchema>("bun", {
 				return await seriesTemplatesDB.createSeriesTemplate(data);
 			},
 			"db:update-series-template": async ({ id, data }: { id: string; data: Partial<seriesTemplatesDB.NewSeriesTemplate> }) => {
+				console.log("[bun data]", data)
 				return await seriesTemplatesDB.updateSeriesTemplate(id, data);
 			},
 			"db:delete-series-template": async (id: string) => {

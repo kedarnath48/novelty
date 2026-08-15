@@ -5,6 +5,7 @@
     gap: 12px;
     padding: 4px 12px;
     background: var(--titlebar-bg, #222324);
+    background-color: var(--app-bg);
     color: var(--text-primary, #fff);
     user-select: none;
     -webkit-app-region: drag;
