@@ -26,9 +26,7 @@ import type {
 import { PREDEFINED_ASPECTS } from '../types/index';
 import { PROJECT_SCOPE_TARGETS } from '../types/index';
 import {
-    IconBook2,
     IconCheck,
-    IconFileText,
     IconPhoto,
     IconPlus,
     IconTrash,
@@ -39,6 +37,11 @@ import {
 import styles from './projectsDialog.module.css';
 import localStyles from './projectManagerDialog.module.css';
 import TemplateManagerTab from '../components/TemplateManagerTab';
+import IconTextSideBar from '../ui/layout/IconTextSideBar';
+import {
+    PROJECT_DIALOG_TABS,
+    ProjectDialogActiveTab,
+} from '../constants/layout_tabs';
 
 interface ProjectManagerProps {
     open: boolean;
@@ -46,7 +49,7 @@ interface ProjectManagerProps {
     project: Project | null;
     onProjectUpdated?: () => void;
     onTemplatesChanged?: () => void;
-    initialTab?: string;
+    initialTab?: ProjectDialogActiveTab;
     initialCategory?: CompendiumCategory;
 }
 
@@ -131,7 +134,9 @@ export default function ProjectManager({
     initialCategory,
 }: ProjectManagerProps) {
     const rpc = useRPC();
-    const [activeTab, setActiveTab] = useState(initialTab ?? 'general');
+    const [activeTab, setActiveTab] = useState<ProjectDialogActiveTab>(
+        initialTab ?? 'general'
+    );
 
     const [name, setName] = useState('');
     const [description, setDescription] = useState('');
@@ -644,39 +649,11 @@ export default function ProjectManager({
                 className={`${styles.dialogContent} ${localStyles.dialogContent}`}
             >
                 <div className={`${styles.sideBar} ${localStyles.sideBar}`}>
-                    <button
-                        className={activeTab === 'general' ? styles.active : ''}
-                        onClick={() => setActiveTab('general')}
-                    >
-                        <IconBook2 stroke={2} />
-                        General
-                    </button>
-                    <button
-                        className={
-                            activeTab === 'templates' ? styles.active : ''
-                        }
-                        onClick={() => setActiveTab('templates')}
-                    >
-                        <IconFileText stroke={2} />
-                        Templates
-                    </button>
-                    <button
-                        className={activeTab === 'cover' ? styles.active : ''}
-                        onClick={() => {
-                            setActiveTab('cover');
-                            loadProjectCovers();
-                        }}
-                    >
-                        <IconPhoto stroke={2} />
-                        Covers
-                    </button>
-                    <button
-                        className={activeTab === 'danger' ? styles.active : ''}
-                        onClick={() => setActiveTab('danger')}
-                    >
-                        <IconTrash stroke={2} />
-                        Danger Zone
-                    </button>
+                    <IconTextSideBar
+                        activeTab={activeTab}
+                        setActiveTab={setActiveTab}
+                        tabsArray={PROJECT_DIALOG_TABS}
+                    />
                 </div>
 
                 <div className={`${styles.tabPanel} ${localStyles.tabPanel}`}>
@@ -1768,7 +1745,7 @@ export default function ProjectManager({
                         </div>
                     )}
 
-                    {activeTab === 'cover' && (
+                    {activeTab === 'covers' && (
                         <div className={localStyles.tabContent}>
                             <div className={styles.tabPanelHeader}>
                                 <h3>Covers</h3>
@@ -1893,7 +1870,7 @@ export default function ProjectManager({
                         </div>
                     )}
 
-                    {activeTab === 'danger' && (
+                    {activeTab === 'danger zone' && (
                         <div className={localStyles.tabContent}>
                             <div className={styles.tabPanelHeader}>
                                 <h3>Danger Zone</h3>

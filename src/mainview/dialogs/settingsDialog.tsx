@@ -3,26 +3,29 @@ import Dialog from '../components/Dialog';
 import { useSettings } from '../contexts/SettingsContext';
 import { getRPC } from '../contexts/RPCContext';
 import {
+    SETTINGS_DIALOG_TABS,
+    SETTINGS_DIALOG_TABS_ICONS,
+    SettingsDialogActiveTab,
+} from '../constants/layout_tabs';
+import {
     IconBolt,
     IconExternalLink,
     IconEye,
     IconEyeOff,
     IconFolder,
     IconKey,
-    IconSparkles2,
     IconTrash,
-    IconChartBar,
     IconEdit,
     IconCheck,
     IconX,
-    IconDatabase,
 } from '@tabler/icons-react';
 import type { ProviderType, ProviderConfig } from '../types/index';
 import { getLMStudioModels } from '../services/ai';
 import styles from './projectsDialog.module.css';
+import IconTextSideBar from '../ui/layout/IconTextSideBar';
 
 interface SettingsRoute {
-    tab: string;
+    tab: SettingsDialogActiveTab;
     section?: string;
     focus?: string;
 }
@@ -2313,7 +2316,9 @@ export default function SettingsDialog({
     defaultRoute,
 }: SettingsDialogProps) {
     const { loading } = useSettings();
-    const [activeTab, setActiveTab] = useState(defaultRoute?.tab ?? 'general');
+    const [activeTab, setActiveTab] = useState<SettingsDialogActiveTab>(
+        defaultRoute?.tab ?? 'general'
+    );
 
     useEffect(() => {
         if (!open || !defaultRoute) return;
@@ -2341,10 +2346,6 @@ export default function SettingsDialog({
         return () => clearTimeout(timer);
     }, [open, defaultRoute]);
 
-    function handleBtnClick(tab: string) {
-        setActiveTab(tab);
-    }
-
     if (loading) {
         return (
             <Dialog open={open} onClose={onClose} title="Settings" large>
@@ -2352,66 +2353,6 @@ export default function SettingsDialog({
             </Dialog>
         );
     }
-
-    const TABS = [
-        {
-            id: 'general',
-            label: 'General',
-            description: 'General settings',
-            component: GeneralTab,
-        },
-        {
-            id: 'appearance',
-            label: 'Appearance',
-            description: 'Appearance settings',
-            component: AppearanceTab,
-        },
-        {
-            id: 'projects',
-            label: 'Projects',
-            description: 'Manage projects',
-            component: ProjectsTab,
-        },
-        {
-            id: 'asset library',
-            label: 'Asset Library',
-            description: 'Manage assets',
-            component: AssetLibraryTab,
-        },
-        {
-            id: 'providers',
-            icon: <IconSparkles2 stroke={2} />,
-            label: 'Providers',
-            description: 'Manage providers',
-            component: ProvidersTab,
-        },
-        {
-            id: 'embeddings',
-            icon: <IconDatabase stroke={2} />,
-            label: 'Context Engine',
-            description: 'Configure RAG and embeddings',
-            component: EmbeddingsTab,
-        },
-        {
-            id: 'quota',
-            icon: <IconChartBar stroke={2} />,
-            label: 'Quota & Usage',
-            description: 'Monitor and control API usage',
-            component: QuotaTab,
-        },
-        {
-            id: 'storage',
-            label: 'Storage',
-            description: 'Manage storage',
-            component: StorageTab,
-        },
-        {
-            id: 'about',
-            label: 'About',
-            description: 'About this app',
-            component: AboutTab,
-        },
-    ];
 
     return (
         <Dialog
@@ -2428,39 +2369,49 @@ export default function SettingsDialog({
 							<h2>Settings</h2>
 						</div>
 					*/}
-                    {TABS.map((tab) => (
-                        <button
-                            onClick={() => handleBtnClick(tab.id)}
-                            className={
-                                activeTab === tab.id ? styles.active : ''
-                            }
-                            key={tab.id}
-                        >
-                            {tab.icon}
-                            {tab.label}
-                        </button>
-                    ))}
+                    <IconTextSideBar
+                        activeTab={activeTab}
+                        setActiveTab={setActiveTab}
+                        tabsArray={SETTINGS_DIALOG_TABS}
+                        iconsArray={SETTINGS_DIALOG_TABS_ICONS}
+                    />
                     <div className={styles.sideBarContent}></div>
                 </div>
                 <div className={styles.tabPanel}>
                     <div className={styles.tabPanelHeader}>
-                        <h3>
-                            {TABS.find((tab) => tab.id === activeTab)?.label}
+                        <input
+                            type="search"
+                            name=""
+                            placeholder="Find in Settings"
+                            id=""
+                            style={{
+                                width: '100%',
+                                marginBottom: '12px',
+                            }}
+                        />
+                        <h3 style={{ textTransform: 'capitalize' }}>
+                            {
+                                SETTINGS_DIALOG_TABS.find(
+                                    (tab) => tab.label === activeTab
+                                )?.label
+                            }
                         </h3>
                         <p>
                             {
-                                TABS.find((tab) => tab.id === activeTab)
-                                    ?.description
+                                SETTINGS_DIALOG_TABS.find(
+                                    (tab) => tab.label === activeTab
+                                )?.description
                             }
                         </p>
                     </div>
+
                     {activeTab === 'general' && <GeneralTab />}
                     {activeTab === 'appearance' && <AppearanceTab />}
                     {activeTab === 'projects' && <ProjectsTab />}
                     {activeTab === 'asset library' && <AssetLibraryTab />}
                     {activeTab === 'providers' && <ProvidersTab />}
                     {activeTab === 'embeddings' && <EmbeddingsTab />}
-                    {activeTab === 'quota' && <QuotaTab />}
+                    {activeTab === 'quota & usage' && <QuotaTab />}
                     {activeTab === 'storage' && <StorageTab />}
                     {activeTab === 'about' && <AboutTab />}
                 </div>
