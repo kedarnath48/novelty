@@ -450,6 +450,7 @@ export default function TemplateManagerTab({
             },
         });
     }
+    /*
     function handleCreateTemplate(
         type: 'global' | 'series',
         cat: CompendiumCategory
@@ -460,6 +461,7 @@ export default function TemplateManagerTab({
             openSeriesCreate(cat);
         }
     }
+    */
 
     function cancelGlobalEditor(cat: CompendiumCategory) {
         updateDraft(cat, { globalEditor: null });

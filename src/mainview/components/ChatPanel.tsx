@@ -60,6 +60,7 @@ import FloatingSuggestions from './FloatingSuggestions';
 import type { SuggestionGroup } from './FloatingSuggestions';
 import ContextChips from './ContextChips';
 import SystemPromptToggle from './SystemPromptToggle';
+import { SettingsDialogActiveTab } from '../constants/layout_tabs';
 
 function smartTruncate(text: string, maxLen = 50): string {
     const cleaned = text
@@ -144,7 +145,8 @@ export default function ChatPanel({
     >('chat');
     const [showSettings, setShowSettings] = useState(false);
     const [settingsRoute, setSettingsRoute] = useState<
-        { tab: string; section?: string; focus?: string } | undefined
+        | { tab: SettingsDialogActiveTab; section?: string; focus?: string }
+        | undefined
     >(undefined);
     const [selectedModel, setSelectedModel] = useState('');
 

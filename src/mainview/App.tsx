@@ -65,7 +65,7 @@ import type { SaveState } from './ui/statusBar';
 import { useSettings } from './contexts/SettingsContext';
 import LeftPanel from './ui/workspaces/editor/LeftPanel';
 import RightPanel from './ui/workspaces/editor/RightPanel';
-import { ActiveTab } from './ui/layout/IconTextSideBar';
+import { type ProjectDialogActiveTab } from './constants/layout_tabs';
 
 /*
 const categoryConfig: Record<
@@ -188,7 +188,7 @@ function App() {
     const [showAnalysis, setShowAnalysis] = useState(false);
     const [skeletonMode, setSkeletonMode] = useState(false);
     const [projectManagerInitial, setProjectManagerInitial] = useState<{
-        tab: ActiveTab;
+        tab: ProjectDialogActiveTab;
         category?: CompendiumCategory;
     }>({ tab: 'general' });
     const [templates, setTemplates] = useState<

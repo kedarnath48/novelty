@@ -407,6 +407,7 @@ export default function LeftPanel({
                                                                             <span className="item-index">
                                                                                 {index +
                                                                                     1}
+
                                                                                 .
                                                                             </span>
                                                                         )}

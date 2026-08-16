@@ -13,15 +13,15 @@ import {
     IconStorageTab,
 } from '../theme/icons';
 
-
 // ------ <PROJECT_DIALOG_TABS> ----- //
 export const PROJECT_DIALOG_TABS = [
     { label: 'general', description: '' },
     { label: 'templates', description: '' },
     { label: 'covers', description: '' },
-    { label: 'danger zone', description: '' }
+    { label: 'danger zone', description: '' },
 ] as const;
-export type ProjectDialogActiveTab = (typeof PROJECT_DIALOG_TABS)[number]['label'];
+export type ProjectDialogActiveTab =
+    (typeof PROJECT_DIALOG_TABS)[number]['label'];
 
 export const PROJECT_DIALOG_TABS_ICONS = [
     IconGeneralTab,
@@ -29,7 +29,6 @@ export const PROJECT_DIALOG_TABS_ICONS = [
     IconCoversTab,
     IconDangerZoneTab,
 ] as const;
-
 
 // ------ <SETTINGS_DIALOG_TABS> ----- //
 export const SETTINGS_DIALOG_TABS = [
@@ -79,7 +78,8 @@ export const SETTINGS_DIALOG_TABS = [
         //component: AboutTab,
     },
 ] as const;
-export type SettingsDialogActiveTab = (typeof SETTINGS_DIALOG_TABS)[number]['label'];
+export type SettingsDialogActiveTab =
+    (typeof SETTINGS_DIALOG_TABS)[number]['label'];
 
 export const SETTINGS_DIALOG_TABS_ICONS = [
     IconGeneralTab,
