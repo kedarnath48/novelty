@@ -23,6 +23,7 @@ import type { ProviderType, ProviderConfig } from '../types/index';
 import { getLMStudioModels } from '../services/ai';
 import styles from './projectsDialog.module.css';
 import IconTextSideBar from '../ui/layout/IconTextSideBar';
+import SettingsCard from '../components/cards/SettingsCard';
 
 interface SettingsRoute {
     tab: SettingsDialogActiveTab;
@@ -90,175 +91,426 @@ function GeneralTab() {
 
     return (
         <div className={styles.tabContent}>
-            <div className={styles.settingRow}>
-                <span>Enable Auto Save</span>
-                <Toggle
-                    checked={settings.general.enableAutoSave}
-                    onChange={(v) => updateGeneral('enableAutoSave', v)}
-                    disabled={isLocked}
-                />
-            </div>
-            <div className={styles.settingRow}>
-                <span>Auto Save Interval (minutes)</span>
-                <NumberInput
-                    value={settings.general.autoSaveInterval}
-                    onChange={(v) => updateGeneral('autoSaveInterval', v)}
-                    min={1}
-                    max={60}
-                    disabled={isLocked || !settings.general.enableAutoSave}
-                />
-            </div>
-            <div className={styles.settingRow}>
-                <span>Enable Auto Backup</span>
-                <Toggle
-                    checked={settings.general.enableAutoBackup}
-                    onChange={(v) => updateGeneral('enableAutoBackup', v)}
-                    disabled={isLocked}
-                />
-            </div>
-            <div className={styles.settingRow}>
-                <span>Auto Backup Interval (hours)</span>
-                <NumberInput
-                    value={settings.general.autoBackupInterval}
-                    onChange={(v) => updateGeneral('autoBackupInterval', v)}
-                    min={1}
-                    max={168}
-                    disabled={isLocked || !settings.general.enableAutoBackup}
-                />
-            </div>
-            <div className={styles.settingRow}>
-                <span>Enable Auto Sync</span>
-                <Toggle
-                    checked={settings.general.enableAutoSync}
-                    onChange={(v) => updateGeneral('enableAutoSync', v)}
-                    disabled={isLocked}
-                />
-            </div>
-            <div className={styles.settingRow}>
-                <span>Auto Sync Interval (minutes)</span>
-                <NumberInput
-                    value={settings.general.autoSyncInterval}
-                    onChange={(v) => updateGeneral('autoSyncInterval', v)}
-                    min={1}
-                    max={60}
-                    disabled={isLocked || !settings.general.enableAutoSync}
-                />
-            </div>
-            <div className={styles.settingRow}>
-                <span>Enable Auto Update</span>
-                <Toggle
-                    checked={settings.general.enableAutoUpdate}
-                    onChange={(v) => updateGeneral('enableAutoUpdate', v)}
-                    disabled={isLocked}
-                />
-            </div>
-            <div className={styles.settingRow}>
-                <span>Auto Update Interval (hours)</span>
-                <NumberInput
-                    value={settings.general.autoUpdateInterval}
-                    onChange={(v) => updateGeneral('autoUpdateInterval', v)}
-                    min={1}
-                    max={168}
-                    disabled={isLocked || !settings.general.enableAutoUpdate}
-                />
-            </div>
+            <SettingsCard>
+                <>
+                    <div className={styles.settingRow}>
+                        <span>Enable Auto Save</span>
+                        <Toggle
+                            checked={settings.general.enableAutoSave}
+                            onChange={(v) => updateGeneral('enableAutoSave', v)}
+                            disabled={isLocked}
+                        />
+                    </div>
+                    <div className={styles.settingRow}>
+                        <span>Auto Save Interval (minutes)</span>
+                        <NumberInput
+                            value={settings.general.autoSaveInterval}
+                            onChange={(v) =>
+                                updateGeneral('autoSaveInterval', v)
+                            }
+                            min={1}
+                            max={60}
+                            disabled={
+                                isLocked || !settings.general.enableAutoSave
+                            }
+                        />
+                    </div>
+                    <div className={styles.settingRow}>
+                        <span>Enable Auto Backup</span>
+                        <Toggle
+                            checked={settings.general.enableAutoBackup}
+                            onChange={(v) =>
+                                updateGeneral('enableAutoBackup', v)
+                            }
+                            disabled={isLocked}
+                        />
+                    </div>
+                    <div className={styles.settingRow}>
+                        <span>Auto Backup Interval (hours)</span>
+                        <NumberInput
+                            value={settings.general.autoBackupInterval}
+                            onChange={(v) =>
+                                updateGeneral('autoBackupInterval', v)
+                            }
+                            min={1}
+                            max={168}
+                            disabled={
+                                isLocked || !settings.general.enableAutoBackup
+                            }
+                        />
+                    </div>
+                    <div className={styles.settingRow}>
+                        <span>Enable Auto Sync</span>
+                        <Toggle
+                            checked={settings.general.enableAutoSync}
+                            onChange={(v) => updateGeneral('enableAutoSync', v)}
+                            disabled={isLocked}
+                        />
+                    </div>
+                    <div className={styles.settingRow}>
+                        <span>Auto Sync Interval (minutes)</span>
+                        <NumberInput
+                            value={settings.general.autoSyncInterval}
+                            onChange={(v) =>
+                                updateGeneral('autoSyncInterval', v)
+                            }
+                            min={1}
+                            max={60}
+                            disabled={
+                                isLocked || !settings.general.enableAutoSync
+                            }
+                        />
+                    </div>
+                    <div className={styles.settingRow}>
+                        <span>Enable Auto Update</span>
+                        <Toggle
+                            checked={settings.general.enableAutoUpdate}
+                            onChange={(v) =>
+                                updateGeneral('enableAutoUpdate', v)
+                            }
+                            disabled={isLocked}
+                        />
+                    </div>
+                    <div className={styles.settingRow}>
+                        <span>Auto Update Interval (hours)</span>
+                        <NumberInput
+                            value={settings.general.autoUpdateInterval}
+                            onChange={(v) =>
+                                updateGeneral('autoUpdateInterval', v)
+                            }
+                            min={1}
+                            max={168}
+                            disabled={
+                                isLocked || !settings.general.enableAutoUpdate
+                            }
+                        />
+                    </div>
+                </>
+            </SettingsCard>
             <div className={styles.settingSectionDivider} />
-            <div className={styles.settingsSectionLabel}>Chat</div>
 
-            <div className={styles.settingRow}>
-                <span>Chat View</span>
-                <select
-                    value={settings.general.chatViewMode}
-                    onChange={(e) =>
-                        updateGeneral(
-                            'chatViewMode',
-                            e.target.value as 'full' | 'truncate' | 'accordion'
-                        )
-                    }
-                    disabled={isLocked}
-                    className={styles.select}
-                >
-                    <option value="full">Full</option>
-                    <option value="truncate">Truncate</option>
-                    <option value="accordion">Accordion</option>
-                </select>
-            </div>
-            <div className={styles.settingRow}>
-                <span>Ask me before deleting sessions</span>
-                <Toggle
-                    checked={settings.general.confirmBeforeDelete}
-                    onChange={(v) => updateGeneral('confirmBeforeDelete', v)}
-                    disabled={isLocked}
-                />
-            </div>
-            <div className={styles.settingRow}>
-                <span>Auto-naming method</span>
-                <select
-                    value={settings.general.autoNamingMethod}
-                    onChange={(e) =>
-                        updateGeneral(
-                            'autoNamingMethod',
-                            e.target.value as
-                                'ai-summarizer' | 'smart-truncation'
-                        )
-                    }
-                    disabled={isLocked}
-                    className={styles.select}
-                >
-                    <option value="ai-summarizer">AI Summarizer (Smart)</option>
-                    <option value="smart-truncation">
-                        Smart Truncation (Local)
-                    </option>
-                </select>
-            </div>
-            <div className={styles.settingsSectionDivider} />
-            <div className={styles.settingsSectionLabel}>AI Context</div>
+            <SettingsCard>
+                <>
+                    <div className={styles.settingsSectionLabel}>Chat</div>
 
-            <div className={styles.settingRow}>
-                <span>Max Context Tokens</span>
-                <NumberInput
-                    value={settings.general.maxContextTokens}
-                    onChange={(v) => updateGeneral('maxContextTokens', v)}
-                    min={1024}
-                    max={32000}
-                    disabled={isLocked}
-                />
-            </div>
-            <div className={styles.settingRow}>
-                <span>Chapter Context Mode</span>
-                <select
-                    value={settings.general.chapterContextMode}
-                    onChange={(e) =>
-                        updateGeneral(
-                            'chapterContextMode',
-                            e.target.value as 'brief' | 'full'
-                        )
-                    }
-                    disabled={isLocked}
-                    className={styles.select}
-                >
-                    <option value="brief">Brief (first ~800 chars)</option>
-                    <option value="full">Full Chapter</option>
-                </select>
-            </div>
-            <div className={styles.settingRow}>
-                <span>Theme</span>
-                <select
-                    value={settings.general.theme}
-                    onChange={(e) =>
-                        updateGeneral(
-                            'theme',
-                            e.target.value as 'light' | 'dark' | 'system'
-                        )
-                    }
-                    disabled={isLocked}
-                    className={styles.select}
-                >
-                    <option value="system">System</option>
-                    <option value="light">Light</option>
-                    <option value="dark">Dark</option>
-                </select>
-            </div>
+                    <div className={styles.settingRow}>
+                        <span>Chat View</span>
+                        <select
+                            value={settings.general.chatViewMode}
+                            onChange={(e) =>
+                                updateGeneral(
+                                    'chatViewMode',
+                                    e.target.value as
+                                        'full' | 'truncate' | 'accordion'
+                                )
+                            }
+                            disabled={isLocked}
+                            className={styles.select}
+                        >
+                            <option value="full">Full</option>
+                            <option value="truncate">Truncate</option>
+                            <option value="accordion">Accordion</option>
+                        </select>
+                    </div>
+                    <div className={styles.settingRow}>
+                        <span>Ask me before deleting sessions</span>
+                        <Toggle
+                            checked={settings.general.confirmBeforeDelete}
+                            onChange={(v) =>
+                                updateGeneral('confirmBeforeDelete', v)
+                            }
+                            disabled={isLocked}
+                        />
+                    </div>
+                    <div className={styles.settingRow}>
+                        <span>Auto-naming method</span>
+                        <select
+                            value={settings.general.autoNamingMethod}
+                            onChange={(e) =>
+                                updateGeneral(
+                                    'autoNamingMethod',
+                                    e.target.value as
+                                        'ai-summarizer' | 'smart-truncation'
+                                )
+                            }
+                            disabled={isLocked}
+                            className={styles.select}
+                        >
+                            <option value="ai-summarizer">
+                                AI Summarizer (Smart)
+                            </option>
+                            <option value="smart-truncation">
+                                Smart Truncation (Local)
+                            </option>
+                        </select>
+                    </div>
+                </>
+            </SettingsCard>
+            <div className={styles.settingSectionDivider} />
+
+            <SettingsCard>
+                <>
+                    <div className={styles.settingsSectionLabel}>
+                        AI Context
+                    </div>
+
+                    <div className={styles.settingRow}>
+                        <span>Max Context Tokens</span>
+                        <NumberInput
+                            value={settings.general.maxContextTokens}
+                            onChange={(v) =>
+                                updateGeneral('maxContextTokens', v)
+                            }
+                            min={1024}
+                            max={32000}
+                            disabled={isLocked}
+                        />
+                    </div>
+                    <div className={styles.settingRow}>
+                        <span>Chapter Context Mode</span>
+                        <select
+                            value={settings.general.chapterContextMode}
+                            onChange={(e) =>
+                                updateGeneral(
+                                    'chapterContextMode',
+                                    e.target.value as 'brief' | 'full'
+                                )
+                            }
+                            disabled={isLocked}
+                            className={styles.select}
+                        >
+                            <option value="brief">
+                                Brief (first ~800 chars)
+                            </option>
+                            <option value="full">Full Chapter</option>
+                        </select>
+                    </div>
+                    <div className={styles.settingRow}>
+                        <span>Theme</span>
+                        <select
+                            value={settings.general.theme}
+                            onChange={(e) =>
+                                updateGeneral(
+                                    'theme',
+                                    e.target.value as
+                                        'light' | 'dark' | 'system'
+                                )
+                            }
+                            disabled={isLocked}
+                            className={styles.select}
+                        >
+                            <option value="system">System</option>
+                            <option value="light">Light</option>
+                            <option value="dark">Dark</option>
+                        </select>
+                    </div>
+                </>
+            </SettingsCard>
+        </div>
+    );
+}
+
+function AppearanceTab() {
+    const { settings, updateAppearance, isLocked } = useSettings();
+    if (!settings) return null;
+    const c = settings.appearance.sidebarConstraints ?? {
+        enableCustomWidthCap: false,
+        maxLeftWidth: 400,
+        maxRightWidth: 700,
+        leftWidth: 280,
+        rightWidth: 550,
+        enableAutoExpandLeft: false,
+        enableAutoSwitchPanel: true,
+    };
+
+    return (
+        <div className={styles.tabContent}>
+            <SettingsCard>
+                <>
+                    <div className={styles.settingsSectionLabel}>
+                        Sidebar Constraints
+                    </div>
+                    <div className={styles.settingRow}>
+                        <span>Enable Custom Width Cap</span>
+                        <Toggle
+                            checked={c.enableCustomWidthCap}
+                            onChange={(v) =>
+                                updateAppearance('sidebarConstraints', {
+                                    ...c,
+                                    enableCustomWidthCap: v,
+                                })
+                            }
+                            disabled={isLocked}
+                        />
+                    </div>
+                    {c.enableCustomWidthCap && (
+                        <>
+                            <div className={styles.settingRow}>
+                                <span>Max Left Sidebar Width (px)</span>
+                                <NumberInput
+                                    value={c.maxLeftWidth}
+                                    onChange={(v) =>
+                                        updateAppearance('sidebarConstraints', {
+                                            ...c,
+                                            maxLeftWidth: v || 400,
+                                        })
+                                    }
+                                    min={220}
+                                    max={1200}
+                                    disabled={isLocked}
+                                />
+                            </div>
+                            <div className={styles.settingRow}>
+                                <span>Max Right Sidebar Width (px)</span>
+                                <NumberInput
+                                    value={c.maxRightWidth}
+                                    onChange={(v) =>
+                                        updateAppearance('sidebarConstraints', {
+                                            ...c,
+                                            maxRightWidth: v || 700,
+                                        })
+                                    }
+                                    min={400}
+                                    max={2000}
+                                    disabled={isLocked}
+                                />
+                            </div>
+                        </>
+                    )}
+                    <div className={styles.settingRow}>
+                        <span>Enable Auto Expand Left on Hover</span>
+                        <Toggle
+                            checked={c.enableAutoExpandLeft}
+                            onChange={(v) =>
+                                updateAppearance('sidebarConstraints', {
+                                    ...c,
+                                    enableAutoExpandLeft: v,
+                                })
+                            }
+                            disabled={isLocked}
+                        />
+                    </div>
+                    <div className={styles.settingRow}>
+                        <span>
+                            Auto-switch Left Panel to Match Active Editor Tab
+                        </span>
+                        <Toggle
+                            checked={c.enableAutoSwitchPanel}
+                            onChange={(v) =>
+                                updateAppearance('sidebarConstraints', {
+                                    ...c,
+                                    enableAutoSwitchPanel: v,
+                                })
+                            }
+                            disabled={isLocked}
+                        />
+                    </div>
+                </>
+            </SettingsCard>
+
+            <div className={styles.settingSectionDivider} />
+
+            <SettingsCard>
+                <>
+                    <div className={styles.settingsSectionLabel}>
+                        Editor Width
+                    </div>
+                    <div className={styles.settingRow}>
+                        <span>Editor Width Mode</span>
+                        <div
+                            className={styles.periodToggle}
+                            style={{ marginBottom: 0 }}
+                        >
+                            <button
+                                className={
+                                    settings.appearance.editorWidthMode !==
+                                    'fixed'
+                                        ? styles.activePeriod
+                                        : ''
+                                }
+                                onClick={() =>
+                                    updateAppearance('editorWidthMode', 'full')
+                                }
+                                disabled={isLocked}
+                            >
+                                Full Width (100%)
+                            </button>
+                            <button
+                                className={
+                                    settings.appearance.editorWidthMode ===
+                                    'fixed'
+                                        ? styles.activePeriod
+                                        : ''
+                                }
+                                onClick={() =>
+                                    updateAppearance('editorWidthMode', 'fixed')
+                                }
+                                disabled={isLocked}
+                            >
+                                Fixed Width
+                            </button>
+                        </div>
+                    </div>
+                    {settings.appearance.editorWidthMode === 'fixed' && (
+                        <div className={styles.settingRow}>
+                            <span>Max Editor Width (px)</span>
+                            <NumberInput
+                                value={settings.appearance.editorMaxWidth}
+                                onChange={(v) =>
+                                    updateAppearance('editorMaxWidth', v || 800)
+                                }
+                                min={400}
+                                max={1600}
+                                disabled={isLocked}
+                            />
+                        </div>
+                    )}
+                </>
+            </SettingsCard>
+
+            <div className={styles.settingSectionDivider} />
+
+            <SettingsCard>
+                <>
+                    <div className={styles.settingsSectionLabel}>Preview</div>
+                    <div className={styles.settingRow}>
+                        <span>Preview Position</span>
+                        <div
+                            className={styles.periodToggle}
+                            style={{ marginBottom: 0 }}
+                        >
+                            <button
+                                className={
+                                    settings.appearance.previewPosition !==
+                                    'left'
+                                        ? styles.activePeriod
+                                        : ''
+                                }
+                                onClick={() =>
+                                    updateAppearance('previewPosition', 'right')
+                                }
+                                disabled={isLocked}
+                            >
+                                Right
+                            </button>
+                            <button
+                                className={
+                                    settings.appearance.previewPosition ===
+                                    'left'
+                                        ? styles.activePeriod
+                                        : ''
+                                }
+                                onClick={() =>
+                                    updateAppearance('previewPosition', 'left')
+                                }
+                                disabled={isLocked}
+                            >
+                                Left
+                            </button>
+                        </div>
+                    </div>
+                </>
+            </SettingsCard>
         </div>
     );
 }
@@ -298,79 +550,99 @@ function ProjectsTab() {
 
     return (
         <div className={styles.tabContent}>
-            <div className={styles.settingRow}>
-                <span>Default Projects Directory</span>
-                <div className={styles.pathRow}>
-                    <input
-                        type="text"
-                        value={settings.projects.defaultProjectsDir || ''}
-                        readOnly
-                        placeholder="Not set"
-                        className={styles.textInput}
-                    />
-                    <button
-                        onClick={handleSelectPath}
-                        disabled={isLocked}
-                        className={styles.btn}
-                    >
-                        Browse
-                    </button>
-                </div>
-            </div>
-            <div className={styles.pathRow}>
-                <button
-                    onClick={handleOpenProjects}
-                    disabled={isLocked}
-                    className={styles.btn}
-                >
-                    Open Projects
-                </button>
-                <button
-                    onClick={handleOpenProjectFolder}
-                    disabled={isLocked || !settings.projects.defaultProjectsDir}
-                    className={styles.btn}
-                >
-                    Open Projects Folder
-                </button>
-            </div>
-            <div className={styles.settingRow}>
-                <span>Open Recent Project on Startup</span>
-                <Toggle
-                    checked={settings.projects.openRecentProjectOnStartup}
-                    onChange={(v) =>
-                        updateProjects('openRecentProjectOnStartup', v)
-                    }
-                    disabled={isLocked}
-                />
-            </div>
-            <div className={styles.settingRow}>
-                <span>Recent Projects</span>
-                <span>{settings.projects.recentProjects.length} projects</span>
-            </div>
-            {settings.projects.recentProjects.length > 0 && (
-                <div className={styles.listSection}>
-                    {settings.projects.recentProjects.map((id) => (
-                        <div key={id} className={styles.listItem}>
-                            <span>{id}</span>
+            <SettingsCard>
+                <>
+                    <div className={styles.settingRow}>
+                        <span>Default Projects Directory</span>
+                        <div className={styles.pathRow}>
+                            <input
+                                type="text"
+                                value={
+                                    settings.projects.defaultProjectsDir || ''
+                                }
+                                readOnly
+                                placeholder="Not set"
+                                className={styles.textInput}
+                            />
                             <button
-                                onClick={() => handleOpenProject(id)}
+                                onClick={handleSelectPath}
                                 disabled={isLocked}
-                                className={styles.btnSmall}
-                                title="Open project folder"
+                                className={styles.btn}
                             >
-                                <IconFolder size={16} />
+                                Browse
                             </button>
                         </div>
-                    ))}
-                    <button
-                        onClick={() => updateProjects('recentProjects', [])}
-                        disabled={isLocked}
-                        className={styles.btnDanger}
-                    >
-                        Clear Recent
-                    </button>
-                </div>
-            )}
+                    </div>
+                    <div className={styles.pathRow}>
+                        <button
+                            onClick={handleOpenProjects}
+                            disabled={isLocked}
+                            className={styles.btn}
+                        >
+                            Open Projects
+                        </button>
+                        <button
+                            onClick={handleOpenProjectFolder}
+                            disabled={
+                                isLocked ||
+                                !settings.projects.defaultProjectsDir
+                            }
+                            className={styles.btn}
+                        >
+                            Open Projects Folder
+                        </button>
+                    </div>
+                    <div className={styles.settingRow}>
+                        <span>Open Recent Project on Startup</span>
+                        <Toggle
+                            checked={
+                                settings.projects.openRecentProjectOnStartup
+                            }
+                            onChange={(v) =>
+                                updateProjects('openRecentProjectOnStartup', v)
+                            }
+                            disabled={isLocked}
+                        />
+                    </div>
+                </>
+            </SettingsCard>
+
+            <SettingsCard>
+                <>
+                    <div className={styles.settingsSectionLabel}>
+                        <span>Recent Projects </span>
+                        <span>
+                            ( {settings.projects.recentProjects.length} )
+                        </span>
+                    </div>
+                    {settings.projects.recentProjects.length > 0 && (
+                        <div className={styles.listSection}>
+                            {settings.projects.recentProjects.map((id) => (
+                                <div key={id} className={styles.listItem}>
+                                    <span>{id}</span>
+                                    <button
+                                        onClick={() => handleOpenProject(id)}
+                                        disabled={isLocked}
+                                        className={styles.btnSmall}
+                                        title="Open project folder"
+                                    >
+                                        <IconFolder size={16} />
+                                    </button>
+                                </div>
+                            ))}
+                            <button
+                                onClick={() =>
+                                    updateProjects('recentProjects', [])
+                                }
+                                disabled={isLocked}
+                                className={styles.btnDanger}
+                            >
+                                Clear Recent
+                            </button>
+                        </div>
+                    )}
+                </>
+            </SettingsCard>
         </div>
     );
 }
@@ -389,49 +661,54 @@ function AssetLibraryTab() {
 
     return (
         <div className={styles.tabContent}>
-            <div className={styles.settingRow}>
-                <span>Storage Path</span>
-                <div className={styles.pathRow}>
-                    <input
-                        type="text"
-                        value={settings.assetLibrary.storagePath || ''}
-                        readOnly
-                        placeholder="Not set"
-                        className={styles.textInput}
-                    />
-                    <button
-                        onClick={handleSelectPath}
-                        disabled={isLocked}
-                        className={styles.btn}
-                    >
-                        Browse
-                    </button>
-                </div>
-            </div>
-            <div className={styles.settingRow}>
-                <span>Enable Auto Cleanup</span>
-                <Toggle
-                    checked={settings.assetLibrary.autoCleanupEnabled}
-                    onChange={(v) =>
-                        updateAssetLibrary('autoCleanupEnabled', v)
-                    }
-                    disabled={isLocked}
-                />
-            </div>
-            <div className={styles.settingRow}>
-                <span>Cleanup Interval (days)</span>
-                <NumberInput
-                    value={settings.assetLibrary.cleanupIntervalDays}
-                    onChange={(v) =>
-                        updateAssetLibrary('cleanupIntervalDays', v)
-                    }
-                    min={1}
-                    max={365}
-                    disabled={
-                        isLocked || !settings.assetLibrary.autoCleanupEnabled
-                    }
-                />
-            </div>
+            <SettingsCard>
+                <>
+                    <div className={styles.settingRow}>
+                        <span>Storage Path</span>
+                        <div className={styles.pathRow}>
+                            <input
+                                type="text"
+                                value={settings.assetLibrary.storagePath || ''}
+                                readOnly
+                                placeholder="Not set"
+                                className={styles.textInput}
+                            />
+                            <button
+                                onClick={handleSelectPath}
+                                disabled={isLocked}
+                                className={styles.btn}
+                            >
+                                Browse
+                            </button>
+                        </div>
+                    </div>
+                    <div className={styles.settingRow}>
+                        <span>Enable Auto Cleanup</span>
+                        <Toggle
+                            checked={settings.assetLibrary.autoCleanupEnabled}
+                            onChange={(v) =>
+                                updateAssetLibrary('autoCleanupEnabled', v)
+                            }
+                            disabled={isLocked}
+                        />
+                    </div>
+                    <div className={styles.settingRow}>
+                        <span>Cleanup Interval (days)</span>
+                        <NumberInput
+                            value={settings.assetLibrary.cleanupIntervalDays}
+                            onChange={(v) =>
+                                updateAssetLibrary('cleanupIntervalDays', v)
+                            }
+                            min={1}
+                            max={365}
+                            disabled={
+                                isLocked ||
+                                !settings.assetLibrary.autoCleanupEnabled
+                            }
+                        />
+                    </div>
+                </>
+            </SettingsCard>
         </div>
     );
 }
@@ -1423,6 +1700,579 @@ function ProvidersTab() {
     );
 }
 
+function EmbeddingsTab() {
+    const { settings, updateEmbeddings, isLocked } = useSettings();
+    const rpc = getRPC();
+    const [indexStatus, setIndexStatus] = useState<{
+        total: number;
+        byType: Record<string, number>;
+    } | null>(null);
+    const [isIndexing, setIsIndexing] = useState(false);
+    const [indexProgress, setIndexProgress] = useState<string>('');
+    const [vecAvailable, setVecAvailable] = useState<boolean | null>(null);
+
+    useEffect(() => {
+        rpc.request['embeddings:check-availability']()
+            .then(setVecAvailable)
+            .catch(() => setVecAvailable(false));
+    }, [rpc]);
+
+    useEffect(() => {
+        if (settings?.embeddings?.enabled) {
+            // Load index status for current project if available
+            rpc.request['settings:get-all']()
+                .then((s) => {
+                    const recentProjects = s.projects?.recentProjects;
+                    if (recentProjects && recentProjects.length > 0) {
+                        rpc.request['embeddings:status'](recentProjects[0])
+                            .then(setIndexStatus)
+                            .catch(() => {});
+                    }
+                })
+                .catch(() => {});
+        }
+    }, [settings?.embeddings?.enabled, rpc]);
+
+    if (!settings) return null;
+
+    const emb = settings.embeddings ?? {
+        enabled: false,
+        endpoint: 'http://localhost:1234/v1',
+        model: 'nomic-embed-text',
+        dimension: 768,
+        chunkSize: 500,
+        chunkOverlap: 50,
+        autoIndexOnSave: true,
+    };
+
+    const handleTestConnection = async () => {
+        try {
+            const result = await rpc.request['embeddings:test-server']();
+            if (result.ok) {
+                alert('Embedding server is reachable!');
+            } else {
+                alert(`Connection failed: ${result.error}`);
+            }
+        } catch (e) {
+            alert(`Connection failed: ${e}`);
+        }
+    };
+
+    const handleRebuildIndex = async () => {
+        const recentProjects = settings.projects.recentProjects;
+        if (!recentProjects || recentProjects.length === 0) {
+            alert('No project open to index.');
+            return;
+        }
+        const projectId = recentProjects[0];
+        setIsIndexing(true);
+        setIndexProgress('Starting index...');
+        try {
+            await rpc.request['embeddings:rebuild'](projectId);
+            const result = await rpc.request['embeddings:index-project']({
+                projectId,
+            });
+            setIndexStatus(await rpc.request['embeddings:status'](projectId));
+            setIndexProgress(
+                `Indexed ${result.indexed} chunks (${result.skipped} skipped, ${result.failed} failed)`
+            );
+        } catch (e) {
+            setIndexProgress(`Error: ${e}`);
+        } finally {
+            setIsIndexing(false);
+        }
+    };
+
+    return (
+        <div className={styles.tabContent}>
+            <SettingsCard>
+                <>
+                    <div className={styles.settingsSectionLabel}>
+                        Context Engine (RAG)
+                    </div>
+
+                    {vecAvailable === false && (
+                        <div
+                            style={{
+                                padding: '12px',
+                                background: '#fff3cd',
+                                borderRadius: '8px',
+                                marginBottom: '16px',
+                                color: '#856404',
+                            }}
+                        >
+                            <strong>sqlite-vec not available.</strong> Vector
+                            features are disabled. On macOS, install Homebrew
+                            SQLite and restart the app.
+                        </div>
+                    )}
+
+                    <div className={styles.settingRow}>
+                        <label>Enable Context Engine</label>
+                        <input
+                            type="checkbox"
+                            checked={emb.enabled}
+                            disabled={isLocked || vecAvailable === false}
+                            onChange={async (e) => {
+                                const enabled = e.target.checked;
+                                await updateEmbeddings('enabled', enabled);
+                                if (enabled) {
+                                    const recentProjects =
+                                        settings.projects.recentProjects;
+                                    if (
+                                        recentProjects &&
+                                        recentProjects.length > 0
+                                    ) {
+                                        const projectId = recentProjects[0];
+                                        try {
+                                            const status =
+                                                await rpc.request[
+                                                    'embeddings:status'
+                                                ](projectId);
+                                            if (status.total === 0) {
+                                                const confirmed = confirm(
+                                                    'Index your project for semantic search? This will embed all chapters, characters, locations, and other compendium entries.'
+                                                );
+                                                if (confirmed) {
+                                                    setIsIndexing(true);
+                                                    setIndexProgress(
+                                                        'Starting initial index...'
+                                                    );
+                                                    const result =
+                                                        await rpc.request[
+                                                            'embeddings:index-project'
+                                                        ]({ projectId });
+                                                    setIndexStatus(
+                                                        await rpc.request[
+                                                            'embeddings:status'
+                                                        ](projectId)
+                                                    );
+                                                    setIndexProgress(
+                                                        `Indexed ${result.indexed} chunks (${result.failed} failed)`
+                                                    );
+                                                    setIsIndexing(false);
+                                                }
+                                            } else {
+                                                setIndexStatus(status);
+                                            }
+                                        } catch (err) {
+                                            console.error(
+                                                'Auto-index failed:',
+                                                err
+                                            );
+                                        }
+                                    }
+                                }
+                            }}
+                        />
+                    </div>
+
+                    <div className={styles.settingRow}>
+                        <label>Server</label>
+                        <div style={{ display: 'flex', gap: '8px' }}>
+                            <button
+                                disabled={isLocked || !emb.enabled}
+                                onClick={() =>
+                                    updateEmbeddings(
+                                        'endpoint',
+                                        'http://localhost:1234/v1'
+                                    )
+                                }
+                                style={{
+                                    flex: 1,
+                                    padding: '6px 12px',
+                                    borderRadius: '6px',
+                                    border: emb.endpoint.includes(':1234')
+                                        ? '1px solid #8b5cf6'
+                                        : '1px solid #333',
+                                    background: emb.endpoint.includes(':1234')
+                                        ? 'rgba(139,92,246,0.15)'
+                                        : 'transparent',
+                                    color: emb.endpoint.includes(':1234')
+                                        ? '#8b5cf6'
+                                        : '#999',
+                                    cursor: 'pointer',
+                                    fontWeight: emb.endpoint.includes(':1234')
+                                        ? '600'
+                                        : '400',
+                                }}
+                            >
+                                LM Studio
+                            </button>
+                            <button
+                                disabled={isLocked || !emb.enabled}
+                                onClick={() =>
+                                    updateEmbeddings(
+                                        'endpoint',
+                                        'http://192.168.29.201:11434'
+                                    )
+                                }
+                                style={{
+                                    flex: 1,
+                                    padding: '6px 12px',
+                                    borderRadius: '6px',
+                                    border: emb.endpoint.includes(':11434')
+                                        ? '1px solid #8b5cf6'
+                                        : '1px solid #333',
+                                    background: emb.endpoint.includes(':11434')
+                                        ? 'rgba(139,92,246,0.15)'
+                                        : 'transparent',
+                                    color: emb.endpoint.includes(':11434')
+                                        ? '#8b5cf6'
+                                        : '#999',
+                                    cursor: 'pointer',
+                                    fontWeight: emb.endpoint.includes(':11434')
+                                        ? '600'
+                                        : '400',
+                                }}
+                            >
+                                Ollama
+                            </button>
+                        </div>
+                    </div>
+
+                    <div className={styles.settingRow}>
+                        <label>Endpoint URL</label>
+                        <input
+                            type="text"
+                            value={emb.endpoint}
+                            disabled={isLocked || !emb.enabled}
+                            placeholder="LM Studio: http://localhost:1234/v1 | Ollama: http://localhost:11434"
+                            onChange={(e) =>
+                                updateEmbeddings('endpoint', e.target.value)
+                            }
+                        />
+                    </div>
+
+                    <div className={styles.settingRow}>
+                        <label>Embedding Model</label>
+                        <input
+                            type="text"
+                            value={emb.model}
+                            disabled={isLocked || !emb.enabled}
+                            placeholder="nomic-embed-text"
+                            onChange={(e) =>
+                                updateEmbeddings('model', e.target.value)
+                            }
+                        />
+                    </div>
+
+                    <div className={styles.settingRow}>
+                        <label>Vector Dimension</label>
+                        <input
+                            type="number"
+                            value={emb.dimension}
+                            disabled={isLocked || !emb.enabled}
+                            onChange={(e) =>
+                                updateEmbeddings(
+                                    'dimension',
+                                    parseInt(e.target.value) || 768
+                                )
+                            }
+                        />
+                    </div>
+
+                    <div className={styles.settingRow}>
+                        <label>Chunk Size (tokens)</label>
+                        <input
+                            type="number"
+                            value={emb.chunkSize}
+                            disabled={isLocked || !emb.enabled}
+                            min={128}
+                            max={2048}
+                            onChange={(e) =>
+                                updateEmbeddings(
+                                    'chunkSize',
+                                    parseInt(e.target.value) || 500
+                                )
+                            }
+                        />
+                    </div>
+
+                    <div className={styles.settingRow}>
+                        <label>Chunk Overlap (tokens)</label>
+                        <input
+                            type="number"
+                            value={emb.chunkOverlap}
+                            disabled={isLocked || !emb.enabled}
+                            min={0}
+                            max={200}
+                            onChange={(e) =>
+                                updateEmbeddings(
+                                    'chunkOverlap',
+                                    parseInt(e.target.value) || 50
+                                )
+                            }
+                        />
+                    </div>
+
+                    <div className={styles.settingRow}>
+                        <label>Auto-index on chapter save</label>
+                        <input
+                            type="checkbox"
+                            checked={emb.autoIndexOnSave}
+                            disabled={isLocked || !emb.enabled}
+                            onChange={(e) =>
+                                updateEmbeddings(
+                                    'autoIndexOnSave',
+                                    e.target.checked
+                                )
+                            }
+                        />
+                    </div>
+                </>
+            </SettingsCard>
+
+            <SettingsCard>
+                <>
+                    <div style={{ marginTop: '24px' }}>
+                        <div className={styles.settingsSectionLabel}>
+                            Index Status
+                        </div>
+
+                        <div
+                            style={{
+                                display: 'flex',
+                                gap: '8px',
+                                marginBottom: '12px',
+                            }}
+                        >
+                            <button
+                                onClick={handleTestConnection}
+                                disabled={isLocked || !emb.enabled}
+                                style={{
+                                    padding: '8px 16px',
+                                    borderRadius: '8px',
+                                    border: '1px solid #555',
+                                    background: '#333',
+                                    color: '#fff',
+                                    cursor: 'pointer',
+                                }}
+                            >
+                                Test Connection
+                            </button>
+                            <button
+                                onClick={handleRebuildIndex}
+                                disabled={
+                                    isLocked || !emb.enabled || isIndexing
+                                }
+                                style={{
+                                    padding: '8px 16px',
+                                    borderRadius: '8px',
+                                    border: '1px solid #555',
+                                    background: '#333',
+                                    color: '#fff',
+                                    cursor: isIndexing
+                                        ? 'not-allowed'
+                                        : 'pointer',
+                                    opacity: isIndexing ? 0.5 : 1,
+                                }}
+                            >
+                                {isIndexing ? 'Indexing...' : 'Rebuild Index'}
+                            </button>
+                        </div>
+
+                        {indexStatus && (
+                            <div
+                                style={{
+                                    marginBottom: '12px',
+                                    fontSize: '13px',
+                                    color: '#888',
+                                }}
+                            >
+                                Total indexed: {indexStatus.total} chunks
+                                {Object.entries(indexStatus.byType).map(
+                                    ([type, count]) => (
+                                        <div
+                                            key={type}
+                                            style={{ marginLeft: '12px' }}
+                                        >
+                                            {type}: {count}
+                                        </div>
+                                    )
+                                )}
+                            </div>
+                        )}
+
+                        {isIndexing && indexProgress && (
+                            <div
+                                style={{
+                                    marginBottom: '12px',
+                                    fontSize: '13px',
+                                    color: '#30d158',
+                                }}
+                            >
+                                {indexProgress}
+                            </div>
+                        )}
+                    </div>
+                </>
+            </SettingsCard>
+        </div>
+    );
+}
+
+function QuotaTab() {
+    const { settings, updateGeneral, isLocked } = useSettings();
+    const rpc = getRPC();
+    const [period, setPeriod] = useState<'today' | 'month'>('today');
+    const [stats, setStats] = useState<{
+        tokensConsumed: number;
+        requestCount: number;
+    } | null>(null);
+
+    useEffect(() => {
+        async function loadStats() {
+            try {
+                const result = await rpc.request['usage:get-stats']({
+                    period,
+                    projectId: null,
+                });
+                setStats(result);
+            } catch (e) {
+                console.error('Failed to load usage stats:', e);
+            }
+        }
+        loadStats();
+    }, [period, rpc]);
+
+    if (!settings) return null;
+
+    const tokenLimit =
+        (period === 'today'
+            ? settings.general.dailyTokenLimit
+            : settings.general.monthlyTokenLimit) ?? 100000;
+    const requestLimit =
+        (period === 'today'
+            ? settings.general.dailyRequestLimit
+            : settings.general.monthlyRequestLimit) ?? 100;
+    const tokens = stats?.tokensConsumed ?? 0;
+    const requests = stats?.requestCount ?? 0;
+    const tokenPct =
+        tokenLimit > 0 ? Math.min((tokens / tokenLimit) * 100, 100) : 0;
+    const requestPct =
+        requestLimit > 0 ? Math.min((requests / requestLimit) * 100, 100) : 0;
+
+    const progressColor = (pct: number) => {
+        if (pct > 95) return '#ff453a';
+        if (pct > 80) return '#ff9f0a';
+        if (pct > 50) return '#ffd60a';
+        return '#30d158';
+    };
+
+    return (
+        <div className={styles.tabContent}>
+            <div className={styles.settingsSectionLabel}>
+                Quota & Usage Control
+            </div>
+
+            <div className={styles.periodToggle}>
+                <button
+                    className={period === 'today' ? styles.activePeriod : ''}
+                    onClick={() => setPeriod('today')}
+                >
+                    Today
+                </button>
+                <button
+                    className={period === 'month' ? styles.activePeriod : ''}
+                    onClick={() => setPeriod('month')}
+                >
+                    Month
+                </button>
+            </div>
+
+            <div className={styles.usageCard}>
+                <div className={styles.usageLabel}>Tokens Consumed</div>
+                <div className={styles.usageValue}>
+                    {tokens.toLocaleString()} / {tokenLimit.toLocaleString()}
+                </div>
+                <div className={styles.progressBar}>
+                    <div
+                        className={styles.progressFill}
+                        style={{
+                            width: `${tokenPct}%`,
+                            backgroundColor: progressColor(tokenPct),
+                        }}
+                    />
+                </div>
+            </div>
+
+            <div className={styles.usageCard}>
+                <div className={styles.usageLabel}>Requests (API Calls)</div>
+                <div className={styles.usageValue}>
+                    {requests.toLocaleString()} /{' '}
+                    {requestLimit.toLocaleString()}
+                </div>
+                <div className={styles.progressBar}>
+                    <div
+                        className={styles.progressFill}
+                        style={{
+                            width: `${requestPct}%`,
+                            backgroundColor: progressColor(requestPct),
+                        }}
+                    />
+                </div>
+            </div>
+
+            <div className={styles.settingSectionDivider} />
+            <SettingsCard>
+                <>
+                    <div className={styles.settingsSectionLabel}>Limits</div>
+
+                    <div className={styles.settingRow}>
+                        <span>Daily Token Limit</span>
+                        <NumberInput
+                            value={settings.general.dailyTokenLimit}
+                            onChange={(v) =>
+                                updateGeneral('dailyTokenLimit', v)
+                            }
+                            min={1000}
+                            max={10000000}
+                            disabled={isLocked}
+                        />
+                    </div>
+                    <div className={styles.settingRow}>
+                        <span>Monthly Token Limit</span>
+                        <NumberInput
+                            value={settings.general.monthlyTokenLimit}
+                            onChange={(v) =>
+                                updateGeneral('monthlyTokenLimit', v)
+                            }
+                            min={1000}
+                            max={100000000}
+                            disabled={isLocked}
+                        />
+                    </div>
+                    <div className={styles.settingRow}>
+                        <span>Daily Request Limit</span>
+                        <NumberInput
+                            value={settings.general.dailyRequestLimit}
+                            onChange={(v) =>
+                                updateGeneral('dailyRequestLimit', v)
+                            }
+                            min={1}
+                            max={100000}
+                            disabled={isLocked}
+                        />
+                    </div>
+                    <div className={styles.settingRow}>
+                        <span>Monthly Request Limit</span>
+                        <NumberInput
+                            value={settings.general.monthlyRequestLimit}
+                            onChange={(v) =>
+                                updateGeneral('monthlyRequestLimit', v)
+                            }
+                            min={1}
+                            max={1000000}
+                            disabled={isLocked}
+                        />
+                    </div>
+                </>
+            </SettingsCard>
+        </div>
+    );
+}
+
 function StorageTab() {
     const {
         settings,
@@ -1582,338 +2432,6 @@ function StorageTab() {
     );
 }
 
-function AppearanceTab() {
-    const { settings, updateAppearance, isLocked } = useSettings();
-    if (!settings) return null;
-    const c = settings.appearance.sidebarConstraints ?? {
-        enableCustomWidthCap: false,
-        maxLeftWidth: 400,
-        maxRightWidth: 700,
-        leftWidth: 280,
-        rightWidth: 550,
-        enableAutoExpandLeft: false,
-        enableAutoSwitchPanel: true,
-    };
-
-    return (
-        <div className={styles.tabContent}>
-            <div className={styles.settingsSectionLabel}>
-                Sidebar Constraints
-            </div>
-            <div className={styles.settingRow}>
-                <span>Enable Custom Width Cap</span>
-                <Toggle
-                    checked={c.enableCustomWidthCap}
-                    onChange={(v) =>
-                        updateAppearance('sidebarConstraints', {
-                            ...c,
-                            enableCustomWidthCap: v,
-                        })
-                    }
-                    disabled={isLocked}
-                />
-            </div>
-            {c.enableCustomWidthCap && (
-                <>
-                    <div className={styles.settingRow}>
-                        <span>Max Left Sidebar Width (px)</span>
-                        <NumberInput
-                            value={c.maxLeftWidth}
-                            onChange={(v) =>
-                                updateAppearance('sidebarConstraints', {
-                                    ...c,
-                                    maxLeftWidth: v || 400,
-                                })
-                            }
-                            min={220}
-                            max={1200}
-                            disabled={isLocked}
-                        />
-                    </div>
-                    <div className={styles.settingRow}>
-                        <span>Max Right Sidebar Width (px)</span>
-                        <NumberInput
-                            value={c.maxRightWidth}
-                            onChange={(v) =>
-                                updateAppearance('sidebarConstraints', {
-                                    ...c,
-                                    maxRightWidth: v || 700,
-                                })
-                            }
-                            min={400}
-                            max={2000}
-                            disabled={isLocked}
-                        />
-                    </div>
-                </>
-            )}
-            <div className={styles.settingRow}>
-                <span>Enable Auto Expand Left on Hover</span>
-                <Toggle
-                    checked={c.enableAutoExpandLeft}
-                    onChange={(v) =>
-                        updateAppearance('sidebarConstraints', {
-                            ...c,
-                            enableAutoExpandLeft: v,
-                        })
-                    }
-                    disabled={isLocked}
-                />
-            </div>
-            <div className={styles.settingRow}>
-                <span>Auto-switch Left Panel to Match Active Editor Tab</span>
-                <Toggle
-                    checked={c.enableAutoSwitchPanel}
-                    onChange={(v) =>
-                        updateAppearance('sidebarConstraints', {
-                            ...c,
-                            enableAutoSwitchPanel: v,
-                        })
-                    }
-                    disabled={isLocked}
-                />
-            </div>
-
-            <div className={styles.settingsSectionDivider} />
-            <div className={styles.settingsSectionLabel}>Editor Width</div>
-            <div className={styles.settingRow}>
-                <span>Editor Width Mode</span>
-                <div
-                    className={styles.periodToggle}
-                    style={{ marginBottom: 0 }}
-                >
-                    <button
-                        className={
-                            settings.appearance.editorWidthMode !== 'fixed'
-                                ? styles.activePeriod
-                                : ''
-                        }
-                        onClick={() =>
-                            updateAppearance('editorWidthMode', 'full')
-                        }
-                        disabled={isLocked}
-                    >
-                        Full Width (100%)
-                    </button>
-                    <button
-                        className={
-                            settings.appearance.editorWidthMode === 'fixed'
-                                ? styles.activePeriod
-                                : ''
-                        }
-                        onClick={() =>
-                            updateAppearance('editorWidthMode', 'fixed')
-                        }
-                        disabled={isLocked}
-                    >
-                        Fixed Width
-                    </button>
-                </div>
-            </div>
-            {settings.appearance.editorWidthMode === 'fixed' && (
-                <div className={styles.settingRow}>
-                    <span>Max Editor Width (px)</span>
-                    <NumberInput
-                        value={settings.appearance.editorMaxWidth}
-                        onChange={(v) =>
-                            updateAppearance('editorMaxWidth', v || 800)
-                        }
-                        min={400}
-                        max={1600}
-                        disabled={isLocked}
-                    />
-                </div>
-            )}
-
-            <div className={styles.settingsSectionDivider} />
-            <div className={styles.settingsSectionLabel}>Preview</div>
-            <div className={styles.settingRow}>
-                <span>Preview Position</span>
-                <div
-                    className={styles.periodToggle}
-                    style={{ marginBottom: 0 }}
-                >
-                    <button
-                        className={
-                            settings.appearance.previewPosition !== 'left'
-                                ? styles.activePeriod
-                                : ''
-                        }
-                        onClick={() =>
-                            updateAppearance('previewPosition', 'right')
-                        }
-                        disabled={isLocked}
-                    >
-                        Right
-                    </button>
-                    <button
-                        className={
-                            settings.appearance.previewPosition === 'left'
-                                ? styles.activePeriod
-                                : ''
-                        }
-                        onClick={() =>
-                            updateAppearance('previewPosition', 'left')
-                        }
-                        disabled={isLocked}
-                    >
-                        Left
-                    </button>
-                </div>
-            </div>
-        </div>
-    );
-}
-
-function QuotaTab() {
-    const { settings, updateGeneral, isLocked } = useSettings();
-    const rpc = getRPC();
-    const [period, setPeriod] = useState<'today' | 'month'>('today');
-    const [stats, setStats] = useState<{
-        tokensConsumed: number;
-        requestCount: number;
-    } | null>(null);
-
-    useEffect(() => {
-        async function loadStats() {
-            try {
-                const result = await rpc.request['usage:get-stats']({
-                    period,
-                    projectId: null,
-                });
-                setStats(result);
-            } catch (e) {
-                console.error('Failed to load usage stats:', e);
-            }
-        }
-        loadStats();
-    }, [period, rpc]);
-
-    if (!settings) return null;
-
-    const tokenLimit =
-        (period === 'today'
-            ? settings.general.dailyTokenLimit
-            : settings.general.monthlyTokenLimit) ?? 100000;
-    const requestLimit =
-        (period === 'today'
-            ? settings.general.dailyRequestLimit
-            : settings.general.monthlyRequestLimit) ?? 100;
-    const tokens = stats?.tokensConsumed ?? 0;
-    const requests = stats?.requestCount ?? 0;
-    const tokenPct =
-        tokenLimit > 0 ? Math.min((tokens / tokenLimit) * 100, 100) : 0;
-    const requestPct =
-        requestLimit > 0 ? Math.min((requests / requestLimit) * 100, 100) : 0;
-
-    const progressColor = (pct: number) => {
-        if (pct > 95) return '#ff453a';
-        if (pct > 80) return '#ff9f0a';
-        if (pct > 50) return '#ffd60a';
-        return '#30d158';
-    };
-
-    return (
-        <div className={styles.tabContent}>
-            <div className={styles.settingsSectionLabel}>
-                Quota & Usage Control
-            </div>
-
-            <div className={styles.periodToggle}>
-                <button
-                    className={period === 'today' ? styles.activePeriod : ''}
-                    onClick={() => setPeriod('today')}
-                >
-                    Today
-                </button>
-                <button
-                    className={period === 'month' ? styles.activePeriod : ''}
-                    onClick={() => setPeriod('month')}
-                >
-                    Month
-                </button>
-            </div>
-
-            <div className={styles.usageCard}>
-                <div className={styles.usageLabel}>Tokens Consumed</div>
-                <div className={styles.usageValue}>
-                    {tokens.toLocaleString()} / {tokenLimit.toLocaleString()}
-                </div>
-                <div className={styles.progressBar}>
-                    <div
-                        className={styles.progressFill}
-                        style={{
-                            width: `${tokenPct}%`,
-                            backgroundColor: progressColor(tokenPct),
-                        }}
-                    />
-                </div>
-            </div>
-
-            <div className={styles.usageCard}>
-                <div className={styles.usageLabel}>Requests (API Calls)</div>
-                <div className={styles.usageValue}>
-                    {requests.toLocaleString()} /{' '}
-                    {requestLimit.toLocaleString()}
-                </div>
-                <div className={styles.progressBar}>
-                    <div
-                        className={styles.progressFill}
-                        style={{
-                            width: `${requestPct}%`,
-                            backgroundColor: progressColor(requestPct),
-                        }}
-                    />
-                </div>
-            </div>
-
-            <div className={styles.settingsSectionDivider} />
-            <div className={styles.settingsSectionLabel}>Limits</div>
-
-            <div className={styles.settingRow}>
-                <span>Daily Token Limit</span>
-                <NumberInput
-                    value={settings.general.dailyTokenLimit}
-                    onChange={(v) => updateGeneral('dailyTokenLimit', v)}
-                    min={1000}
-                    max={10000000}
-                    disabled={isLocked}
-                />
-            </div>
-            <div className={styles.settingRow}>
-                <span>Monthly Token Limit</span>
-                <NumberInput
-                    value={settings.general.monthlyTokenLimit}
-                    onChange={(v) => updateGeneral('monthlyTokenLimit', v)}
-                    min={1000}
-                    max={100000000}
-                    disabled={isLocked}
-                />
-            </div>
-            <div className={styles.settingRow}>
-                <span>Daily Request Limit</span>
-                <NumberInput
-                    value={settings.general.dailyRequestLimit}
-                    onChange={(v) => updateGeneral('dailyRequestLimit', v)}
-                    min={1}
-                    max={100000}
-                    disabled={isLocked}
-                />
-            </div>
-            <div className={styles.settingRow}>
-                <span>Monthly Request Limit</span>
-                <NumberInput
-                    value={settings.general.monthlyRequestLimit}
-                    onChange={(v) => updateGeneral('monthlyRequestLimit', v)}
-                    min={1}
-                    max={1000000}
-                    disabled={isLocked}
-                />
-            </div>
-        </div>
-    );
-}
-
 function AboutTab() {
     return (
         <>
@@ -1924,389 +2442,6 @@ function AboutTab() {
             <p>Website: https://eon.com</p>
             <p>License: MIT</p>
         </>
-    );
-}
-
-function EmbeddingsTab() {
-    const { settings, updateEmbeddings, isLocked } = useSettings();
-    const rpc = getRPC();
-    const [indexStatus, setIndexStatus] = useState<{
-        total: number;
-        byType: Record<string, number>;
-    } | null>(null);
-    const [isIndexing, setIsIndexing] = useState(false);
-    const [indexProgress, setIndexProgress] = useState<string>('');
-    const [vecAvailable, setVecAvailable] = useState<boolean | null>(null);
-
-    useEffect(() => {
-        rpc.request['embeddings:check-availability']()
-            .then(setVecAvailable)
-            .catch(() => setVecAvailable(false));
-    }, [rpc]);
-
-    useEffect(() => {
-        if (settings?.embeddings?.enabled) {
-            // Load index status for current project if available
-            rpc.request['settings:get-all']()
-                .then((s) => {
-                    const recentProjects = s.projects?.recentProjects;
-                    if (recentProjects && recentProjects.length > 0) {
-                        rpc.request['embeddings:status'](recentProjects[0])
-                            .then(setIndexStatus)
-                            .catch(() => {});
-                    }
-                })
-                .catch(() => {});
-        }
-    }, [settings?.embeddings?.enabled, rpc]);
-
-    if (!settings) return null;
-
-    const emb = settings.embeddings ?? {
-        enabled: false,
-        endpoint: 'http://localhost:1234/v1',
-        model: 'nomic-embed-text',
-        dimension: 768,
-        chunkSize: 500,
-        chunkOverlap: 50,
-        autoIndexOnSave: true,
-    };
-
-    const handleTestConnection = async () => {
-        try {
-            const result = await rpc.request['embeddings:test-server']();
-            if (result.ok) {
-                alert('Embedding server is reachable!');
-            } else {
-                alert(`Connection failed: ${result.error}`);
-            }
-        } catch (e) {
-            alert(`Connection failed: ${e}`);
-        }
-    };
-
-    const handleRebuildIndex = async () => {
-        const recentProjects = settings.projects.recentProjects;
-        if (!recentProjects || recentProjects.length === 0) {
-            alert('No project open to index.');
-            return;
-        }
-        const projectId = recentProjects[0];
-        setIsIndexing(true);
-        setIndexProgress('Starting index...');
-        try {
-            await rpc.request['embeddings:rebuild'](projectId);
-            const result = await rpc.request['embeddings:index-project']({
-                projectId,
-            });
-            setIndexStatus(await rpc.request['embeddings:status'](projectId));
-            setIndexProgress(
-                `Indexed ${result.indexed} chunks (${result.skipped} skipped, ${result.failed} failed)`
-            );
-        } catch (e) {
-            setIndexProgress(`Error: ${e}`);
-        } finally {
-            setIsIndexing(false);
-        }
-    };
-
-    return (
-        <div className={styles.tabContent}>
-            <div className={styles.settingsSectionLabel}>
-                Context Engine (RAG)
-            </div>
-
-            {vecAvailable === false && (
-                <div
-                    style={{
-                        padding: '12px',
-                        background: '#fff3cd',
-                        borderRadius: '8px',
-                        marginBottom: '16px',
-                        color: '#856404',
-                    }}
-                >
-                    <strong>sqlite-vec not available.</strong> Vector features
-                    are disabled. On macOS, install Homebrew SQLite and restart
-                    the app.
-                </div>
-            )}
-
-            <div className={styles.settingRow}>
-                <label>Enable Context Engine</label>
-                <input
-                    type="checkbox"
-                    checked={emb.enabled}
-                    disabled={isLocked || vecAvailable === false}
-                    onChange={async (e) => {
-                        const enabled = e.target.checked;
-                        await updateEmbeddings('enabled', enabled);
-                        if (enabled) {
-                            const recentProjects =
-                                settings.projects.recentProjects;
-                            if (recentProjects && recentProjects.length > 0) {
-                                const projectId = recentProjects[0];
-                                try {
-                                    const status =
-                                        await rpc.request['embeddings:status'](
-                                            projectId
-                                        );
-                                    if (status.total === 0) {
-                                        const confirmed = confirm(
-                                            'Index your project for semantic search? This will embed all chapters, characters, locations, and other compendium entries.'
-                                        );
-                                        if (confirmed) {
-                                            setIsIndexing(true);
-                                            setIndexProgress(
-                                                'Starting initial index...'
-                                            );
-                                            const result = await rpc.request[
-                                                'embeddings:index-project'
-                                            ]({ projectId });
-                                            setIndexStatus(
-                                                await rpc.request[
-                                                    'embeddings:status'
-                                                ](projectId)
-                                            );
-                                            setIndexProgress(
-                                                `Indexed ${result.indexed} chunks (${result.failed} failed)`
-                                            );
-                                            setIsIndexing(false);
-                                        }
-                                    } else {
-                                        setIndexStatus(status);
-                                    }
-                                } catch (err) {
-                                    console.error('Auto-index failed:', err);
-                                }
-                            }
-                        }
-                    }}
-                />
-            </div>
-
-            <div className={styles.settingRow}>
-                <label>Server</label>
-                <div style={{ display: 'flex', gap: '8px' }}>
-                    <button
-                        disabled={isLocked || !emb.enabled}
-                        onClick={() =>
-                            updateEmbeddings(
-                                'endpoint',
-                                'http://localhost:1234/v1'
-                            )
-                        }
-                        style={{
-                            flex: 1,
-                            padding: '6px 12px',
-                            borderRadius: '6px',
-                            border: emb.endpoint.includes(':1234')
-                                ? '1px solid #8b5cf6'
-                                : '1px solid #333',
-                            background: emb.endpoint.includes(':1234')
-                                ? 'rgba(139,92,246,0.15)'
-                                : 'transparent',
-                            color: emb.endpoint.includes(':1234')
-                                ? '#8b5cf6'
-                                : '#999',
-                            cursor: 'pointer',
-                            fontWeight: emb.endpoint.includes(':1234')
-                                ? '600'
-                                : '400',
-                        }}
-                    >
-                        LM Studio
-                    </button>
-                    <button
-                        disabled={isLocked || !emb.enabled}
-                        onClick={() =>
-                            updateEmbeddings(
-                                'endpoint',
-                                'http://192.168.29.201:11434'
-                            )
-                        }
-                        style={{
-                            flex: 1,
-                            padding: '6px 12px',
-                            borderRadius: '6px',
-                            border: emb.endpoint.includes(':11434')
-                                ? '1px solid #8b5cf6'
-                                : '1px solid #333',
-                            background: emb.endpoint.includes(':11434')
-                                ? 'rgba(139,92,246,0.15)'
-                                : 'transparent',
-                            color: emb.endpoint.includes(':11434')
-                                ? '#8b5cf6'
-                                : '#999',
-                            cursor: 'pointer',
-                            fontWeight: emb.endpoint.includes(':11434')
-                                ? '600'
-                                : '400',
-                        }}
-                    >
-                        Ollama
-                    </button>
-                </div>
-            </div>
-
-            <div className={styles.settingRow}>
-                <label>Endpoint URL</label>
-                <input
-                    type="text"
-                    value={emb.endpoint}
-                    disabled={isLocked || !emb.enabled}
-                    placeholder="LM Studio: http://localhost:1234/v1 | Ollama: http://localhost:11434"
-                    onChange={(e) =>
-                        updateEmbeddings('endpoint', e.target.value)
-                    }
-                />
-            </div>
-
-            <div className={styles.settingRow}>
-                <label>Embedding Model</label>
-                <input
-                    type="text"
-                    value={emb.model}
-                    disabled={isLocked || !emb.enabled}
-                    placeholder="nomic-embed-text"
-                    onChange={(e) => updateEmbeddings('model', e.target.value)}
-                />
-            </div>
-
-            <div className={styles.settingRow}>
-                <label>Vector Dimension</label>
-                <input
-                    type="number"
-                    value={emb.dimension}
-                    disabled={isLocked || !emb.enabled}
-                    onChange={(e) =>
-                        updateEmbeddings(
-                            'dimension',
-                            parseInt(e.target.value) || 768
-                        )
-                    }
-                />
-            </div>
-
-            <div className={styles.settingRow}>
-                <label>Chunk Size (tokens)</label>
-                <input
-                    type="number"
-                    value={emb.chunkSize}
-                    disabled={isLocked || !emb.enabled}
-                    min={128}
-                    max={2048}
-                    onChange={(e) =>
-                        updateEmbeddings(
-                            'chunkSize',
-                            parseInt(e.target.value) || 500
-                        )
-                    }
-                />
-            </div>
-
-            <div className={styles.settingRow}>
-                <label>Chunk Overlap (tokens)</label>
-                <input
-                    type="number"
-                    value={emb.chunkOverlap}
-                    disabled={isLocked || !emb.enabled}
-                    min={0}
-                    max={200}
-                    onChange={(e) =>
-                        updateEmbeddings(
-                            'chunkOverlap',
-                            parseInt(e.target.value) || 50
-                        )
-                    }
-                />
-            </div>
-
-            <div className={styles.settingRow}>
-                <label>Auto-index on chapter save</label>
-                <input
-                    type="checkbox"
-                    checked={emb.autoIndexOnSave}
-                    disabled={isLocked || !emb.enabled}
-                    onChange={(e) =>
-                        updateEmbeddings('autoIndexOnSave', e.target.checked)
-                    }
-                />
-            </div>
-
-            <div style={{ marginTop: '24px' }}>
-                <div className={styles.settingsSectionLabel}>Index Status</div>
-
-                <div
-                    style={{
-                        display: 'flex',
-                        gap: '8px',
-                        marginBottom: '12px',
-                    }}
-                >
-                    <button
-                        onClick={handleTestConnection}
-                        disabled={isLocked || !emb.enabled}
-                        style={{
-                            padding: '8px 16px',
-                            borderRadius: '8px',
-                            border: '1px solid #555',
-                            background: '#333',
-                            color: '#fff',
-                            cursor: 'pointer',
-                        }}
-                    >
-                        Test Connection
-                    </button>
-                    <button
-                        onClick={handleRebuildIndex}
-                        disabled={isLocked || !emb.enabled || isIndexing}
-                        style={{
-                            padding: '8px 16px',
-                            borderRadius: '8px',
-                            border: '1px solid #555',
-                            background: '#333',
-                            color: '#fff',
-                            cursor: isIndexing ? 'not-allowed' : 'pointer',
-                            opacity: isIndexing ? 0.5 : 1,
-                        }}
-                    >
-                        {isIndexing ? 'Indexing...' : 'Rebuild Index'}
-                    </button>
-                </div>
-
-                {indexStatus && (
-                    <div
-                        style={{
-                            marginBottom: '12px',
-                            fontSize: '13px',
-                            color: '#888',
-                        }}
-                    >
-                        Total indexed: {indexStatus.total} chunks
-                        {Object.entries(indexStatus.byType).map(
-                            ([type, count]) => (
-                                <div key={type} style={{ marginLeft: '12px' }}>
-                                    {type}: {count}
-                                </div>
-                            )
-                        )}
-                    </div>
-                )}
-
-                {isIndexing && indexProgress && (
-                    <div
-                        style={{
-                            marginBottom: '12px',
-                            fontSize: '13px',
-                            color: '#30d158',
-                        }}
-                    >
-                        {indexProgress}
-                    </div>
-                )}
-            </div>
-        </div>
     );
 }
 
@@ -2386,17 +2521,22 @@ export default function SettingsDialog({
                             id=""
                             style={{
                                 width: '100%',
-                                marginBottom: '12px',
+                                marginBottom: '14px',
                             }}
                         />
-                        <h3 style={{ textTransform: 'capitalize' }}>
+                        <h3
+                            style={{
+                                textTransform: 'capitalize',
+                                marginLeft: '16px',
+                            }}
+                        >
                             {
                                 SETTINGS_DIALOG_TABS.find(
                                     (tab) => tab.label === activeTab
                                 )?.label
                             }
                         </h3>
-                        <p>
+                        <p style={{ display: 'none' }}>
                             {
                                 SETTINGS_DIALOG_TABS.find(
                                     (tab) => tab.label === activeTab

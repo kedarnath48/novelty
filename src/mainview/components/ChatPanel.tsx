@@ -55,7 +55,7 @@ import { useSessions } from '../hooks/useSessions';
 import { useSpeechRecognition } from '../hooks/useSpeechRecognition';
 import MessageBubble from './MessageBubble';
 import SessionListView from './SessionListView';
-import SettingsDialog from '../dialogs/settingsDialog';
+import SettingsDialog from '../dialogs/SettingsDialog';
 import FloatingSuggestions from './FloatingSuggestions';
 import type { SuggestionGroup } from './FloatingSuggestions';
 import ContextChips from './ContextChips';

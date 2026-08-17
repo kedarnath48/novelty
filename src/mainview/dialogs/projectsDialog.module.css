@@ -167,6 +167,11 @@
 .settingRow {
     margin-bottom: 10px;
     padding-bottom: 10px;
+
+    &:last-child {
+        margin-bottom: 0px;
+        padding-bottom: 0px;
+    }
 }
 
 .dialogContent {
@@ -232,9 +237,8 @@
     }
 
     .tabPanelHeader {
-        margin-bottom: 12px;
         /*border-bottom: 1px solid #393A3B;*/
-        padding-bottom: 12px;
+        padding-bottom: 8px;
     }
 
     .tabPanelContent {
@@ -435,6 +439,7 @@
 
 .settingSectionDivider {
     border: none;
+    display: none;
     border-top: 1px solid #393a3b;
     margin: 16px 0;
 }

@@ -33,7 +33,7 @@ import type { ExtractionSource } from './services/textExtractor';
 
 import { TitleBar } from './ui/titleBar';
 import ProjectsDialog from './dialogs/projectsDialog';
-import SettingsDialog from './dialogs/settingsDialog';
+import SettingsDialog from './dialogs/SettingsDialog';
 import ProjectManager from './dialogs/projectManagerDialog';
 import OpenFileDialog, { type RecentFile } from './dialogs/openFileDialog';
 import RichTextEditor from './components/RichTextEditor';
