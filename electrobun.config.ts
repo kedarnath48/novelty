@@ -1,4 +1,5 @@
-import type { ElectrobunConfig } from "electrobun";
+import type { ElectrobunConfig } from 'electrobun';
+import pkg from './package.json' with { type: 'json' };
 /*
 import { resolve } from "path";
 import { mkdirSync, copyFileSync, existsSync, cpSync } from "fs";
@@ -48,25 +49,26 @@ setupViews();
 */
 
 export default {
-	app: {
-		name: "novelty",
-		identifier: "novelty.app",
-		version: "0.0.1",
-	},
-	build: {
-		copy: {
-			"dist/mainview": "views/mainview",
-		},
-		watchIgnore: ["dist/**", "views/**"],
-		mac: {
-			bundleCEF: false,
-		},
-		linux: {
-			bundleCEF: false,
-		},
-		win: {
-			bundleCEF: false,
-			icon: "public/assets/favicon_256x256.png",
-		},
-	},
+  app: {
+    name: pkg.name,
+    // Transforms package.json name ("novelty") into "com.yourcompany.novelty" or "novelty.app"
+    identifier: `${pkg.name}.app`,
+    version: pkg.version,
+  },
+  build: {
+    copy: {
+      'dist/mainview': 'views/mainview',
+    },
+    watchIgnore: ['dist/**', 'views/**'],
+    mac: {
+      bundleCEF: false,
+    },
+    linux: {
+      bundleCEF: false,
+    },
+    win: {
+      bundleCEF: false,
+      icon: 'public/assets/favicon_256x256.png',
+    },
+  },
 } satisfies ElectrobunConfig;
