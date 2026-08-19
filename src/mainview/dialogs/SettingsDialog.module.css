@@ -1,0 +1,25 @@
+#settingsDialog {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+
+.settingRow {
+    width: 100%;
+    margin-bottom: 10px;
+    padding-bottom: 10px;
+    display: flex;
+
+    &:last-child {
+        margin-bottom: 0px;
+        padding-bottom: 0px;
+    }
+}
+
+.numberInput {
+    margin-left: auto;
+}
+
+.tabContent {
+    height: 100%;
+}

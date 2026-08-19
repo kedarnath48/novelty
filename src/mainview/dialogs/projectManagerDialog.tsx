@@ -34,14 +34,19 @@ import {
     IconStarFilled,
     IconX,
 } from '@tabler/icons-react';
-import styles from './projectsDialog.module.css';
-import localStyles from './projectManagerDialog.module.css';
 import TemplateManagerTab from '../components/TemplateManagerTab';
 import IconTextSideBar from '../ui/layout/IconTextSideBar';
 import {
     PROJECT_DIALOG_TABS,
+    PROJECT_DIALOG_TABS_ICONS,
     ProjectDialogActiveTab,
 } from '../constants/layout_tabs';
+
+import SplitDialogLayout from '../ui/layout/SplitDialogLayout';
+
+import styles from './projectsDialog.module.css';
+import localStyles from './projectManagerDialog.module.css';
+import dialogStyles from './../components/Dialog.module.css';
 
 interface ProjectManagerProps {
     open: boolean;
@@ -645,759 +650,849 @@ export default function ProjectManager({
             large
             className={localStyles.projectManagerDialog}
         >
-            <div
-                className={`${styles.dialogContent} ${localStyles.dialogContent}`}
-            >
-                <div className={`${styles.sideBar} ${localStyles.sideBar}`}>
+            <SplitDialogLayout>
+                <>
                     <IconTextSideBar
                         activeTab={activeTab}
                         setActiveTab={setActiveTab}
                         tabsArray={PROJECT_DIALOG_TABS}
+                        iconsArray={PROJECT_DIALOG_TABS_ICONS}
                     />
-                </div>
 
-                <div className={`${styles.tabPanel} ${localStyles.tabPanel}`}>
-                    {activeTab === 'general' && (
-                        <div className={localStyles.tabContent}>
-                            <div className={styles.tabPanelHeader}>
-                                <h3>General Settings</h3>
-                                <p>Manage your project's basic information</p>
-                            </div>
-                            <div className={styles.tabPanelContent}>
-                                <h4 className={localStyles.sectionHeading}>
-                                    Project
-                                </h4>
+                    <div className={dialogStyles.tabPanel}>
+                        {activeTab === 'general' && (
+                            <div className={localStyles.tabContent}>
+                                <div className={styles.tabPanelHeader}>
+                                    <h3>General Settings</h3>
+                                    <p>
+                                        Manage your project's basic information
+                                    </p>
+                                </div>
+                                <div className={styles.tabPanelContent}>
+                                    <h4 className={localStyles.sectionHeading}>
+                                        Project
+                                    </h4>
 
-                                <div className={localStyles.projectHeaderGrid}>
                                     <div
                                         className={
-                                            localStyles.projectHeaderName
+                                            localStyles.projectHeaderGrid
                                         }
                                     >
-                                        <div className={styles.formGroup}>
-                                            <label>Project Name</label>
-                                            <input
-                                                type="text"
-                                                value={name}
+                                        <div
+                                            className={
+                                                localStyles.projectHeaderName
+                                            }
+                                        >
+                                            <div className={styles.formGroup}>
+                                                <label>Project Name</label>
+                                                <input
+                                                    type="text"
+                                                    value={name}
+                                                    onChange={(e) => {
+                                                        setName(e.target.value);
+                                                        setHasChanges(true);
+                                                    }}
+                                                />
+                                            </div>
+                                        </div>
+                                        <div
+                                            className={
+                                                localStyles.projectHeaderDesc
+                                            }
+                                        >
+                                            <label>Description</label>
+                                            <textarea
+                                                className={localStyles.textarea}
+                                                rows={4}
+                                                value={description}
                                                 onChange={(e) => {
-                                                    setName(e.target.value);
+                                                    setDescription(
+                                                        e.target.value
+                                                    );
                                                     setHasChanges(true);
                                                 }}
+                                                placeholder="A brief description of your project..."
                                             />
                                         </div>
-                                    </div>
-                                    <div
-                                        className={
-                                            localStyles.projectHeaderDesc
-                                        }
-                                    >
-                                        <label>Description</label>
-                                        <textarea
-                                            className={localStyles.textarea}
-                                            rows={4}
-                                            value={description}
-                                            onChange={(e) => {
-                                                setDescription(e.target.value);
-                                                setHasChanges(true);
-                                            }}
-                                            placeholder="A brief description of your project..."
-                                        />
-                                    </div>
-                                    <div
-                                        className={
-                                            localStyles.projectHeaderCover
-                                        }
-                                    >
                                         <div
                                             className={
-                                                localStyles.generalCoverWrap
-                                            }
-                                            onClick={() =>
-                                                setShowAssetPicker(true)
+                                                localStyles.projectHeaderCover
                                             }
                                         >
-                                            {coverImageSrc ? (
-                                                <img
-                                                    src={coverImageSrc}
-                                                    alt="Cover"
-                                                    className={
-                                                        localStyles.generalCoverPreview
-                                                    }
-                                                />
-                                            ) : (
-                                                <div
-                                                    className={
-                                                        localStyles.generalCoverPlaceholder
-                                                    }
-                                                >
-                                                    <IconPhoto
-                                                        size={24}
-                                                        stroke={1.5}
-                                                    />
-                                                </div>
-                                            )}
                                             <div
                                                 className={
-                                                    localStyles.generalCoverOverlay
-                                                }
-                                            >
-                                                {coverImageSrc
-                                                    ? 'Change Cover'
-                                                    : 'Set Cover'}
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div className={localStyles.genreThemeRow}>
-                                    <div className={localStyles.genreThemeCol}>
-                                        <label>Genres</label>
-                                        <div className={localStyles.pickerRow}>
-                                            <div
-                                                className={
-                                                    localStyles.selectedPills
-                                                }
-                                            >
-                                                {selectedGenres.length ===
-                                                    0 && (
-                                                    <span
-                                                        className={
-                                                            localStyles.noSelection
-                                                        }
-                                                    >
-                                                        No genres selected
-                                                    </span>
-                                                )}
-                                                {selectedGenres.map((name) => {
-                                                    const isPrimary =
-                                                        primaryGenre === name;
-                                                    return (
-                                                        <span
-                                                            key={name}
-                                                            className={`${localStyles.pill} ${isPrimary ? localStyles.primaryPill : ''}`}
-                                                        >
-                                                            {isPrimary && (
-                                                                <IconStarFilled
-                                                                    size={12}
-                                                                    className={
-                                                                        localStyles.starIcon
-                                                                    }
-                                                                />
-                                                            )}
-                                                            {name}
-                                                            <button
-                                                                type="button"
-                                                                className={
-                                                                    localStyles.pillRemove
-                                                                }
-                                                                onClick={() =>
-                                                                    removeGenre(
-                                                                        name
-                                                                    )
-                                                                }
-                                                            >
-                                                                <IconX
-                                                                    size={12}
-                                                                    stroke={2}
-                                                                />
-                                                            </button>
-                                                        </span>
-                                                    );
-                                                })}
-                                                {selectedGenres.length > 0 &&
-                                                    !primaryGenre && (
-                                                        <div
-                                                            ref={
-                                                                genrePrimaryDropdownRef
-                                                            }
-                                                            style={{
-                                                                position:
-                                                                    'relative',
-                                                            }}
-                                                        >
-                                                            <button
-                                                                type="button"
-                                                                className={
-                                                                    localStyles.setPrimaryBtn
-                                                                }
-                                                                onClick={() =>
-                                                                    setShowGenrePrimaryDropdown(
-                                                                        !showGenrePrimaryDropdown
-                                                                    )
-                                                                }
-                                                            >
-                                                                Set Primary
-                                                                Genre +
-                                                            </button>
-                                                            {showGenrePrimaryDropdown && (
-                                                                <div
-                                                                    className={
-                                                                        localStyles.primaryDropdown
-                                                                    }
-                                                                >
-                                                                    {selectedGenres.map(
-                                                                        (
-                                                                            name
-                                                                        ) => (
-                                                                            <button
-                                                                                key={
-                                                                                    name
-                                                                                }
-                                                                                type="button"
-                                                                                onClick={() => {
-                                                                                    setPrimaryGenreFromList(
-                                                                                        name
-                                                                                    );
-                                                                                    setShowGenrePrimaryDropdown(
-                                                                                        false
-                                                                                    );
-                                                                                }}
-                                                                            >
-                                                                                {
-                                                                                    name
-                                                                                }
-                                                                            </button>
-                                                                        )
-                                                                    )}
-                                                                </div>
-                                                            )}
-                                                        </div>
-                                                    )}
-                                            </div>
-                                            <div
-                                                className={
-                                                    localStyles.pickerActions
-                                                }
-                                                ref={genreDropdownRef}
-                                            >
-                                                <button
-                                                    type="button"
-                                                    className={
-                                                        localStyles.searchBtn
-                                                    }
-                                                    onClick={() =>
-                                                        setShowGenreDropdown(
-                                                            !showGenreDropdown
-                                                        )
-                                                    }
-                                                >
-                                                    <IconPlus
-                                                        size={16}
-                                                        stroke={2}
-                                                    />
-                                                </button>
-                                                {showGenreDropdown && (
-                                                    <div
-                                                        className={
-                                                            localStyles.dropdown
-                                                        }
-                                                    >
-                                                        <div
-                                                            className={
-                                                                localStyles.dropdownList
-                                                            }
-                                                        >
-                                                            {availableGenres.map(
-                                                                (genre) => (
-                                                                    <button
-                                                                        key={
-                                                                            genre.id
-                                                                        }
-                                                                        type="button"
-                                                                        className={`${localStyles.dropdownItem} ${selectedGenres.includes(genre.name) ? localStyles.dropdownItemSelected : ''}`}
-                                                                        onClick={() =>
-                                                                            toggleGenre(
-                                                                                genre.name
-                                                                            )
-                                                                        }
-                                                                    >
-                                                                        <span>
-                                                                            {
-                                                                                genre.name
-                                                                            }
-                                                                        </span>
-                                                                        {selectedGenres.includes(
-                                                                            genre.name
-                                                                        ) && (
-                                                                            <IconCheck
-                                                                                size={
-                                                                                    14
-                                                                                }
-                                                                                stroke={
-                                                                                    2
-                                                                                }
-                                                                            />
-                                                                        )}
-                                                                    </button>
-                                                                )
-                                                            )}
-                                                        </div>
-                                                        <div
-                                                            className={
-                                                                localStyles.dropdownAdd
-                                                            }
-                                                        >
-                                                            <input
-                                                                type="text"
-                                                                placeholder="Add custom..."
-                                                                value={
-                                                                    customGenre
-                                                                }
-                                                                onChange={(e) =>
-                                                                    setCustomGenre(
-                                                                        e.target
-                                                                            .value
-                                                                    )
-                                                                }
-                                                                onKeyDown={(
-                                                                    e
-                                                                ) =>
-                                                                    e.key ===
-                                                                        'Enter' &&
-                                                                    (e.preventDefault(),
-                                                                    handleAddCustomGenre())
-                                                                }
-                                                            />
-                                                            <button
-                                                                type="button"
-                                                                onClick={
-                                                                    handleAddCustomGenre
-                                                                }
-                                                            >
-                                                                Add
-                                                            </button>
-                                                        </div>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div className={localStyles.genreThemeCol}>
-                                        <label>Themes</label>
-                                        <div className={localStyles.pickerRow}>
-                                            <div
-                                                className={
-                                                    localStyles.selectedPills
-                                                }
-                                            >
-                                                {selectedThemes.length ===
-                                                    0 && (
-                                                    <span
-                                                        className={
-                                                            localStyles.noSelection
-                                                        }
-                                                    >
-                                                        No themes selected
-                                                    </span>
-                                                )}
-                                                {selectedThemes.map((name) => {
-                                                    const isPrimary =
-                                                        primaryTheme === name;
-                                                    return (
-                                                        <span
-                                                            key={name}
-                                                            className={`${localStyles.pill} ${isPrimary ? localStyles.primaryPill : ''}`}
-                                                        >
-                                                            {isPrimary && (
-                                                                <IconStarFilled
-                                                                    size={12}
-                                                                    className={
-                                                                        localStyles.starIcon
-                                                                    }
-                                                                />
-                                                            )}
-                                                            {name}
-                                                            <button
-                                                                type="button"
-                                                                className={
-                                                                    localStyles.pillRemove
-                                                                }
-                                                                onClick={() =>
-                                                                    removeTheme(
-                                                                        name
-                                                                    )
-                                                                }
-                                                            >
-                                                                <IconX
-                                                                    size={12}
-                                                                    stroke={2}
-                                                                />
-                                                            </button>
-                                                        </span>
-                                                    );
-                                                })}
-                                                {selectedThemes.length > 0 &&
-                                                    !primaryTheme && (
-                                                        <div
-                                                            ref={
-                                                                themePrimaryDropdownRef
-                                                            }
-                                                            style={{
-                                                                position:
-                                                                    'relative',
-                                                            }}
-                                                        >
-                                                            <button
-                                                                type="button"
-                                                                className={
-                                                                    localStyles.setPrimaryBtn
-                                                                }
-                                                                onClick={() =>
-                                                                    setShowThemePrimaryDropdown(
-                                                                        !showThemePrimaryDropdown
-                                                                    )
-                                                                }
-                                                            >
-                                                                Set Primary
-                                                                Theme +
-                                                            </button>
-                                                            {showThemePrimaryDropdown && (
-                                                                <div
-                                                                    className={
-                                                                        localStyles.primaryDropdown
-                                                                    }
-                                                                >
-                                                                    {selectedThemes.map(
-                                                                        (
-                                                                            name
-                                                                        ) => (
-                                                                            <button
-                                                                                key={
-                                                                                    name
-                                                                                }
-                                                                                type="button"
-                                                                                onClick={() => {
-                                                                                    setPrimaryThemeFromList(
-                                                                                        name
-                                                                                    );
-                                                                                    setShowThemePrimaryDropdown(
-                                                                                        false
-                                                                                    );
-                                                                                }}
-                                                                            >
-                                                                                {
-                                                                                    name
-                                                                                }
-                                                                            </button>
-                                                                        )
-                                                                    )}
-                                                                </div>
-                                                            )}
-                                                        </div>
-                                                    )}
-                                            </div>
-                                            <div
-                                                className={
-                                                    localStyles.pickerActions
-                                                }
-                                                ref={themeDropdownRef}
-                                            >
-                                                <button
-                                                    type="button"
-                                                    className={
-                                                        localStyles.searchBtn
-                                                    }
-                                                    onClick={() =>
-                                                        setShowThemeDropdown(
-                                                            !showThemeDropdown
-                                                        )
-                                                    }
-                                                >
-                                                    <IconPlus
-                                                        size={16}
-                                                        stroke={2}
-                                                    />
-                                                </button>
-                                                {showThemeDropdown && (
-                                                    <div
-                                                        className={
-                                                            localStyles.dropdown
-                                                        }
-                                                    >
-                                                        <div
-                                                            className={
-                                                                localStyles.dropdownList
-                                                            }
-                                                        >
-                                                            {availableThemes.map(
-                                                                (theme) => (
-                                                                    <button
-                                                                        key={
-                                                                            theme.id
-                                                                        }
-                                                                        type="button"
-                                                                        className={`${localStyles.dropdownItem} ${selectedThemes.includes(theme.name) ? localStyles.dropdownItemSelected : ''}`}
-                                                                        onClick={() =>
-                                                                            toggleTheme(
-                                                                                theme.name
-                                                                            )
-                                                                        }
-                                                                    >
-                                                                        <span>
-                                                                            {
-                                                                                theme.name
-                                                                            }
-                                                                        </span>
-                                                                        {selectedThemes.includes(
-                                                                            theme.name
-                                                                        ) && (
-                                                                            <IconCheck
-                                                                                size={
-                                                                                    14
-                                                                                }
-                                                                                stroke={
-                                                                                    2
-                                                                                }
-                                                                            />
-                                                                        )}
-                                                                    </button>
-                                                                )
-                                                            )}
-                                                        </div>
-                                                        <div
-                                                            className={
-                                                                localStyles.dropdownAdd
-                                                            }
-                                                        >
-                                                            <input
-                                                                type="text"
-                                                                placeholder="Add custom..."
-                                                                value={
-                                                                    customTheme
-                                                                }
-                                                                onChange={(e) =>
-                                                                    setCustomTheme(
-                                                                        e.target
-                                                                            .value
-                                                                    )
-                                                                }
-                                                                onKeyDown={(
-                                                                    e
-                                                                ) =>
-                                                                    e.key ===
-                                                                        'Enter' &&
-                                                                    (e.preventDefault(),
-                                                                    handleAddCustomTheme())
-                                                                }
-                                                            />
-                                                            <button
-                                                                type="button"
-                                                                onClick={
-                                                                    handleAddCustomTheme
-                                                                }
-                                                            >
-                                                                Add
-                                                            </button>
-                                                        </div>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div className={styles.formGroup}>
-                                    <label>Tags</label>
-                                    <div className={localStyles.pickerRow}>
-                                        <div
-                                            className={
-                                                localStyles.selectedPills
-                                            }
-                                        >
-                                            {selectedTags.length === 0 && (
-                                                <span
-                                                    className={
-                                                        localStyles.noSelection
-                                                    }
-                                                >
-                                                    None selected
-                                                </span>
-                                            )}
-                                            {selectedTags.map((name) => (
-                                                <span
-                                                    key={name}
-                                                    className={localStyles.pill}
-                                                >
-                                                    {name}
-                                                    <button
-                                                        type="button"
-                                                        className={
-                                                            localStyles.pillRemove
-                                                        }
-                                                        onClick={() =>
-                                                            removeTag(name)
-                                                        }
-                                                    >
-                                                        <IconX
-                                                            size={12}
-                                                            stroke={2}
-                                                        />
-                                                    </button>
-                                                </span>
-                                            ))}
-                                        </div>
-                                        <div
-                                            className={
-                                                localStyles.pickerActions
-                                            }
-                                            ref={tagDropdownRef}
-                                        >
-                                            <button
-                                                type="button"
-                                                className={
-                                                    localStyles.searchBtn
+                                                    localStyles.generalCoverWrap
                                                 }
                                                 onClick={() =>
-                                                    setShowTagDropdown(
-                                                        !showTagDropdown
-                                                    )
+                                                    setShowAssetPicker(true)
                                                 }
                                             >
-                                                <IconPlus
-                                                    size={16}
-                                                    stroke={2}
-                                                />
-                                            </button>
-                                            {showTagDropdown && (
-                                                <div
-                                                    className={
-                                                        localStyles.dropdown
-                                                    }
-                                                >
+                                                {coverImageSrc ? (
+                                                    <img
+                                                        src={coverImageSrc}
+                                                        alt="Cover"
+                                                        className={
+                                                            localStyles.generalCoverPreview
+                                                        }
+                                                    />
+                                                ) : (
                                                     <div
                                                         className={
-                                                            localStyles.dropdownList
+                                                            localStyles.generalCoverPlaceholder
                                                         }
                                                     >
-                                                        {availableTags.map(
-                                                            (tag) => (
-                                                                <button
-                                                                    key={tag.id}
-                                                                    type="button"
-                                                                    className={`${localStyles.dropdownItem} ${selectedTags.includes(tag.name) ? localStyles.dropdownItemSelected : ''}`}
-                                                                    onClick={() =>
-                                                                        toggleTag(
-                                                                            tag.name
-                                                                        )
-                                                                    }
+                                                        <IconPhoto
+                                                            size={24}
+                                                            stroke={1.5}
+                                                        />
+                                                    </div>
+                                                )}
+                                                <div
+                                                    className={
+                                                        localStyles.generalCoverOverlay
+                                                    }
+                                                >
+                                                    {coverImageSrc
+                                                        ? 'Change Cover'
+                                                        : 'Set Cover'}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className={localStyles.genreThemeRow}>
+                                        <div
+                                            className={
+                                                localStyles.genreThemeCol
+                                            }
+                                        >
+                                            <label>Genres</label>
+                                            <div
+                                                className={
+                                                    localStyles.pickerRow
+                                                }
+                                            >
+                                                <div
+                                                    className={
+                                                        localStyles.selectedPills
+                                                    }
+                                                >
+                                                    {selectedGenres.length ===
+                                                        0 && (
+                                                        <span
+                                                            className={
+                                                                localStyles.noSelection
+                                                            }
+                                                        >
+                                                            No genres selected
+                                                        </span>
+                                                    )}
+                                                    {selectedGenres.map(
+                                                        (name) => {
+                                                            const isPrimary =
+                                                                primaryGenre ===
+                                                                name;
+                                                            return (
+                                                                <span
+                                                                    key={name}
+                                                                    className={`${localStyles.pill} ${isPrimary ? localStyles.primaryPill : ''}`}
                                                                 >
-                                                                    <span>
-                                                                        {
-                                                                            tag.name
-                                                                        }
-                                                                    </span>
-                                                                    {selectedTags.includes(
-                                                                        tag.name
-                                                                    ) && (
-                                                                        <IconCheck
+                                                                    {isPrimary && (
+                                                                        <IconStarFilled
                                                                             size={
-                                                                                14
+                                                                                12
+                                                                            }
+                                                                            className={
+                                                                                localStyles.starIcon
+                                                                            }
+                                                                        />
+                                                                    )}
+                                                                    {name}
+                                                                    <button
+                                                                        type="button"
+                                                                        className={
+                                                                            localStyles.pillRemove
+                                                                        }
+                                                                        onClick={() =>
+                                                                            removeGenre(
+                                                                                name
+                                                                            )
+                                                                        }
+                                                                    >
+                                                                        <IconX
+                                                                            size={
+                                                                                12
                                                                             }
                                                                             stroke={
                                                                                 2
                                                                             }
                                                                         />
-                                                                    )}
+                                                                    </button>
+                                                                </span>
+                                                            );
+                                                        }
+                                                    )}
+                                                    {selectedGenres.length >
+                                                        0 &&
+                                                        !primaryGenre && (
+                                                            <div
+                                                                ref={
+                                                                    genrePrimaryDropdownRef
+                                                                }
+                                                                style={{
+                                                                    position:
+                                                                        'relative',
+                                                                }}
+                                                            >
+                                                                <button
+                                                                    type="button"
+                                                                    className={
+                                                                        localStyles.setPrimaryBtn
+                                                                    }
+                                                                    onClick={() =>
+                                                                        setShowGenrePrimaryDropdown(
+                                                                            !showGenrePrimaryDropdown
+                                                                        )
+                                                                    }
+                                                                >
+                                                                    Set Primary
+                                                                    Genre +
                                                                 </button>
-                                                            )
+                                                                {showGenrePrimaryDropdown && (
+                                                                    <div
+                                                                        className={
+                                                                            localStyles.primaryDropdown
+                                                                        }
+                                                                    >
+                                                                        {selectedGenres.map(
+                                                                            (
+                                                                                name
+                                                                            ) => (
+                                                                                <button
+                                                                                    key={
+                                                                                        name
+                                                                                    }
+                                                                                    type="button"
+                                                                                    onClick={() => {
+                                                                                        setPrimaryGenreFromList(
+                                                                                            name
+                                                                                        );
+                                                                                        setShowGenrePrimaryDropdown(
+                                                                                            false
+                                                                                        );
+                                                                                    }}
+                                                                                >
+                                                                                    {
+                                                                                        name
+                                                                                    }
+                                                                                </button>
+                                                                            )
+                                                                        )}
+                                                                    </div>
+                                                                )}
+                                                            </div>
                                                         )}
-                                                    </div>
-                                                    <div
+                                                </div>
+                                                <div
+                                                    className={
+                                                        localStyles.pickerActions
+                                                    }
+                                                    ref={genreDropdownRef}
+                                                >
+                                                    <button
+                                                        type="button"
                                                         className={
-                                                            localStyles.dropdownAdd
+                                                            localStyles.searchBtn
+                                                        }
+                                                        onClick={() =>
+                                                            setShowGenreDropdown(
+                                                                !showGenreDropdown
+                                                            )
                                                         }
                                                     >
-                                                        <input
-                                                            type="text"
-                                                            placeholder="Add custom..."
-                                                            value={customTag}
-                                                            onChange={(e) =>
-                                                                setCustomTag(
-                                                                    e.target
-                                                                        .value
-                                                                )
-                                                            }
-                                                            onKeyDown={(e) =>
-                                                                e.key ===
-                                                                    'Enter' &&
-                                                                (e.preventDefault(),
-                                                                handleAddCustomTag())
-                                                            }
+                                                        <IconPlus
+                                                            size={16}
+                                                            stroke={2}
                                                         />
-                                                        <button
-                                                            type="button"
-                                                            onClick={
-                                                                handleAddCustomTag
+                                                    </button>
+                                                    {showGenreDropdown && (
+                                                        <div
+                                                            className={
+                                                                localStyles.dropdown
                                                             }
                                                         >
-                                                            Add
-                                                        </button>
-                                                    </div>
+                                                            <div
+                                                                className={
+                                                                    localStyles.dropdownList
+                                                                }
+                                                            >
+                                                                {availableGenres.map(
+                                                                    (genre) => (
+                                                                        <button
+                                                                            key={
+                                                                                genre.id
+                                                                            }
+                                                                            type="button"
+                                                                            className={`${localStyles.dropdownItem} ${selectedGenres.includes(genre.name) ? localStyles.dropdownItemSelected : ''}`}
+                                                                            onClick={() =>
+                                                                                toggleGenre(
+                                                                                    genre.name
+                                                                                )
+                                                                            }
+                                                                        >
+                                                                            <span>
+                                                                                {
+                                                                                    genre.name
+                                                                                }
+                                                                            </span>
+                                                                            {selectedGenres.includes(
+                                                                                genre.name
+                                                                            ) && (
+                                                                                <IconCheck
+                                                                                    size={
+                                                                                        14
+                                                                                    }
+                                                                                    stroke={
+                                                                                        2
+                                                                                    }
+                                                                                />
+                                                                            )}
+                                                                        </button>
+                                                                    )
+                                                                )}
+                                                            </div>
+                                                            <div
+                                                                className={
+                                                                    localStyles.dropdownAdd
+                                                                }
+                                                            >
+                                                                <input
+                                                                    type="text"
+                                                                    placeholder="Add custom..."
+                                                                    value={
+                                                                        customGenre
+                                                                    }
+                                                                    onChange={(
+                                                                        e
+                                                                    ) =>
+                                                                        setCustomGenre(
+                                                                            e
+                                                                                .target
+                                                                                .value
+                                                                        )
+                                                                    }
+                                                                    onKeyDown={(
+                                                                        e
+                                                                    ) =>
+                                                                        e.key ===
+                                                                            'Enter' &&
+                                                                        (e.preventDefault(),
+                                                                        handleAddCustomGenre())
+                                                                    }
+                                                                />
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={
+                                                                        handleAddCustomGenre
+                                                                    }
+                                                                >
+                                                                    Add
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    )}
                                                 </div>
+                                            </div>
+                                        </div>
+                                        <div
+                                            className={
+                                                localStyles.genreThemeCol
+                                            }
+                                        >
+                                            <label>Themes</label>
+                                            <div
+                                                className={
+                                                    localStyles.pickerRow
+                                                }
+                                            >
+                                                <div
+                                                    className={
+                                                        localStyles.selectedPills
+                                                    }
+                                                >
+                                                    {selectedThemes.length ===
+                                                        0 && (
+                                                        <span
+                                                            className={
+                                                                localStyles.noSelection
+                                                            }
+                                                        >
+                                                            No themes selected
+                                                        </span>
+                                                    )}
+                                                    {selectedThemes.map(
+                                                        (name) => {
+                                                            const isPrimary =
+                                                                primaryTheme ===
+                                                                name;
+                                                            return (
+                                                                <span
+                                                                    key={name}
+                                                                    className={`${localStyles.pill} ${isPrimary ? localStyles.primaryPill : ''}`}
+                                                                >
+                                                                    {isPrimary && (
+                                                                        <IconStarFilled
+                                                                            size={
+                                                                                12
+                                                                            }
+                                                                            className={
+                                                                                localStyles.starIcon
+                                                                            }
+                                                                        />
+                                                                    )}
+                                                                    {name}
+                                                                    <button
+                                                                        type="button"
+                                                                        className={
+                                                                            localStyles.pillRemove
+                                                                        }
+                                                                        onClick={() =>
+                                                                            removeTheme(
+                                                                                name
+                                                                            )
+                                                                        }
+                                                                    >
+                                                                        <IconX
+                                                                            size={
+                                                                                12
+                                                                            }
+                                                                            stroke={
+                                                                                2
+                                                                            }
+                                                                        />
+                                                                    </button>
+                                                                </span>
+                                                            );
+                                                        }
+                                                    )}
+                                                    {selectedThemes.length >
+                                                        0 &&
+                                                        !primaryTheme && (
+                                                            <div
+                                                                ref={
+                                                                    themePrimaryDropdownRef
+                                                                }
+                                                                style={{
+                                                                    position:
+                                                                        'relative',
+                                                                }}
+                                                            >
+                                                                <button
+                                                                    type="button"
+                                                                    className={
+                                                                        localStyles.setPrimaryBtn
+                                                                    }
+                                                                    onClick={() =>
+                                                                        setShowThemePrimaryDropdown(
+                                                                            !showThemePrimaryDropdown
+                                                                        )
+                                                                    }
+                                                                >
+                                                                    Set Primary
+                                                                    Theme +
+                                                                </button>
+                                                                {showThemePrimaryDropdown && (
+                                                                    <div
+                                                                        className={
+                                                                            localStyles.primaryDropdown
+                                                                        }
+                                                                    >
+                                                                        {selectedThemes.map(
+                                                                            (
+                                                                                name
+                                                                            ) => (
+                                                                                <button
+                                                                                    key={
+                                                                                        name
+                                                                                    }
+                                                                                    type="button"
+                                                                                    onClick={() => {
+                                                                                        setPrimaryThemeFromList(
+                                                                                            name
+                                                                                        );
+                                                                                        setShowThemePrimaryDropdown(
+                                                                                            false
+                                                                                        );
+                                                                                    }}
+                                                                                >
+                                                                                    {
+                                                                                        name
+                                                                                    }
+                                                                                </button>
+                                                                            )
+                                                                        )}
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        )}
+                                                </div>
+                                                <div
+                                                    className={
+                                                        localStyles.pickerActions
+                                                    }
+                                                    ref={themeDropdownRef}
+                                                >
+                                                    <button
+                                                        type="button"
+                                                        className={
+                                                            localStyles.searchBtn
+                                                        }
+                                                        onClick={() =>
+                                                            setShowThemeDropdown(
+                                                                !showThemeDropdown
+                                                            )
+                                                        }
+                                                    >
+                                                        <IconPlus
+                                                            size={16}
+                                                            stroke={2}
+                                                        />
+                                                    </button>
+                                                    {showThemeDropdown && (
+                                                        <div
+                                                            className={
+                                                                localStyles.dropdown
+                                                            }
+                                                        >
+                                                            <div
+                                                                className={
+                                                                    localStyles.dropdownList
+                                                                }
+                                                            >
+                                                                {availableThemes.map(
+                                                                    (theme) => (
+                                                                        <button
+                                                                            key={
+                                                                                theme.id
+                                                                            }
+                                                                            type="button"
+                                                                            className={`${localStyles.dropdownItem} ${selectedThemes.includes(theme.name) ? localStyles.dropdownItemSelected : ''}`}
+                                                                            onClick={() =>
+                                                                                toggleTheme(
+                                                                                    theme.name
+                                                                                )
+                                                                            }
+                                                                        >
+                                                                            <span>
+                                                                                {
+                                                                                    theme.name
+                                                                                }
+                                                                            </span>
+                                                                            {selectedThemes.includes(
+                                                                                theme.name
+                                                                            ) && (
+                                                                                <IconCheck
+                                                                                    size={
+                                                                                        14
+                                                                                    }
+                                                                                    stroke={
+                                                                                        2
+                                                                                    }
+                                                                                />
+                                                                            )}
+                                                                        </button>
+                                                                    )
+                                                                )}
+                                                            </div>
+                                                            <div
+                                                                className={
+                                                                    localStyles.dropdownAdd
+                                                                }
+                                                            >
+                                                                <input
+                                                                    type="text"
+                                                                    placeholder="Add custom..."
+                                                                    value={
+                                                                        customTheme
+                                                                    }
+                                                                    onChange={(
+                                                                        e
+                                                                    ) =>
+                                                                        setCustomTheme(
+                                                                            e
+                                                                                .target
+                                                                                .value
+                                                                        )
+                                                                    }
+                                                                    onKeyDown={(
+                                                                        e
+                                                                    ) =>
+                                                                        e.key ===
+                                                                            'Enter' &&
+                                                                        (e.preventDefault(),
+                                                                        handleAddCustomTheme())
+                                                                    }
+                                                                />
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={
+                                                                        handleAddCustomTheme
+                                                                    }
+                                                                >
+                                                                    Add
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className={styles.formGroup}>
+                                        <label>Tags</label>
+                                        <div className={localStyles.pickerRow}>
+                                            <div
+                                                className={
+                                                    localStyles.selectedPills
+                                                }
+                                            >
+                                                {selectedTags.length === 0 && (
+                                                    <span
+                                                        className={
+                                                            localStyles.noSelection
+                                                        }
+                                                    >
+                                                        None selected
+                                                    </span>
+                                                )}
+                                                {selectedTags.map((name) => (
+                                                    <span
+                                                        key={name}
+                                                        className={
+                                                            localStyles.pill
+                                                        }
+                                                    >
+                                                        {name}
+                                                        <button
+                                                            type="button"
+                                                            className={
+                                                                localStyles.pillRemove
+                                                            }
+                                                            onClick={() =>
+                                                                removeTag(name)
+                                                            }
+                                                        >
+                                                            <IconX
+                                                                size={12}
+                                                                stroke={2}
+                                                            />
+                                                        </button>
+                                                    </span>
+                                                ))}
+                                            </div>
+                                            <div
+                                                className={
+                                                    localStyles.pickerActions
+                                                }
+                                                ref={tagDropdownRef}
+                                            >
+                                                <button
+                                                    type="button"
+                                                    className={
+                                                        localStyles.searchBtn
+                                                    }
+                                                    onClick={() =>
+                                                        setShowTagDropdown(
+                                                            !showTagDropdown
+                                                        )
+                                                    }
+                                                >
+                                                    <IconPlus
+                                                        size={16}
+                                                        stroke={2}
+                                                    />
+                                                </button>
+                                                {showTagDropdown && (
+                                                    <div
+                                                        className={
+                                                            localStyles.dropdown
+                                                        }
+                                                    >
+                                                        <div
+                                                            className={
+                                                                localStyles.dropdownList
+                                                            }
+                                                        >
+                                                            {availableTags.map(
+                                                                (tag) => (
+                                                                    <button
+                                                                        key={
+                                                                            tag.id
+                                                                        }
+                                                                        type="button"
+                                                                        className={`${localStyles.dropdownItem} ${selectedTags.includes(tag.name) ? localStyles.dropdownItemSelected : ''}`}
+                                                                        onClick={() =>
+                                                                            toggleTag(
+                                                                                tag.name
+                                                                            )
+                                                                        }
+                                                                    >
+                                                                        <span>
+                                                                            {
+                                                                                tag.name
+                                                                            }
+                                                                        </span>
+                                                                        {selectedTags.includes(
+                                                                            tag.name
+                                                                        ) && (
+                                                                            <IconCheck
+                                                                                size={
+                                                                                    14
+                                                                                }
+                                                                                stroke={
+                                                                                    2
+                                                                                }
+                                                                            />
+                                                                        )}
+                                                                    </button>
+                                                                )
+                                                            )}
+                                                        </div>
+                                                        <div
+                                                            className={
+                                                                localStyles.dropdownAdd
+                                                            }
+                                                        >
+                                                            <input
+                                                                type="text"
+                                                                placeholder="Add custom..."
+                                                                value={
+                                                                    customTag
+                                                                }
+                                                                onChange={(e) =>
+                                                                    setCustomTag(
+                                                                        e.target
+                                                                            .value
+                                                                    )
+                                                                }
+                                                                onKeyDown={(
+                                                                    e
+                                                                ) =>
+                                                                    e.key ===
+                                                                        'Enter' &&
+                                                                    (e.preventDefault(),
+                                                                    handleAddCustomTag())
+                                                                }
+                                                            />
+                                                            <button
+                                                                type="button"
+                                                                onClick={
+                                                                    handleAddCustomTag
+                                                                }
+                                                            >
+                                                                Add
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div
+                                        className={localStyles.sectionDivider}
+                                    />
+
+                                    <h4 className={localStyles.sectionHeading}>
+                                        Format &amp; Structure
+                                    </h4>
+
+                                    <div className={localStyles.genreThemeRow}>
+                                        <div
+                                            className={
+                                                localStyles.genreThemeCol
+                                            }
+                                        >
+                                            <label>Project Scope</label>
+                                            <div
+                                                className={
+                                                    localStyles.segmentedGroup
+                                                }
+                                            >
+                                                {projectScopes.map((s) => (
+                                                    <button
+                                                        key={s.value}
+                                                        type="button"
+                                                        className={`${localStyles.segmentedBtn} ${projectScope === s.value ? localStyles.segmentedActive : ''}`}
+                                                        onClick={() => {
+                                                            setProjectScope(
+                                                                s.value
+                                                            );
+                                                            setHasChanges(true);
+                                                        }}
+                                                    >
+                                                        {s.label}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                            {projectScope && (
+                                                <span
+                                                    className={
+                                                        localStyles.wordCountHint
+                                                    }
+                                                >
+                                                    Target:{' '}
+                                                    {
+                                                        PROJECT_SCOPE_TARGETS[
+                                                            projectScope
+                                                        ].label
+                                                    }
+                                                </span>
                                             )}
                                         </div>
-                                    </div>
-                                </div>
-
-                                <div className={localStyles.sectionDivider} />
-
-                                <h4 className={localStyles.sectionHeading}>
-                                    Format &amp; Structure
-                                </h4>
-
-                                <div className={localStyles.genreThemeRow}>
-                                    <div className={localStyles.genreThemeCol}>
-                                        <label>Project Scope</label>
                                         <div
                                             className={
-                                                localStyles.segmentedGroup
+                                                localStyles.genreThemeCol
                                             }
                                         >
-                                            {projectScopes.map((s) => (
-                                                <button
-                                                    key={s.value}
-                                                    type="button"
-                                                    className={`${localStyles.segmentedBtn} ${projectScope === s.value ? localStyles.segmentedActive : ''}`}
-                                                    onClick={() => {
-                                                        setProjectScope(
-                                                            s.value
-                                                        );
-                                                        setHasChanges(true);
-                                                    }}
-                                                >
-                                                    {s.label}
-                                                </button>
-                                            ))}
-                                        </div>
-                                        {projectScope && (
-                                            <span
+                                            <label>Pacing</label>
+                                            <div
                                                 className={
-                                                    localStyles.wordCountHint
+                                                    localStyles.segmentedGroup
                                                 }
                                             >
-                                                Target:{' '}
-                                                {
-                                                    PROJECT_SCOPE_TARGETS[
-                                                        projectScope
-                                                    ].label
-                                                }
-                                            </span>
-                                        )}
+                                                {pacingOptions.map((o) => (
+                                                    <button
+                                                        key={o.value}
+                                                        type="button"
+                                                        className={`${localStyles.segmentedBtn} ${pacing === o.value ? localStyles.segmentedActive : ''}`}
+                                                        onClick={() => {
+                                                            setPacing(o.value);
+                                                            setHasChanges(true);
+                                                        }}
+                                                    >
+                                                        {o.label}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
                                     </div>
-                                    <div className={localStyles.genreThemeCol}>
-                                        <label>Pacing</label>
+
+                                    <div className={styles.formGroup}>
+                                        <label>Point of View (POV)</label>
                                         <div
                                             className={
                                                 localStyles.segmentedGroup
                                             }
                                         >
-                                            {pacingOptions.map((o) => (
+                                            {povOptions.map((o) => (
                                                 <button
                                                     key={o.value}
                                                     type="button"
-                                                    className={`${localStyles.segmentedBtn} ${pacing === o.value ? localStyles.segmentedActive : ''}`}
+                                                    className={`${localStyles.segmentedBtn} ${pov === o.value ? localStyles.segmentedActive : ''}`}
                                                     onClick={() => {
-                                                        setPacing(o.value);
+                                                        setPov(o.value);
                                                         setHasChanges(true);
                                                     }}
                                                 >
@@ -1406,128 +1501,91 @@ export default function ProjectManager({
                                             ))}
                                         </div>
                                     </div>
-                                </div>
 
-                                <div className={styles.formGroup}>
-                                    <label>Point of View (POV)</label>
-                                    <div className={localStyles.segmentedGroup}>
-                                        {povOptions.map((o) => (
-                                            <button
-                                                key={o.value}
-                                                type="button"
-                                                className={`${localStyles.segmentedBtn} ${pov === o.value ? localStyles.segmentedActive : ''}`}
-                                                onClick={() => {
-                                                    setPov(o.value);
+                                    <div className={localStyles.genreThemeRow}>
+                                        <div
+                                            className={
+                                                localStyles.genreThemeCol
+                                            }
+                                        >
+                                            <label>Work Type</label>
+                                            <select
+                                                value={workType}
+                                                onChange={(e) => {
+                                                    setWorkType(
+                                                        e.target
+                                                            .value as WorkType
+                                                    );
                                                     setHasChanges(true);
                                                 }}
+                                                style={{ width: '100%' }}
                                             >
-                                                {o.label}
-                                            </button>
-                                        ))}
-                                    </div>
-                                </div>
-
-                                <div className={localStyles.genreThemeRow}>
-                                    <div className={localStyles.genreThemeCol}>
-                                        <label>Work Type</label>
-                                        <select
-                                            value={workType}
-                                            onChange={(e) => {
-                                                setWorkType(
-                                                    e.target.value as WorkType
-                                                );
-                                                setHasChanges(true);
-                                            }}
-                                            style={{ width: '100%' }}
-                                        >
-                                            {workTypeOptions.map((o) => (
-                                                <option
-                                                    key={o.value}
-                                                    value={o.value}
-                                                >
-                                                    {o.label}
-                                                </option>
-                                            ))}
-                                        </select>
-                                    </div>
-                                    <div className={localStyles.genreThemeCol}>
-                                        <label>Project Structure</label>
-                                        <select
-                                            value={projectStructure}
-                                            onChange={(e) => {
-                                                setProjectStructure(
-                                                    e.target
-                                                        .value as ProjectStructure
-                                                );
-                                                setHasChanges(true);
-                                            }}
-                                            style={{ width: '100%' }}
-                                        >
-                                            {projectStructureOptions.map(
-                                                (o) => (
+                                                {workTypeOptions.map((o) => (
                                                     <option
                                                         key={o.value}
                                                         value={o.value}
                                                     >
                                                         {o.label}
                                                     </option>
-                                                )
-                                            )}
-                                        </select>
-                                    </div>
-                                </div>
-
-                                <div className={styles.formGroup}>
-                                    <label>Tonal Type</label>
-                                    <input
-                                        type="text"
-                                        value={tonalType}
-                                        onChange={(e) => {
-                                            setTonalType(e.target.value);
-                                            setHasChanges(true);
-                                        }}
-                                        placeholder="e.g. dark, humorous, whimsical..."
-                                    />
-                                </div>
-
-                                <div className={styles.formGroup}>
-                                    <label>Content Rating</label>
-                                    <select
-                                        value={contentRating}
-                                        onChange={(e) => {
-                                            setContentRating(e.target.value);
-                                            setHasChanges(true);
-                                        }}
-                                    >
-                                        {contentRatingOptions.map((o) => (
-                                            <option
-                                                key={o.value}
-                                                value={o.value}
+                                                ))}
+                                            </select>
+                                        </div>
+                                        <div
+                                            className={
+                                                localStyles.genreThemeCol
+                                            }
+                                        >
+                                            <label>Project Structure</label>
+                                            <select
+                                                value={projectStructure}
+                                                onChange={(e) => {
+                                                    setProjectStructure(
+                                                        e.target
+                                                            .value as ProjectStructure
+                                                    );
+                                                    setHasChanges(true);
+                                                }}
+                                                style={{ width: '100%' }}
                                             >
-                                                {o.label}
-                                            </option>
-                                        ))}
-                                    </select>
-                                </div>
+                                                {projectStructureOptions.map(
+                                                    (o) => (
+                                                        <option
+                                                            key={o.value}
+                                                            value={o.value}
+                                                        >
+                                                            {o.label}
+                                                        </option>
+                                                    )
+                                                )}
+                                            </select>
+                                        </div>
+                                    </div>
 
-                                <div className={localStyles.genreThemeRow}>
-                                    <div className={localStyles.genreThemeCol}>
-                                        <label>Target Age</label>
-                                        <select
-                                            value={targetAge ?? ''}
+                                    <div className={styles.formGroup}>
+                                        <label>Tonal Type</label>
+                                        <input
+                                            type="text"
+                                            value={tonalType}
                                             onChange={(e) => {
-                                                setTargetAge(
-                                                    (e.target.value ||
-                                                        null) as TargetAgeGroup | null
+                                                setTonalType(e.target.value);
+                                                setHasChanges(true);
+                                            }}
+                                            placeholder="e.g. dark, humorous, whimsical..."
+                                        />
+                                    </div>
+
+                                    <div className={styles.formGroup}>
+                                        <label>Content Rating</label>
+                                        <select
+                                            value={contentRating}
+                                            onChange={(e) => {
+                                                setContentRating(
+                                                    e.target.value
                                                 );
                                                 setHasChanges(true);
                                             }}
-                                            style={{ width: '100%' }}
                                         >
-                                            <option value="">
-                                                Not specified
-                                            </option>
-                                            {targetAgeOptions.map((o) => (
+                                            {contentRatingOptions.map((o) => (
                                                 <option
                                                     key={o.value}
                                                     value={o.value}
@@ -1537,378 +1595,449 @@ export default function ProjectManager({
                                             ))}
                                         </select>
                                     </div>
-                                    <div className={localStyles.genreThemeCol}>
-                                        <label>Status</label>
-                                        <select
-                                            value={projectStatus}
-                                            onChange={(e) => {
-                                                setProjectStatus(
-                                                    e.target
-                                                        .value as ProjectStatus
-                                                );
-                                                setHasChanges(true);
-                                            }}
-                                            style={{ width: '100%' }}
+
+                                    <div className={localStyles.genreThemeRow}>
+                                        <div
+                                            className={
+                                                localStyles.genreThemeCol
+                                            }
                                         >
-                                            {projectStatusOptions.map((o) => (
-                                                <option
-                                                    key={o.value}
-                                                    value={o.value}
-                                                >
-                                                    {o.label}
+                                            <label>Target Age</label>
+                                            <select
+                                                value={targetAge ?? ''}
+                                                onChange={(e) => {
+                                                    setTargetAge(
+                                                        (e.target.value ||
+                                                            null) as TargetAgeGroup | null
+                                                    );
+                                                    setHasChanges(true);
+                                                }}
+                                                style={{ width: '100%' }}
+                                            >
+                                                <option value="">
+                                                    Not specified
                                                 </option>
-                                            ))}
-                                        </select>
+                                                {targetAgeOptions.map((o) => (
+                                                    <option
+                                                        key={o.value}
+                                                        value={o.value}
+                                                    >
+                                                        {o.label}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                        <div
+                                            className={
+                                                localStyles.genreThemeCol
+                                            }
+                                        >
+                                            <label>Status</label>
+                                            <select
+                                                value={projectStatus}
+                                                onChange={(e) => {
+                                                    setProjectStatus(
+                                                        e.target
+                                                            .value as ProjectStatus
+                                                    );
+                                                    setHasChanges(true);
+                                                }}
+                                                style={{ width: '100%' }}
+                                            >
+                                                {projectStatusOptions.map(
+                                                    (o) => (
+                                                        <option
+                                                            key={o.value}
+                                                            value={o.value}
+                                                        >
+                                                            {o.label}
+                                                        </option>
+                                                    )
+                                                )}
+                                            </select>
+                                        </div>
                                     </div>
-                                </div>
 
-                                <div className={localStyles.sectionDivider} />
-
-                                <h4 className={localStyles.sectionHeading}>
-                                    Inspirations &amp; Sources
-                                </h4>
-                                <p
-                                    style={{
-                                        color: '#888',
-                                        fontSize: '0.85em',
-                                        marginBottom: '0.75rem',
-                                    }}
-                                >
-                                    Track the works that influenced this
-                                    project. The AI uses this context to better
-                                    understand your creative references.
-                                </p>
-
-                                {inspirations.length === 0 ? (
                                     <div
+                                        className={localStyles.sectionDivider}
+                                    />
+
+                                    <h4 className={localStyles.sectionHeading}>
+                                        Inspirations &amp; Sources
+                                    </h4>
+                                    <p
                                         style={{
-                                            color: '#666',
-                                            fontSize: '0.9em',
-                                            padding: '0.5rem 0',
-                                        }}
-                                    >
-                                        No inspirations added yet.
-                                    </div>
-                                ) : (
-                                    <div
-                                        style={{
-                                            display: 'flex',
-                                            flexDirection: 'column',
-                                            gap: '0.5rem',
+                                            color: '#888',
+                                            fontSize: '0.85em',
                                             marginBottom: '0.75rem',
                                         }}
                                     >
-                                        {inspirations.map((insp) => (
-                                            <InspirationCard
-                                                key={insp.id}
-                                                inspiration={insp}
-                                                onUpdate={
-                                                    handleUpdateInspiration
-                                                }
-                                                onDelete={
-                                                    handleDeleteInspiration
-                                                }
-                                            />
-                                        ))}
-                                    </div>
-                                )}
+                                        Track the works that influenced this
+                                        project. The AI uses this context to
+                                        better understand your creative
+                                        references.
+                                    </p>
 
-                                <AddInspirationForm
-                                    projectId={project.id}
-                                    onCreate={handleCreateInspiration}
-                                />
-
-                                <div className={localStyles.sectionDivider} />
-
-                                <h4 className={localStyles.sectionHeading}>
-                                    Series
-                                </h4>
-
-                                <div className={styles.formGroup}>
-                                    <label>Assign to Series</label>
-                                    <div
-                                        style={{
-                                            display: 'flex',
-                                            gap: '0.5rem',
-                                            alignItems: 'center',
-                                        }}
-                                    >
-                                        <select
-                                            value={selectedSeriesId || ''}
-                                            onChange={(e) => {
-                                                setSelectedSeriesId(
-                                                    e.target.value || null
-                                                );
-                                                setHasChanges(true);
+                                    {inspirations.length === 0 ? (
+                                        <div
+                                            style={{
+                                                color: '#666',
+                                                fontSize: '0.9em',
+                                                padding: '0.5rem 0',
                                             }}
-                                            style={{ flex: 1 }}
                                         >
-                                            <option value="">
-                                                None (standalone)
-                                            </option>
-                                            {seriesList.map((s) => (
-                                                <option key={s.id} value={s.id}>
-                                                    {s.name}
-                                                    {s.seriesArch
-                                                        ? ` (${s.seriesArch})`
-                                                        : ''}
-                                                </option>
+                                            No inspirations added yet.
+                                        </div>
+                                    ) : (
+                                        <div
+                                            style={{
+                                                display: 'flex',
+                                                flexDirection: 'column',
+                                                gap: '0.5rem',
+                                                marginBottom: '0.75rem',
+                                            }}
+                                        >
+                                            {inspirations.map((insp) => (
+                                                <InspirationCard
+                                                    key={insp.id}
+                                                    inspiration={insp}
+                                                    onUpdate={
+                                                        handleUpdateInspiration
+                                                    }
+                                                    onDelete={
+                                                        handleDeleteInspiration
+                                                    }
+                                                />
                                             ))}
-                                        </select>
-                                        <button
-                                            type="button"
-                                            onClick={() =>
-                                                setShowCreateSeries(true)
-                                            }
+                                        </div>
+                                    )}
+
+                                    <AddInspirationForm
+                                        projectId={project.id}
+                                        onCreate={handleCreateInspiration}
+                                    />
+
+                                    <div
+                                        className={localStyles.sectionDivider}
+                                    />
+
+                                    <h4 className={localStyles.sectionHeading}>
+                                        Series
+                                    </h4>
+
+                                    <div className={styles.formGroup}>
+                                        <label>Assign to Series</label>
+                                        <div
+                                            style={{
+                                                display: 'flex',
+                                                gap: '0.5rem',
+                                                alignItems: 'center',
+                                            }}
                                         >
-                                            New
-                                        </button>
-                                    </div>
-                                    {selectedSeriesId && (
-                                        <div style={{ marginTop: '0.5rem' }}>
+                                            <select
+                                                value={selectedSeriesId || ''}
+                                                onChange={(e) => {
+                                                    setSelectedSeriesId(
+                                                        e.target.value || null
+                                                    );
+                                                    setHasChanges(true);
+                                                }}
+                                                style={{ flex: 1 }}
+                                            >
+                                                <option value="">
+                                                    None (standalone)
+                                                </option>
+                                                {seriesList.map((s) => (
+                                                    <option
+                                                        key={s.id}
+                                                        value={s.id}
+                                                    >
+                                                        {s.name}
+                                                        {s.seriesArch
+                                                            ? ` (${s.seriesArch})`
+                                                            : ''}
+                                                    </option>
+                                                ))}
+                                            </select>
                                             <button
                                                 type="button"
-                                                onClick={() => {
-                                                    setActiveTab('templates');
-                                                }}
-                                                style={{ fontSize: '0.85em' }}
+                                                onClick={() =>
+                                                    setShowCreateSeries(true)
+                                                }
                                             >
-                                                Edit Series Templates
+                                                New
                                             </button>
                                         </div>
-                                    )}
-                                </div>
-
-                                <div className={localStyles.metaInfo}>
-                                    <div className={localStyles.metaRow}>
-                                        <span>Created</span>
-                                        <span>
-                                            {new Date(
-                                                project.createdAt
-                                            ).toLocaleDateString()}
-                                        </span>
-                                    </div>
-                                    <div className={localStyles.metaRow}>
-                                        <span>Last Updated</span>
-                                        <span>
-                                            {new Date(
-                                                project.updatedAt
-                                            ).toLocaleDateString()}
-                                        </span>
-                                    </div>
-                                    {project.path && (
-                                        <div className={localStyles.metaRow}>
-                                            <span>Path</span>
-                                            <span
-                                                className={
-                                                    localStyles.pathValue
-                                                }
+                                        {selectedSeriesId && (
+                                            <div
+                                                style={{ marginTop: '0.5rem' }}
                                             >
-                                                {project.path}
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        setActiveTab(
+                                                            'templates'
+                                                        );
+                                                    }}
+                                                    style={{
+                                                        fontSize: '0.85em',
+                                                    }}
+                                                >
+                                                    Edit Series Templates
+                                                </button>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    <div className={localStyles.metaInfo}>
+                                        <div className={localStyles.metaRow}>
+                                            <span>Created</span>
+                                            <span>
+                                                {new Date(
+                                                    project.createdAt
+                                                ).toLocaleDateString()}
                                             </span>
                                         </div>
-                                    )}
-                                </div>
-
-                                <div className={localStyles.saveRow}>
-                                    <button
-                                        className={localStyles.saveBtn}
-                                        onClick={handleSave}
-                                        disabled={!hasChanges || saving}
-                                    >
-                                        {saving ? 'Saving...' : 'Save Changes'}
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-
-                    {activeTab === 'templates' && (
-                        <div className={localStyles.tabContent}>
-                            <div className={styles.tabPanelHeader}>
-                                <h3>Templates</h3>
-                                <p>
-                                    Manage global, series, and project templates
-                                    for each entry category
-                                </p>
-                            </div>
-                            <div className={styles.tabPanelContent}>
-                                <TemplateManagerTab
-                                    projectId={project.id}
-                                    seriesId={selectedSeriesId}
-                                    onTemplatesChanged={
-                                        onTemplatesChanged ?? (() => {})
-                                    }
-                                    initialCategory={initialCategory}
-                                />
-                            </div>
-                        </div>
-                    )}
-
-                    {activeTab === 'covers' && (
-                        <div className={localStyles.tabContent}>
-                            <div className={styles.tabPanelHeader}>
-                                <h3>Covers</h3>
-                                <p>
-                                    Upload and manage cover images for this
-                                    project
-                                </p>
-                            </div>
-                            <div className={styles.tabPanelContent}>
-                                <div className={localStyles.coversToolbar}>
-                                    <input
-                                        type="file"
-                                        accept="image/*"
-                                        style={{ display: 'none' }}
-                                        id="covers-file-input"
-                                        onChange={async (e) => {
-                                            const file = e.target.files?.[0];
-                                            if (!file || !project) return;
-                                            const reader = new FileReader();
-                                            reader.onload = async () => {
-                                                try {
-                                                    await rpc.request[
-                                                        'db:create-asset'
-                                                    ]({
-                                                        id: crypto.randomUUID(),
-                                                        projectId: project.id,
-                                                        name: file.name,
-                                                        type: file.type,
-                                                        path: reader.result as string,
-                                                        metadata: null,
-                                                    });
-                                                    loadProjectCovers();
-                                                } catch (err) {
-                                                    console.error(
-                                                        'Failed to upload cover:',
-                                                        err
-                                                    );
-                                                }
-                                            };
-                                            reader.readAsDataURL(file);
-                                            e.target.value = '';
-                                        }}
-                                    />
-                                    <button
-                                        className={localStyles.coversAddBtn}
-                                        onClick={() => {
-                                            const el = document.getElementById(
-                                                'covers-file-input'
-                                            ) as HTMLInputElement;
-                                            el?.click();
-                                        }}
-                                    >
-                                        <IconPlus size={16} stroke={2} />
-                                        Add Cover
-                                    </button>
-                                </div>
-
-                                {loadingCovers ? (
-                                    <div className={localStyles.coversLoading}>
-                                        Loading...
-                                    </div>
-                                ) : projectAssets.length === 0 ? (
-                                    <div className={localStyles.coversEmpty}>
-                                        No covers uploaded yet.
-                                    </div>
-                                ) : (
-                                    <div className={localStyles.coversGrid}>
-                                        {projectAssets.map((asset) => {
-                                            const isActive =
-                                                asset.id ===
-                                                project.coverImageId;
-                                            return (
-                                                <div
-                                                    key={asset.id}
-                                                    className={`${localStyles.coverItem} ${isActive ? localStyles.coverItemActive : ''}`}
+                                        <div className={localStyles.metaRow}>
+                                            <span>Last Updated</span>
+                                            <span>
+                                                {new Date(
+                                                    project.updatedAt
+                                                ).toLocaleDateString()}
+                                            </span>
+                                        </div>
+                                        {project.path && (
+                                            <div
+                                                className={localStyles.metaRow}
+                                            >
+                                                <span>Path</span>
+                                                <span
+                                                    className={
+                                                        localStyles.pathValue
+                                                    }
                                                 >
-                                                    {asset.type.startsWith(
-                                                        'image/'
-                                                    ) && asset.path ? (
-                                                        <img
-                                                            src={asset.path}
-                                                            alt={asset.name}
-                                                            className={
-                                                                localStyles.coverThumb
-                                                            }
-                                                        />
-                                                    ) : (
+                                                    {project.path}
+                                                </span>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    <div className={localStyles.saveRow}>
+                                        <button
+                                            className={localStyles.saveBtn}
+                                            onClick={handleSave}
+                                            disabled={!hasChanges || saving}
+                                        >
+                                            {saving
+                                                ? 'Saving...'
+                                                : 'Save Changes'}
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {activeTab === 'templates' && (
+                            <div className={localStyles.tabContent}>
+                                <div className={styles.tabPanelHeader}>
+                                    <h3>Templates</h3>
+                                    <p>
+                                        Manage global, series, and project
+                                        templates for each entry category
+                                    </p>
+                                </div>
+                                <div className={styles.tabPanelContent}>
+                                    <TemplateManagerTab
+                                        projectId={project.id}
+                                        seriesId={selectedSeriesId}
+                                        onTemplatesChanged={
+                                            onTemplatesChanged ?? (() => {})
+                                        }
+                                        initialCategory={initialCategory}
+                                    />
+                                </div>
+                            </div>
+                        )}
+
+                        {activeTab === 'covers' && (
+                            <div className={localStyles.tabContent}>
+                                <div className={styles.tabPanelHeader}>
+                                    <h3>Covers</h3>
+                                    <p>
+                                        Upload and manage cover images for this
+                                        project
+                                    </p>
+                                </div>
+                                <div className={styles.tabPanelContent}>
+                                    <div className={localStyles.coversToolbar}>
+                                        <input
+                                            type="file"
+                                            accept="image/*"
+                                            style={{ display: 'none' }}
+                                            id="covers-file-input"
+                                            onChange={async (e) => {
+                                                const file =
+                                                    e.target.files?.[0];
+                                                if (!file || !project) return;
+                                                const reader = new FileReader();
+                                                reader.onload = async () => {
+                                                    try {
+                                                        await rpc.request[
+                                                            'db:create-asset'
+                                                        ]({
+                                                            id: crypto.randomUUID(),
+                                                            projectId:
+                                                                project.id,
+                                                            name: file.name,
+                                                            type: file.type,
+                                                            path: reader.result as string,
+                                                            metadata: null,
+                                                        });
+                                                        loadProjectCovers();
+                                                    } catch (err) {
+                                                        console.error(
+                                                            'Failed to upload cover:',
+                                                            err
+                                                        );
+                                                    }
+                                                };
+                                                reader.readAsDataURL(file);
+                                                e.target.value = '';
+                                            }}
+                                        />
+                                        <button
+                                            className={localStyles.coversAddBtn}
+                                            onClick={() => {
+                                                const el =
+                                                    document.getElementById(
+                                                        'covers-file-input'
+                                                    ) as HTMLInputElement;
+                                                el?.click();
+                                            }}
+                                        >
+                                            <IconPlus size={16} stroke={2} />
+                                            Add Cover
+                                        </button>
+                                    </div>
+
+                                    {loadingCovers ? (
+                                        <div
+                                            className={
+                                                localStyles.coversLoading
+                                            }
+                                        >
+                                            Loading...
+                                        </div>
+                                    ) : projectAssets.length === 0 ? (
+                                        <div
+                                            className={localStyles.coversEmpty}
+                                        >
+                                            No covers uploaded yet.
+                                        </div>
+                                    ) : (
+                                        <div className={localStyles.coversGrid}>
+                                            {projectAssets.map((asset) => {
+                                                const isActive =
+                                                    asset.id ===
+                                                    project.coverImageId;
+                                                return (
+                                                    <div
+                                                        key={asset.id}
+                                                        className={`${localStyles.coverItem} ${isActive ? localStyles.coverItemActive : ''}`}
+                                                    >
+                                                        {asset.type.startsWith(
+                                                            'image/'
+                                                        ) && asset.path ? (
+                                                            <img
+                                                                src={asset.path}
+                                                                alt={asset.name}
+                                                                className={
+                                                                    localStyles.coverThumb
+                                                                }
+                                                            />
+                                                        ) : (
+                                                            <div
+                                                                className={
+                                                                    localStyles.coverThumbPlaceholder
+                                                                }
+                                                            >
+                                                                {asset.name}
+                                                            </div>
+                                                        )}
                                                         <div
                                                             className={
-                                                                localStyles.coverThumbPlaceholder
+                                                                localStyles.coverItemOverlay
                                                             }
                                                         >
-                                                            {asset.name}
+                                                            <button
+                                                                className={
+                                                                    localStyles.coverSetActiveBtn
+                                                                }
+                                                                onClick={() =>
+                                                                    handleSetActiveCover(
+                                                                        asset.id
+                                                                    )
+                                                                }
+                                                            >
+                                                                {isActive
+                                                                    ? 'Active'
+                                                                    : 'Set as Active'}
+                                                            </button>
                                                         </div>
-                                                    )}
-                                                    <div
-                                                        className={
-                                                            localStyles.coverItemOverlay
-                                                        }
-                                                    >
-                                                        <button
-                                                            className={
-                                                                localStyles.coverSetActiveBtn
-                                                            }
-                                                            onClick={() =>
-                                                                handleSetActiveCover(
-                                                                    asset.id
-                                                                )
-                                                            }
-                                                        >
-                                                            {isActive
-                                                                ? 'Active'
-                                                                : 'Set as Active'}
-                                                        </button>
                                                     </div>
-                                                </div>
-                                            );
-                                        })}
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                    )}
-
-                    {activeTab === 'danger zone' && (
-                        <div className={localStyles.tabContent}>
-                            <div className={styles.tabPanelHeader}>
-                                <h3>Danger Zone</h3>
-                                <p>Irreversible actions for this project</p>
-                            </div>
-                            <div className={styles.tabPanelContent}>
-                                <div className={localStyles.dangerSection}>
-                                    <div className={localStyles.dangerInfo}>
-                                        <IconAlertTriangle
-                                            size={24}
-                                            stroke={2}
-                                        />
-                                        <div>
-                                            <strong>Delete this project</strong>
-                                            <p>
-                                                This will permanently delete "
-                                                {project.name}" and all its data
-                                                (chapters, characters,
-                                                locations, etc.). This action
-                                                cannot be undone.
-                                            </p>
+                                                );
+                                            })}
                                         </div>
-                                    </div>
-                                    <button
-                                        className={localStyles.deleteBtn}
-                                        onClick={() =>
-                                            setShowDeleteConfirm(true)
-                                        }
-                                    >
-                                        <IconTrash size={16} stroke={2} />
-                                        Delete Project
-                                    </button>
+                                    )}
                                 </div>
                             </div>
-                        </div>
-                    )}
-                </div>
-            </div>
+                        )}
+
+                        {activeTab === 'danger zone' && (
+                            <div className={localStyles.tabContent}>
+                                <div className={styles.tabPanelHeader}>
+                                    <h3>Danger Zone</h3>
+                                    <p>Irreversible actions for this project</p>
+                                </div>
+                                <div className={styles.tabPanelContent}>
+                                    <div className={localStyles.dangerSection}>
+                                        <div className={localStyles.dangerInfo}>
+                                            <IconAlertTriangle
+                                                size={24}
+                                                stroke={2}
+                                            />
+                                            <div>
+                                                <strong>
+                                                    Delete this project
+                                                </strong>
+                                                <p>
+                                                    This will permanently delete
+                                                    "{project.name}" and all its
+                                                    data (chapters, characters,
+                                                    locations, etc.). This
+                                                    action cannot be undone.
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <button
+                                            className={localStyles.deleteBtn}
+                                            onClick={() =>
+                                                setShowDeleteConfirm(true)
+                                            }
+                                        >
+                                            <IconTrash size={16} stroke={2} />
+                                            Delete Project
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </>
+            </SplitDialogLayout>
+            <div
+                className={`${styles.dialogContent} ${localStyles.dialogContent}`}
+            ></div>
 
             {showDeleteConfirm && (
                 <SubDialog

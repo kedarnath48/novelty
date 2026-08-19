@@ -5,7 +5,7 @@ import { getRPC } from '../contexts/RPCContext';
 import {
     SETTINGS_DIALOG_TABS,
     SETTINGS_DIALOG_TABS_ICONS,
-    SettingsDialogActiveTab,
+    type SettingsDialogActiveTab,
 } from '../constants/layout_tabs';
 import {
     IconBolt,
@@ -21,9 +21,12 @@ import {
 } from '@tabler/icons-react';
 import type { ProviderType, ProviderConfig } from '../types/index';
 import { getLMStudioModels } from '../services/ai';
-import styles from './projectsDialog.module.css';
 import IconTextSideBar from '../ui/layout/IconTextSideBar';
 import SettingsCard from '../components/cards/SettingsCard';
+
+import styles from './SettingsDialog.module.css';
+import localStyles from './../components/Dialog.module.css';
+import SplitDialogLayout from '../ui/layout/SplitDialogLayout';
 
 interface SettingsRoute {
     tab: SettingsDialogActiveTab;
@@ -47,15 +50,14 @@ function Toggle({
     disabled?: boolean;
 }) {
     return (
-        <label className={styles.toggle}>
+        <>
             <input
                 type="checkbox"
                 checked={checked}
                 onChange={(e) => onChange(e.target.checked)}
                 disabled={disabled}
             />
-            <span className={styles.toggleSlider}></span>
-        </label>
+        </>
     );
 }
 
@@ -65,15 +67,18 @@ function NumberInput({
     min,
     max,
     disabled,
+    id,
 }: {
     value: number;
     onChange: (v: number) => void;
     min?: number;
     max?: number;
     disabled?: boolean;
+    id: string;
 }) {
     return (
         <input
+            id={id}
             type="number"
             value={value}
             onChange={(e) => onChange(Number(e.target.value))}
@@ -104,6 +109,7 @@ function GeneralTab() {
                     <div className={styles.settingRow}>
                         <span>Auto Save Interval (minutes)</span>
                         <NumberInput
+                            id="autoSaveInterval"
                             value={settings.general.autoSaveInterval}
                             onChange={(v) =>
                                 updateGeneral('autoSaveInterval', v)
@@ -128,6 +134,7 @@ function GeneralTab() {
                     <div className={styles.settingRow}>
                         <span>Auto Backup Interval (hours)</span>
                         <NumberInput
+                            id="autoBackupInterval"
                             value={settings.general.autoBackupInterval}
                             onChange={(v) =>
                                 updateGeneral('autoBackupInterval', v)
@@ -150,6 +157,7 @@ function GeneralTab() {
                     <div className={styles.settingRow}>
                         <span>Auto Sync Interval (minutes)</span>
                         <NumberInput
+                            id="autoSyncInterval"
                             value={settings.general.autoSyncInterval}
                             onChange={(v) =>
                                 updateGeneral('autoSyncInterval', v)
@@ -174,6 +182,7 @@ function GeneralTab() {
                     <div className={styles.settingRow}>
                         <span>Auto Update Interval (hours)</span>
                         <NumberInput
+                            id="autoUpdateInterval"
                             value={settings.general.autoUpdateInterval}
                             onChange={(v) =>
                                 updateGeneral('autoUpdateInterval', v)
@@ -257,6 +266,7 @@ function GeneralTab() {
                     <div className={styles.settingRow}>
                         <span>Max Context Tokens</span>
                         <NumberInput
+                            id="maxContextTokens"
                             value={settings.general.maxContextTokens}
                             onChange={(v) =>
                                 updateGeneral('maxContextTokens', v)
@@ -348,6 +358,7 @@ function AppearanceTab() {
                             <div className={styles.settingRow}>
                                 <span>Max Left Sidebar Width (px)</span>
                                 <NumberInput
+                                    id="maxLeftWidth"
                                     value={c.maxLeftWidth}
                                     onChange={(v) =>
                                         updateAppearance('sidebarConstraints', {
@@ -363,6 +374,7 @@ function AppearanceTab() {
                             <div className={styles.settingRow}>
                                 <span>Max Right Sidebar Width (px)</span>
                                 <NumberInput
+                                    id="maxRightWidth"
                                     value={c.maxRightWidth}
                                     onChange={(v) =>
                                         updateAppearance('sidebarConstraints', {
@@ -455,6 +467,7 @@ function AppearanceTab() {
                         <div className={styles.settingRow}>
                             <span>Max Editor Width (px)</span>
                             <NumberInput
+                                id="editorMaxWidth"
                                 value={settings.appearance.editorMaxWidth}
                                 onChange={(v) =>
                                     updateAppearance('editorMaxWidth', v || 800)
@@ -695,6 +708,7 @@ function AssetLibraryTab() {
                     <div className={styles.settingRow}>
                         <span>Cleanup Interval (days)</span>
                         <NumberInput
+                            id="cleanupIntervalDays"
                             value={settings.assetLibrary.cleanupIntervalDays}
                             onChange={(v) =>
                                 updateAssetLibrary('cleanupIntervalDays', v)
@@ -2222,6 +2236,7 @@ function QuotaTab() {
                     <div className={styles.settingRow}>
                         <span>Daily Token Limit</span>
                         <NumberInput
+                            id="dailyTokenLimit"
                             value={settings.general.dailyTokenLimit}
                             onChange={(v) =>
                                 updateGeneral('dailyTokenLimit', v)
@@ -2234,6 +2249,7 @@ function QuotaTab() {
                     <div className={styles.settingRow}>
                         <span>Monthly Token Limit</span>
                         <NumberInput
+                            id="monthlyTokenLimit"
                             value={settings.general.monthlyTokenLimit}
                             onChange={(v) =>
                                 updateGeneral('monthlyTokenLimit', v)
@@ -2246,6 +2262,7 @@ function QuotaTab() {
                     <div className={styles.settingRow}>
                         <span>Daily Request Limit</span>
                         <NumberInput
+                            id="dailyRequestLimit"
                             value={settings.general.dailyRequestLimit}
                             onChange={(v) =>
                                 updateGeneral('dailyRequestLimit', v)
@@ -2258,7 +2275,8 @@ function QuotaTab() {
                     <div className={styles.settingRow}>
                         <span>Monthly Request Limit</span>
                         <NumberInput
-                            value={settings.general.monthlyRequestLimit}
+                            id="dailyRequestLimit"
+                            value={settings.general.dailyRequestLimit}
                             onChange={(v) =>
                                 updateGeneral('monthlyRequestLimit', v)
                             }
@@ -2433,14 +2451,63 @@ function StorageTab() {
 }
 
 function AboutTab() {
+    const PROJECTS = [
+        {
+            label: 'Novelty',
+            link: '',
+        },
+        {
+            label: 'Kotatsu',
+            link: '',
+        },
+        {
+            label: 'Booknmarks Curator',
+            link: '',
+        },
+        {
+            label: 'Project Registry',
+            link: '',
+        },
+        {
+            label: 'Ai Studio',
+            link: '',
+        },
+        {
+            label: 'Universal Downloader',
+            link: '',
+        },
+    ];
     return (
         <>
-            <h4>Application Information</h4>
+            <div className={styles.settingsSectionLabel}>
+                Application Information
+            </div>
             <p>Version: 0.0.1</p>
             <p>License: MIT</p>
             <p>Author: Eon</p>
-            <p>Website: https://eon.com</p>
+            <p>
+                Website:{' '}
+                <a href="https://github.com/wrlokKarna/novelty">Github</a>
+            </p>
             <p>License: MIT</p>
+            <div className={styles.settingsSectionLabel}>
+                More from NullSoft
+            </div>
+            <ol
+                style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'auto 1fr',
+                    gap: '20px',
+                }}
+            >
+                {PROJECTS.map((proj) => (
+                    <li>
+                        <a href={proj.link !== '' ? proj.link : '#'}>
+                            {proj.label}
+                        </a>
+                    </li>
+                ))}
+            </ol>
         </>
     );
 }
@@ -2495,67 +2562,70 @@ export default function SettingsDialog({
             onClose={onClose}
             title="Settings"
             large
-            id="settingsDialog"
+            id={styles.settingsDialog}
         >
-            <div className={styles.dialogContent}>
-                <div className={styles.sideBar}>
+            <SplitDialogLayout>
+                <>
                     {/*
 						<div className="sideBar-header">
 							<h2>Settings</h2>
 						</div>
-					*/}
+					
+                    sideBarContent
+                    */}
                     <IconTextSideBar
                         activeTab={activeTab}
                         setActiveTab={setActiveTab}
                         tabsArray={SETTINGS_DIALOG_TABS}
                         iconsArray={SETTINGS_DIALOG_TABS_ICONS}
                     />
-                    <div className={styles.sideBarContent}></div>
-                </div>
-                <div className={styles.tabPanel}>
-                    <div className={styles.tabPanelHeader}>
-                        <input
-                            type="search"
-                            name=""
-                            placeholder="Find in Settings"
-                            id=""
-                            style={{
-                                width: '100%',
-                                marginBottom: '14px',
-                            }}
-                        />
-                        <h3
-                            style={{
-                                textTransform: 'capitalize',
-                                marginLeft: '16px',
-                            }}
-                        >
-                            {
-                                SETTINGS_DIALOG_TABS.find(
-                                    (tab) => tab.label === activeTab
-                                )?.label
-                            }
-                        </h3>
-                        <p style={{ display: 'none' }}>
-                            {
-                                SETTINGS_DIALOG_TABS.find(
-                                    (tab) => tab.label === activeTab
-                                )?.description
-                            }
-                        </p>
-                    </div>
 
-                    {activeTab === 'general' && <GeneralTab />}
-                    {activeTab === 'appearance' && <AppearanceTab />}
-                    {activeTab === 'projects' && <ProjectsTab />}
-                    {activeTab === 'asset library' && <AssetLibraryTab />}
-                    {activeTab === 'providers' && <ProvidersTab />}
-                    {activeTab === 'embeddings' && <EmbeddingsTab />}
-                    {activeTab === 'quota & usage' && <QuotaTab />}
-                    {activeTab === 'storage' && <StorageTab />}
-                    {activeTab === 'about' && <AboutTab />}
-                </div>
-            </div>
+                    <div className={localStyles.tabPanel}>
+                        <div className={styles.tabPanelHeader}>
+                            <input
+                                type="search"
+                                name=""
+                                placeholder="Find in Settings"
+                                id=""
+                                style={{
+                                    width: '100%',
+                                    marginBottom: '14px',
+                                }}
+                            />
+                            <h3
+                                style={{
+                                    textTransform: 'capitalize',
+                                    marginLeft: '16px',
+                                }}
+                            >
+                                {
+                                    SETTINGS_DIALOG_TABS.find(
+                                        (tab) => tab.label === activeTab
+                                    )?.label
+                                }
+                            </h3>
+                            <p style={{ display: 'none' }}>
+                                {
+                                    SETTINGS_DIALOG_TABS.find(
+                                        (tab) => tab.label === activeTab
+                                    )?.description
+                                }
+                            </p>
+                        </div>
+
+                        {activeTab === 'general' && <GeneralTab />}
+                        {activeTab === 'appearance' && <AppearanceTab />}
+                        {activeTab === 'projects' && <ProjectsTab />}
+                        {activeTab === 'asset library' && <AssetLibraryTab />}
+                        {activeTab === 'providers' && <ProvidersTab />}
+                        {activeTab === 'embeddings' && <EmbeddingsTab />}
+                        {activeTab === 'quota & usage' && <QuotaTab />}
+                        {activeTab === 'storage' && <StorageTab />}
+                        {activeTab === 'about' && <AboutTab />}
+                    </div>
+                </>
+            </SplitDialogLayout>
+            <div className={styles.dialogContent}></div>
         </Dialog>
     );
 }

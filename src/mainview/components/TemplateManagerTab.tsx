@@ -1559,7 +1559,7 @@ export default function TemplateManagerTab({
                             '[series temp]',
                             seriesTemplates,
                             activeCat,
-                            seriesTemplates[0].globalTemplateId
+                            seriesTemplates?.[0]?.globalTemplateId
                         );
                         return (
                             <div
@@ -1570,7 +1570,7 @@ export default function TemplateManagerTab({
                                     padding: '0.25rem 0.25rem 0.5rem',
                                 }}
                             >
-                                {!seriesTemplates[0].globalTemplateId ? (
+                                {!seriesTemplates?.[0]?.globalTemplateId ? (
                                     <CollapsibleSection
                                         title="Global Template"
                                         collapsed={isSectionCollapsed(

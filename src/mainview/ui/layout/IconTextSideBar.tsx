@@ -1,5 +1,5 @@
 import React from 'react';
-import styles from '../../dialogs/projectsDialog.module.css';
+import styles from './IconTextSideBar.module.css';
 
 type Props<T extends string> = {
     activeTab: T;
@@ -19,7 +19,7 @@ export default function IconTextSideBar<T extends string>({
     iconsArray = [],
 }: Props<T>) {
     return (
-        <>
+        <div className={styles.sideBar}>
             {tabsArray.map((t, index) => {
                 const TabIcon = iconsArray[index];
 
@@ -38,6 +38,6 @@ export default function IconTextSideBar<T extends string>({
                     </button>
                 );
             })}
-        </>
+        </div>
     );
 }
