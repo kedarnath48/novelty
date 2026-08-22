@@ -519,23 +519,6 @@
     font-size: 14px;
 }
 
-.providerSection {
-    margin-top: 20px;
-
-    h3 {
-        margin: 0 0 12px 0;
-        color: #ddd;
-    }
-}
-
-.providerCard {
-    background: #1a1b1c;
-    border: 1px solid #393a3b;
-    border-radius: 8px;
-    padding: 16px;
-    margin-bottom: 12px;
-}
-
 .providerHeader {
     display: flex;
     justify-content: space-between;
