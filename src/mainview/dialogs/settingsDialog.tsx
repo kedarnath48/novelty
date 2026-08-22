@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, act } from 'react';
 import Dialog from '../components/Dialog';
 import { useSettings } from '../contexts/SettingsContext';
 import { getRPC } from '../contexts/RPCContext';
@@ -27,6 +27,8 @@ import SettingsCard from '../components/cards/SettingsCard';
 import styles from './SettingsDialog.module.css';
 import localStyles from './../components/Dialog.module.css';
 import SplitDialogLayout from '../ui/layout/SplitDialogLayout';
+
+import ProviderCard from './../components/cards/ProviderCard';
 
 interface SettingsRoute {
     tab: SettingsDialogActiveTab;
@@ -1209,6 +1211,14 @@ function ProvidersTab() {
                 </select>
             </div>
 
+            <div className={styles.settingsRow}>
+                <span>model alias</span>
+                <select style={{ marginLeft: 'auto' }}>
+                    <option value="alias">Alias only</option>
+                    <option value="both">Alias + Name</option>
+                </select>
+            </div>
+
             <div className={styles.providerSection}>
                 <div className={styles.providerSectionHeader}>
                     <h3>Providers</h3>
@@ -1221,406 +1231,66 @@ function ProvidersTab() {
                 </div>
 
                 {showNewProvider && (
-                    <div className={styles.providerCard}>
-                        <div className={styles.providerCardHeader}>
-                            <Toggle
-                                checked={false}
-                                onChange={() => {}}
-                                disabled
-                            />
-                            <div className={styles.providerStatus}></div>
-                            <input
-                                type="text"
-                                value={previewId}
-                                onChange={(e) => setPreviewId(e.target.value)}
-                                placeholder="Provider ID"
-                                className={styles.textInputSmall}
-                                style={{ flex: 1, minWidth: 0 }}
-                            />
-                            {renderTypeSelect(previewConfig.type, (t) =>
-                                setPreviewConfig({
-                                    ...previewConfig,
-                                    type: t,
-                                    endpoint:
-                                        parseServerUrl(
-                                            previewConfig.endpoint,
-                                            previewConfig.type
-                                        ) + getEndpointPath(t),
-                                })
-                            )}
-                            <button
-                                title="Test connection"
-                                disabled
-                                className={styles.iconBtnSmall}
-                            >
-                                <IconBolt stroke={2} size={18} />
-                            </button>
-                        </div>
-                        <div className={styles.providerFields}>
-                            {renderServerUrlRow(
-                                previewConfig.endpoint,
-                                previewConfig.type,
-                                (ep) =>
-                                    setPreviewConfig({
-                                        ...previewConfig,
-                                        endpoint: ep,
-                                    })
-                            )}
-                            {renderApiKeySection(
-                                previewConfig.apiKey,
-                                previewApiKeyDraft,
-                                setPreviewApiKeyDraft,
-                                () =>
-                                    setPreviewConfig({
-                                        ...previewConfig,
-                                        apiKey: previewApiKeyDraft,
-                                    }),
-                                previewShowApiKey,
-                                () => setPreviewShowApiKey((v) => !v)
-                            )}
-                            <div
-                                style={{
-                                    display: 'flex',
-                                    flexDirection: 'column',
-                                    gap: 8,
-                                }}
-                            >
-                                <div
-                                    style={{
-                                        display: 'flex',
-                                        justifyContent: 'space-between',
-                                        alignItems: 'center',
-                                    }}
-                                >
-                                    <span
-                                        style={{
-                                            fontSize: '0.85rem',
-                                            color: 'var(--text-secondary)',
-                                        }}
-                                    >
-                                        Models
-                                    </span>
-                                    <button
-                                        title="Get models"
-                                        onClick={() =>
-                                            handleGetModels(
-                                                '__preview__',
-                                                previewConfig.endpoint
-                                            )
-                                        }
-                                        disabled={!previewConfig.endpoint}
-                                        className={styles.btnSmall}
-                                    >
-                                        Get Models
-                                    </button>
-                                </div>
-                                {previewConfig.models &&
-                                    Object.keys(previewConfig.models).length >
-                                        0 && (
-                                        <div
-                                            style={{
-                                                display: 'flex',
-                                                flexWrap: 'wrap',
-                                                gap: 4,
-                                            }}
-                                        >
-                                            {Object.keys(
-                                                previewConfig.models
-                                            ).map((m) => {
-                                                const entry =
-                                                    previewConfig.models?.[m];
-                                                const enabled = entry
-                                                    ? typeof entry === 'boolean'
-                                                        ? entry
-                                                        : entry.enabled
-                                                    : false;
-                                                const alias =
-                                                    typeof entry === 'object'
-                                                        ? entry.alias
-                                                        : undefined;
-                                                const isEditing =
-                                                    editingAlias?.providerId ===
-                                                        '__preview__' &&
-                                                    editingAlias?.modelName ===
-                                                        m;
-                                                const displayMode =
-                                                    previewConfig.modelDisplayMode ??
-                                                    settings?.providers
-                                                        .modelDisplayMode ??
-                                                    'alias';
-                                                return (
-                                                    <div
-                                                        key={m}
-                                                        style={{
-                                                            display:
-                                                                'inline-flex',
-                                                            alignItems:
-                                                                'center',
-                                                            gap: 4,
-                                                        }}
-                                                    >
-                                                        <button
-                                                            type="button"
-                                                            className={`${styles.modelBtn}${
-                                                                enabled
-                                                                    ? ` ${styles.modelBtnActive}`
-                                                                    : ''
-                                                            }`}
-                                                            onClick={() =>
-                                                                setPreviewConfig(
-                                                                    {
-                                                                        ...previewConfig,
-                                                                        models: {
-                                                                            ...previewConfig.models,
-                                                                            [m]: {
-                                                                                enabled:
-                                                                                    !enabled,
-                                                                                alias,
-                                                                            },
-                                                                        },
-                                                                    }
-                                                                )
-                                                            }
-                                                        >
-                                                            {getModelLabel(
-                                                                m,
-                                                                alias,
-                                                                displayMode
-                                                            )}
-                                                        </button>
-                                                        {isEditing ? (
-                                                            <div
-                                                                style={{
-                                                                    position:
-                                                                        'relative',
-                                                                    display:
-                                                                        'inline-flex',
-                                                                    alignItems:
-                                                                        'center',
-                                                                }}
-                                                            >
-                                                                <input
-                                                                    type="text"
-                                                                    value={
-                                                                        editingAlias.draft
-                                                                    }
-                                                                    onChange={(
-                                                                        e
-                                                                    ) =>
-                                                                        setEditingAlias(
-                                                                            (
-                                                                                prev
-                                                                            ) =>
-                                                                                prev
-                                                                                    ? {
-                                                                                          ...prev,
-                                                                                          draft: e
-                                                                                              .target
-                                                                                              .value,
-                                                                                      }
-                                                                                    : null
-                                                                        )
-                                                                    }
-                                                                    className={
-                                                                        styles.textInputSmall
-                                                                    }
-                                                                    style={{
-                                                                        width: 140,
-                                                                        paddingRight: 28,
-                                                                    }}
-                                                                    autoFocus
-                                                                />
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={() => {
-                                                                        setPreviewConfig(
-                                                                            {
-                                                                                ...previewConfig,
-                                                                                models: {
-                                                                                    ...previewConfig.models,
-                                                                                    [m]: {
-                                                                                        enabled,
-                                                                                        alias:
-                                                                                            editingAlias.draft ||
-                                                                                            undefined,
-                                                                                    },
-                                                                                },
-                                                                            }
-                                                                        );
-                                                                        setEditingAlias(
-                                                                            null
-                                                                        );
-                                                                    }}
-                                                                    style={{
-                                                                        position:
-                                                                            'absolute',
-                                                                        right: 4,
-                                                                        background:
-                                                                            'none',
-                                                                        border: 'none',
-                                                                        color: '#4A9EFF',
-                                                                        cursor: 'pointer',
-                                                                        padding: 2,
-                                                                        display:
-                                                                            'flex',
-                                                                    }}
-                                                                >
-                                                                    <IconCheck
-                                                                        size={
-                                                                            14
-                                                                        }
-                                                                    />
-                                                                </button>
-                                                            </div>
-                                                        ) : null}
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => {
-                                                                if (isEditing) {
-                                                                    setEditingAlias(
-                                                                        null
-                                                                    );
-                                                                } else {
-                                                                    setEditingAlias(
-                                                                        {
-                                                                            providerId:
-                                                                                '__preview__',
-                                                                            modelName:
-                                                                                m,
-                                                                            draft:
-                                                                                alias ||
-                                                                                '',
-                                                                        }
-                                                                    );
-                                                                }
-                                                            }}
-                                                            className={
-                                                                styles.iconBtnSmall
-                                                            }
-                                                            title={
-                                                                isEditing
-                                                                    ? 'Cancel'
-                                                                    : 'Edit alias'
-                                                            }
-                                                        >
-                                                            {isEditing ? (
-                                                                <IconX
-                                                                    size={14}
-                                                                />
-                                                            ) : (
-                                                                <IconEdit
-                                                                    size={14}
-                                                                />
-                                                            )}
-                                                        </button>
-                                                    </div>
-                                                );
-                                            })}
-                                        </div>
-                                    )}
-                            </div>
-                        </div>
-                        <div
-                            className={styles.pathRow}
-                            style={{ marginTop: 8 }}
-                        >
-                            <button
-                                onClick={addPreviewProvider}
-                                disabled={isLocked || !previewId.trim()}
-                                className={styles.btn}
-                            >
-                                Add
-                            </button>
-                        </div>
-                    </div>
-                )}
-
-                {Object.entries(settings.providers.configs).map(
-                    ([id, config]) => (
-                        <div key={id} className={styles.providerCard}>
+                    <>
+                        <ProviderCard cardType="add" />
+                        <div className={styles.providerCard}>
                             <div className={styles.providerCardHeader}>
                                 <Toggle
-                                    checked={config.enabled}
-                                    onChange={(v) =>
-                                        updateProviderConfig(id, {
-                                            ...config,
-                                            enabled: v,
-                                        })
-                                    }
-                                    disabled={isLocked}
+                                    checked={false}
+                                    onChange={() => {}}
+                                    disabled
                                 />
                                 <div className={styles.providerStatus}></div>
-                                <span className={styles.providerCardName}>
-                                    {id}
-                                </span>
-                                {renderTypeSelect(
-                                    config.type,
-                                    (t) =>
-                                        updateProviderConfig(id, {
-                                            ...config,
-                                            type: t,
-                                            endpoint:
-                                                parseServerUrl(
-                                                    config.endpoint,
-                                                    config.type
-                                                ) + getEndpointPath(t),
-                                        }),
-                                    isLocked
+                                <input
+                                    type="text"
+                                    value={previewId}
+                                    onChange={(e) =>
+                                        setPreviewId(e.target.value)
+                                    }
+                                    placeholder="Provider ID"
+                                    className={styles.textInputSmall}
+                                    style={{ flex: 1, minWidth: 0 }}
+                                />
+                                {renderTypeSelect(previewConfig.type, (t) =>
+                                    setPreviewConfig({
+                                        ...previewConfig,
+                                        type: t,
+                                        endpoint:
+                                            parseServerUrl(
+                                                previewConfig.endpoint,
+                                                previewConfig.type
+                                            ) + getEndpointPath(t),
+                                    })
                                 )}
                                 <button
                                     title="Test connection"
-                                    onClick={() =>
-                                        console.log('test connection', id)
-                                    }
+                                    disabled
                                     className={styles.iconBtnSmall}
                                 >
                                     <IconBolt stroke={2} size={18} />
                                 </button>
-                                <button
-                                    onClick={() => deleteProvider(id)}
-                                    disabled={isLocked}
-                                    className={`${styles.iconBtnSmall} ${styles.deleteBtn}`}
-                                    title="Delete provider"
-                                >
-                                    <IconTrash stroke={2} size={18} />
-                                </button>
                             </div>
                             <div className={styles.providerFields}>
                                 {renderServerUrlRow(
-                                    config.endpoint,
-                                    config.type,
+                                    previewConfig.endpoint,
+                                    previewConfig.type,
                                     (ep) =>
-                                        updateProviderConfig(id, {
-                                            ...config,
+                                        setPreviewConfig({
+                                            ...previewConfig,
                                             endpoint: ep,
-                                        }),
-                                    isLocked
+                                        })
                                 )}
                                 {renderApiKeySection(
-                                    config.apiKey,
-                                    id in apiKeyDrafts
-                                        ? apiKeyDrafts[id]
-                                        : config.apiKey || '',
-                                    (v) =>
-                                        setApiKeyDrafts((prev) => ({
-                                            ...prev,
-                                            [id]: v,
-                                        })),
+                                    previewConfig.apiKey,
+                                    previewApiKeyDraft,
+                                    setPreviewApiKeyDraft,
                                     () =>
-                                        updateProviderConfig(id, {
-                                            ...config,
-                                            apiKey:
-                                                id in apiKeyDrafts
-                                                    ? apiKeyDrafts[id]
-                                                    : config.apiKey,
+                                        setPreviewConfig({
+                                            ...previewConfig,
+                                            apiKey: previewApiKeyDraft,
                                         }),
-                                    showApiKeys[id] || false,
-                                    () =>
-                                        setShowApiKeys((prev) => ({
-                                            ...prev,
-                                            [id]: !prev[id],
-                                        })),
-                                    isLocked
+                                    previewShowApiKey,
+                                    () => setPreviewShowApiKey((v) => !v)
                                 )}
                                 <div
                                     style={{
@@ -1648,65 +1318,425 @@ function ProvidersTab() {
                                             title="Get models"
                                             onClick={() =>
                                                 handleGetModels(
-                                                    id,
-                                                    config.endpoint
+                                                    '__preview__',
+                                                    previewConfig.endpoint
                                                 )
                                             }
-                                            disabled={
-                                                isLocked || !config.endpoint
-                                            }
+                                            disabled={!previewConfig.endpoint}
                                             className={styles.btnSmall}
                                         >
                                             Get Models
                                         </button>
                                     </div>
+                                    {previewConfig.models &&
+                                        Object.keys(previewConfig.models)
+                                            .length > 0 && (
+                                            <div
+                                                style={{
+                                                    display: 'flex',
+                                                    flexWrap: 'wrap',
+                                                    gap: 4,
+                                                }}
+                                            >
+                                                {Object.keys(
+                                                    previewConfig.models
+                                                ).map((m) => {
+                                                    const entry =
+                                                        previewConfig.models?.[
+                                                            m
+                                                        ];
+                                                    const enabled = entry
+                                                        ? typeof entry ===
+                                                          'boolean'
+                                                            ? entry
+                                                            : entry.enabled
+                                                        : false;
+                                                    const alias =
+                                                        typeof entry ===
+                                                        'object'
+                                                            ? entry.alias
+                                                            : undefined;
+                                                    const isEditing =
+                                                        editingAlias?.providerId ===
+                                                            '__preview__' &&
+                                                        editingAlias?.modelName ===
+                                                            m;
+                                                    const displayMode =
+                                                        previewConfig.modelDisplayMode ??
+                                                        settings?.providers
+                                                            .modelDisplayMode ??
+                                                        'alias';
+                                                    return (
+                                                        <div
+                                                            key={m}
+                                                            style={{
+                                                                display:
+                                                                    'inline-flex',
+                                                                alignItems:
+                                                                    'center',
+                                                                gap: 4,
+                                                            }}
+                                                        >
+                                                            <button
+                                                                type="button"
+                                                                className={`${styles.modelBtn}${
+                                                                    enabled
+                                                                        ? ` ${styles.modelBtnActive}`
+                                                                        : ''
+                                                                }`}
+                                                                onClick={() =>
+                                                                    setPreviewConfig(
+                                                                        {
+                                                                            ...previewConfig,
+                                                                            models: {
+                                                                                ...previewConfig.models,
+                                                                                [m]: {
+                                                                                    enabled:
+                                                                                        !enabled,
+                                                                                    alias,
+                                                                                },
+                                                                            },
+                                                                        }
+                                                                    )
+                                                                }
+                                                            >
+                                                                {getModelLabel(
+                                                                    m,
+                                                                    alias,
+                                                                    displayMode
+                                                                )}
+                                                            </button>
+                                                            {isEditing ? (
+                                                                <div
+                                                                    style={{
+                                                                        position:
+                                                                            'relative',
+                                                                        display:
+                                                                            'inline-flex',
+                                                                        alignItems:
+                                                                            'center',
+                                                                    }}
+                                                                >
+                                                                    <input
+                                                                        type="text"
+                                                                        value={
+                                                                            editingAlias.draft
+                                                                        }
+                                                                        onChange={(
+                                                                            e
+                                                                        ) =>
+                                                                            setEditingAlias(
+                                                                                (
+                                                                                    prev
+                                                                                ) =>
+                                                                                    prev
+                                                                                        ? {
+                                                                                              ...prev,
+                                                                                              draft: e
+                                                                                                  .target
+                                                                                                  .value,
+                                                                                          }
+                                                                                        : null
+                                                                            )
+                                                                        }
+                                                                        className={
+                                                                            styles.textInputSmall
+                                                                        }
+                                                                        style={{
+                                                                            width: 140,
+                                                                            paddingRight: 28,
+                                                                        }}
+                                                                        autoFocus
+                                                                    />
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => {
+                                                                            setPreviewConfig(
+                                                                                {
+                                                                                    ...previewConfig,
+                                                                                    models: {
+                                                                                        ...previewConfig.models,
+                                                                                        [m]: {
+                                                                                            enabled,
+                                                                                            alias:
+                                                                                                editingAlias.draft ||
+                                                                                                undefined,
+                                                                                        },
+                                                                                    },
+                                                                                }
+                                                                            );
+                                                                            setEditingAlias(
+                                                                                null
+                                                                            );
+                                                                        }}
+                                                                        style={{
+                                                                            position:
+                                                                                'absolute',
+                                                                            right: 4,
+                                                                            background:
+                                                                                'none',
+                                                                            border: 'none',
+                                                                            color: '#4A9EFF',
+                                                                            cursor: 'pointer',
+                                                                            padding: 2,
+                                                                            display:
+                                                                                'flex',
+                                                                        }}
+                                                                    >
+                                                                        <IconCheck
+                                                                            size={
+                                                                                14
+                                                                            }
+                                                                        />
+                                                                    </button>
+                                                                </div>
+                                                            ) : null}
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => {
+                                                                    if (
+                                                                        isEditing
+                                                                    ) {
+                                                                        setEditingAlias(
+                                                                            null
+                                                                        );
+                                                                    } else {
+                                                                        setEditingAlias(
+                                                                            {
+                                                                                providerId:
+                                                                                    '__preview__',
+                                                                                modelName:
+                                                                                    m,
+                                                                                draft:
+                                                                                    alias ||
+                                                                                    '',
+                                                                            }
+                                                                        );
+                                                                    }
+                                                                }}
+                                                                className={
+                                                                    styles.iconBtnSmall
+                                                                }
+                                                                title={
+                                                                    isEditing
+                                                                        ? 'Cancel'
+                                                                        : 'Edit alias'
+                                                                }
+                                                            >
+                                                                {isEditing ? (
+                                                                    <IconX
+                                                                        size={
+                                                                            14
+                                                                        }
+                                                                    />
+                                                                ) : (
+                                                                    <IconEdit
+                                                                        size={
+                                                                            14
+                                                                        }
+                                                                    />
+                                                                )}
+                                                            </button>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        )}
+                                </div>
+                            </div>
+                            <div
+                                className={styles.pathRow}
+                                style={{ marginTop: 8 }}
+                            >
+                                <button
+                                    onClick={addPreviewProvider}
+                                    disabled={isLocked || !previewId.trim()}
+                                    className={styles.btn}
+                                >
+                                    Add
+                                </button>
+                            </div>
+                        </div>
+                    </>
+                )}
+
+                {Object.entries(settings.providers.configs).map(
+                    ([id, config]) => (
+                        <>
+                            <ProviderCard cardData={{ id, config }} />
+                            <div key={id} className={styles.providerCard}>
+                                <div className={styles.providerCardHeader}>
+                                    <Toggle
+                                        checked={config.enabled}
+                                        onChange={(v) =>
+                                            updateProviderConfig(id, {
+                                                ...config,
+                                                enabled: v,
+                                            })
+                                        }
+                                        disabled={isLocked}
+                                    />
+                                    <div
+                                        className={styles.providerStatus}
+                                    ></div>
+                                    <span className={styles.providerCardName}>
+                                        {id}
+                                    </span>
+                                    {renderTypeSelect(
+                                        config.type,
+                                        (t) =>
+                                            updateProviderConfig(id, {
+                                                ...config,
+                                                type: t,
+                                                endpoint:
+                                                    parseServerUrl(
+                                                        config.endpoint,
+                                                        config.type
+                                                    ) + getEndpointPath(t),
+                                            }),
+                                        isLocked
+                                    )}
+                                    <button
+                                        title="Test connection"
+                                        onClick={() =>
+                                            console.log('test connection', id)
+                                        }
+                                        className={styles.iconBtnSmall}
+                                    >
+                                        <IconBolt stroke={2} size={18} />
+                                    </button>
+                                    <button
+                                        onClick={() => deleteProvider(id)}
+                                        disabled={isLocked}
+                                        className={`${styles.iconBtnSmall} ${styles.deleteBtn}`}
+                                        title="Delete provider"
+                                    >
+                                        <IconTrash stroke={2} size={18} />
+                                    </button>
+                                </div>
+                                <div className={styles.providerFields}>
+                                    {renderServerUrlRow(
+                                        config.endpoint,
+                                        config.type,
+                                        (ep) =>
+                                            updateProviderConfig(id, {
+                                                ...config,
+                                                endpoint: ep,
+                                            }),
+                                        isLocked
+                                    )}
+                                    {renderApiKeySection(
+                                        config.apiKey,
+                                        id in apiKeyDrafts
+                                            ? apiKeyDrafts[id]
+                                            : config.apiKey || '',
+                                        (v) =>
+                                            setApiKeyDrafts((prev) => ({
+                                                ...prev,
+                                                [id]: v,
+                                            })),
+                                        () =>
+                                            updateProviderConfig(id, {
+                                                ...config,
+                                                apiKey:
+                                                    id in apiKeyDrafts
+                                                        ? apiKeyDrafts[id]
+                                                        : config.apiKey,
+                                            }),
+                                        showApiKeys[id] || false,
+                                        () =>
+                                            setShowApiKeys((prev) => ({
+                                                ...prev,
+                                                [id]: !prev[id],
+                                            })),
+                                        isLocked
+                                    )}
                                     <div
                                         style={{
                                             display: 'flex',
-                                            alignItems: 'center',
+                                            flexDirection: 'column',
                                             gap: 8,
-                                            marginBottom: 4,
                                         }}
                                     >
-                                        <span
+                                        <div
                                             style={{
-                                                fontSize: '0.8rem',
-                                                color: 'var(--text-secondary)',
+                                                display: 'flex',
+                                                justifyContent: 'space-between',
+                                                alignItems: 'center',
                                             }}
                                         >
-                                            Show:
-                                        </span>
-                                        <select
-                                            value={
-                                                config.modelDisplayMode ??
-                                                settings?.providers
-                                                    .modelDisplayMode ??
-                                                'alias'
-                                            }
-                                            onChange={(e) =>
-                                                updateProviderConfig(id, {
-                                                    ...config,
-                                                    modelDisplayMode: e.target
-                                                        .value as
-                                                        'alias' | 'both',
-                                                })
-                                            }
-                                            disabled={isLocked}
-                                            className={styles.selectSmall}
-                                            style={{ minWidth: 100 }}
+                                            <span
+                                                style={{
+                                                    fontSize: '0.85rem',
+                                                    color: 'var(--text-secondary)',
+                                                }}
+                                            >
+                                                Models
+                                            </span>
+                                            <button
+                                                title="Get models"
+                                                onClick={() =>
+                                                    handleGetModels(
+                                                        id,
+                                                        config.endpoint
+                                                    )
+                                                }
+                                                disabled={
+                                                    isLocked || !config.endpoint
+                                                }
+                                                className={styles.btnSmall}
+                                            >
+                                                Get Models
+                                            </button>
+                                        </div>
+                                        <div
+                                            style={{
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: 8,
+                                                marginBottom: 4,
+                                            }}
                                         >
-                                            <option value="alias">
-                                                Alias only
-                                            </option>
-                                            <option value="both">
-                                                Alias + Name
-                                            </option>
-                                        </select>
+                                            <span
+                                                style={{
+                                                    fontSize: '0.8rem',
+                                                    color: 'var(--text-secondary)',
+                                                }}
+                                            >
+                                                Show:
+                                            </span>
+                                            <select
+                                                value={
+                                                    config.modelDisplayMode ??
+                                                    settings?.providers
+                                                        .modelDisplayMode ??
+                                                    'alias'
+                                                }
+                                                onChange={(e) =>
+                                                    updateProviderConfig(id, {
+                                                        ...config,
+                                                        modelDisplayMode: e
+                                                            .target.value as
+                                                            'alias' | 'both',
+                                                    })
+                                                }
+                                                disabled={isLocked}
+                                                className={styles.selectSmall}
+                                                style={{ minWidth: 100 }}
+                                            >
+                                                <option value="alias">
+                                                    Alias only
+                                                </option>
+                                                <option value="both">
+                                                    Alias + Name
+                                                </option>
+                                            </select>
+                                        </div>
+                                        {renderModels(id, config, isLocked)}
                                     </div>
-                                    {renderModels(id, config, isLocked)}
                                 </div>
                             </div>
-                        </div>
+                        </>
                     )
                 )}
             </div>
@@ -2556,6 +2586,26 @@ export default function SettingsDialog({
         );
     }
 
+    function renderTabHeader() {
+        const activeTabDetails = SETTINGS_DIALOG_TABS.find(
+            (tab) => tab.label === activeTab
+        );
+        return (
+            <>
+                <h3
+                    style={{
+                        textTransform: 'capitalize',
+                        marginLeft: '16px',
+                    }}
+                >
+                    {activeTabDetails?.label}
+                </h3>
+                <p style={{ display: 'none' }}>
+                    {activeTabDetails?.description}
+                </p>
+            </>
+        );
+    }
     return (
         <Dialog
             open={open}
@@ -2592,25 +2642,7 @@ export default function SettingsDialog({
                                     marginBottom: '14px',
                                 }}
                             />
-                            <h3
-                                style={{
-                                    textTransform: 'capitalize',
-                                    marginLeft: '16px',
-                                }}
-                            >
-                                {
-                                    SETTINGS_DIALOG_TABS.find(
-                                        (tab) => tab.label === activeTab
-                                    )?.label
-                                }
-                            </h3>
-                            <p style={{ display: 'none' }}>
-                                {
-                                    SETTINGS_DIALOG_TABS.find(
-                                        (tab) => tab.label === activeTab
-                                    )?.description
-                                }
-                            </p>
+                            {renderTabHeader()}
                         </div>
 
                         {activeTab === 'general' && <GeneralTab />}
