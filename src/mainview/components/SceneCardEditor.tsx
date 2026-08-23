@@ -77,9 +77,9 @@ export default function SceneCardEditor({
                     title={collapsed ? 'Expand scene' : 'Collapse scene'}
                 >
                     {collapsed ? (
-                        <IconChevronRight size={12} />
+                        <IconChevronRight size={16} />
                     ) : (
-                        <IconChevronDown size={12} />
+                        <IconChevronDown size={16} />
                     )}
                 </button>
                 <span className="scene-number">Scene {index + 1}</span>

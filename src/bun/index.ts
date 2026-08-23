@@ -772,7 +772,11 @@ const mainRPC = defineElectrobunRPC<SelectorSchema>('bun', {
                 await actsDB.reorderActs(updates);
             },
             'db:reorder-sequences': async (
-                updates: { id: string; orderIndex: number }[]
+                updates: {
+                    id: string;
+                    orderIndex: number;
+                    displayOrder?: number;
+                }[]
             ) => {
                 await actsDB.reorderSequences(updates);
             },
@@ -804,7 +808,11 @@ const mainRPC = defineElectrobunRPC<SelectorSchema>('bun', {
                 await scenesDB.deleteScene(id);
             },
             'db:reorder-scenes': async (
-                updates: { id: string; orderIndex: number }[]
+                updates: {
+                    id: string;
+                    orderIndex: number;
+                    displayOrder?: number;
+                }[]
             ) => {
                 await scenesDB.reorderScenes(updates);
             },
@@ -818,6 +826,7 @@ const mainRPC = defineElectrobunRPC<SelectorSchema>('bun', {
                     chapterId?: string | null;
                     actId?: string | null;
                     orderIndex?: number;
+                    displayOrder?: number;
                 };
             }) => {
                 return (await scenesDB.moveScene(id, data)) as any;

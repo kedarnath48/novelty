@@ -438,6 +438,7 @@ export const storySequences = sqliteTable('story_sequences', {
     title: text('title').notNull(),
     summary: text('summary'),
     orderIndex: integer('order_index').notNull().default(0),
+    displayOrder: integer('display_order').notNull().default(0),
     status: text('status').notNull().default('outline'),
     createdAt: integer('created_at', { mode: 'timestamp' })
         .notNull()
@@ -462,6 +463,7 @@ export const storyScenes = sqliteTable('story_scenes', {
     conflict: text('conflict'),
     status: text('status').notNull().default('outline'),
     orderIndex: integer('order_index').notNull().default(0),
+    displayOrder: integer('display_order').notNull().default(0),
     createdAt: integer('created_at', { mode: 'timestamp' })
         .notNull()
         .$defaultFn(() => new Date()),

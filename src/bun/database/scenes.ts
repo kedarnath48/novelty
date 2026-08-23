@@ -17,6 +17,7 @@ export type StoryScene = {
     conflict: string | null;
     status: string;
     orderIndex: number;
+    displayOrder: number;
     createdAt: Date;
     updatedAt: Date;
 };
@@ -39,6 +40,7 @@ function parseScene(row: typeof storyScenes.$inferSelect): StoryScene {
         conflict: row.conflict,
         status: row.status,
         orderIndex: row.orderIndex,
+        displayOrder: row.displayOrder,
         createdAt: row.createdAt,
         updatedAt: row.updatedAt,
     };
@@ -111,6 +113,8 @@ export async function updateScene(
     if (data.conflict !== undefined) updateData.conflict = data.conflict;
     if (data.status !== undefined) updateData.status = data.status;
     if (data.orderIndex !== undefined) updateData.orderIndex = data.orderIndex;
+    if (data.displayOrder !== undefined)
+        updateData.displayOrder = data.displayOrder;
     if (data.actId !== undefined) updateData.actId = data.actId;
     if (data.sequenceId !== undefined) updateData.sequenceId = data.sequenceId;
     if (data.chapterId !== undefined) updateData.chapterId = data.chapterId;
@@ -124,13 +128,19 @@ export async function deleteScene(id: string): Promise<void> {
 }
 
 export async function reorderScenes(
-    updates: { id: string; orderIndex: number }[]
+    updates: { id: string; orderIndex: number; displayOrder?: number }[]
 ): Promise<void> {
     await db.transaction(async (tx) => {
         for (const update of updates) {
+            const data: Record<string, unknown> = {
+                orderIndex: update.orderIndex,
+                updatedAt: new Date(),
+            };
+            if (update.displayOrder !== undefined)
+                data.displayOrder = update.displayOrder;
             await tx
                 .update(storyScenes)
-                .set({ orderIndex: update.orderIndex, updatedAt: new Date() })
+                .set(data)
                 .where(eq(storyScenes.id, update.id));
         }
     });
@@ -143,6 +153,7 @@ export async function moveScene(
         chapterId?: string | null;
         actId?: string | null;
         orderIndex?: number;
+        displayOrder?: number;
     }
 ): Promise<StoryScene | undefined> {
     const updateData: Record<string, unknown> = { updatedAt: new Date() };
@@ -150,6 +161,8 @@ export async function moveScene(
     if (data.chapterId !== undefined) updateData.chapterId = data.chapterId;
     if (data.actId !== undefined) updateData.actId = data.actId;
     if (data.orderIndex !== undefined) updateData.orderIndex = data.orderIndex;
+    if (data.displayOrder !== undefined)
+        updateData.displayOrder = data.displayOrder;
     await db.update(storyScenes).set(updateData).where(eq(storyScenes.id, id));
     return getSceneById(id);
 }

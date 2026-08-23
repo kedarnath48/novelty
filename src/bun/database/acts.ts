@@ -24,6 +24,7 @@ export type StorySequence = {
     title: string;
     summary: string | null;
     orderIndex: number;
+    displayOrder: number;
     status: string;
     createdAt: Date;
     updatedAt: Date;
@@ -54,6 +55,7 @@ function parseSequence(row: typeof storySequences.$inferSelect): StorySequence {
         title: row.title,
         summary: row.summary,
         orderIndex: row.orderIndex,
+        displayOrder: row.displayOrder,
         status: row.status,
         createdAt: row.createdAt,
         updatedAt: row.updatedAt,
@@ -169,6 +171,8 @@ export async function updateSequence(
     if (data.title !== undefined) updateData.title = data.title;
     if (data.summary !== undefined) updateData.summary = data.summary;
     if (data.orderIndex !== undefined) updateData.orderIndex = data.orderIndex;
+    if (data.displayOrder !== undefined)
+        updateData.displayOrder = data.displayOrder;
     if (data.status !== undefined) updateData.status = data.status;
     if (data.actId !== undefined) updateData.actId = data.actId;
     if (data.chapterId !== undefined) updateData.chapterId = data.chapterId;
@@ -199,13 +203,19 @@ export async function reorderActs(
 }
 
 export async function reorderSequences(
-    updates: { id: string; orderIndex: number }[]
+    updates: { id: string; orderIndex: number; displayOrder?: number }[]
 ): Promise<void> {
     await db.transaction(async (tx) => {
         for (const update of updates) {
+            const data: Record<string, unknown> = {
+                orderIndex: update.orderIndex,
+                updatedAt: new Date(),
+            };
+            if (update.displayOrder !== undefined)
+                data.displayOrder = update.displayOrder;
             await tx
                 .update(storySequences)
-                .set({ orderIndex: update.orderIndex, updatedAt: new Date() })
+                .set(data)
                 .where(eq(storySequences.id, update.id));
         }
     });

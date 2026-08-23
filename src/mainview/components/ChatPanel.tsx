@@ -20,7 +20,7 @@ import {
     IconBuildings,
     IconSwords,
 } from '@tabler/icons-react';
-import { chatCompletion, toApiMessages } from '../services/ai';
+import { chatCompletion, toApiMessages, AIAbortError } from '../services/ai';
 import type {
     ChatMessage,
     UserChatMessage,
@@ -38,6 +38,8 @@ import type {
     LoreEntry,
     CompendiumCategory,
     FieldDefinition,
+    StoryScene,
+    StorySequence,
 } from '../types';
 import { parseEntryData, parseAllEntryData } from '../services/entryParser';
 import type { ParsedEntry } from '../services/entryParser';
@@ -51,6 +53,8 @@ import { getTextSource } from '../services/textExtractor';
 import type { ExtractionSource } from '../services/textExtractor';
 import { useSettings } from '../contexts/SettingsContext';
 import { getRPC } from '../contexts/RPCContext';
+import SceneStructureReviewDialog from './SceneStructureReviewDialog';
+import type { ReviewScene, ReviewSequence } from './SceneStructureReviewDialog';
 import { useSessions } from '../hooks/useSessions';
 import { useSpeechRecognition } from '../hooks/useSpeechRecognition';
 import MessageBubble from './MessageBubble';
@@ -88,6 +92,8 @@ interface ChatPanelProps {
     organizations?: Organization[];
     items?: Item[];
     loreEntries?: LoreEntry[];
+    scenes?: StoryScene[];
+    sequences?: StorySequence[];
     editorRef?: React.RefObject<RichTextEditorHandle | null>;
     onCreateCompendiumEntry?: (
         category: CompendiumCategory,
@@ -106,6 +112,10 @@ interface ChatPanelProps {
     activeTabType?: string | null;
     style?: React.CSSProperties;
     resolvedTemplates?: Partial<Record<CompendiumCategory, FieldDefinition[]>>;
+    onCreateScenesAndSequences?: (
+        scenes: Partial<StoryScene>[],
+        sequences: Partial<StorySequence & { sceneIndices: number[] }>[]
+    ) => void;
 }
 
 export default function ChatPanel({
@@ -120,6 +130,8 @@ export default function ChatPanel({
     organizations = [],
     items = [],
     loreEntries = [],
+    scenes = [],
+    sequences = [],
     editorRef,
     onCreateCompendiumEntry,
     onExtractEntities,
@@ -127,6 +139,7 @@ export default function ChatPanel({
     activeTabId,
     activeTabType,
     resolvedTemplates,
+    onCreateScenesAndSequences,
 }: ChatPanelProps) {
     const rpc = getRPC();
     const [input, setInput] = useState('');
@@ -172,6 +185,15 @@ export default function ChatPanel({
     const [slashCommandTargets, setSlashCommandTargets] = useState<
         Record<string, { category: CompendiumCategory; name: string }>
     >({});
+    const [pendingStructureData, setPendingStructureData] = useState<
+        Record<string, { scenes: any[]; sequences: any[] }>
+    >({});
+    const [structureDialogOpen, setStructureDialogOpen] = useState(false);
+    const [structureDialogData, setStructureDialogData] = useState<{
+        msgId: string;
+        scenes: ReviewScene[];
+        sequences: ReviewSequence[];
+    } | null>(null);
     const [embeddingsAvailable, setEmbeddingsAvailable] = useState(false);
 
     useEffect(() => {
@@ -208,6 +230,8 @@ export default function ChatPanel({
         updatecompendium: null,
     };
 
+    const ANALYSIS_COMMANDS = new Set(['analyzesequences']);
+
     const typeLabels: Record<MentionTarget['type'], string> = {
         chapter: 'Chapters',
         character: 'Characters',
@@ -215,6 +239,8 @@ export default function ChatPanel({
         organization: 'Organizations',
         item: 'Items',
         lore: 'Lore',
+        scene: 'Scenes',
+        sequence: 'Sequences',
     };
 
     const typeIcons: Record<MentionTarget['type'], React.ReactNode> = {
@@ -224,6 +250,8 @@ export default function ChatPanel({
         organization: <IconBuildings size={14} />,
         item: <IconSwords size={14} />,
         lore: <IconBook size={14} />,
+        scene: <IconFiles size={14} />,
+        sequence: <IconFiles size={14} />,
     };
 
     const SLASH_COMMANDS = [
@@ -312,6 +340,11 @@ export default function ChatPanel({
             description: 'Update existing entries from text',
             type: 'context' as const,
         },
+        {
+            command: '/analyzesequences',
+            description: 'Extract scenes and sequences from chapter summary',
+            type: 'context' as const,
+        },
     ];
 
     const messagesRef = useRef<HTMLDivElement>(null);
@@ -323,6 +356,7 @@ export default function ChatPanel({
     const streamedReasoningRef = useRef('');
     const rafIdRef = useRef<number | null>(null);
     const isStreamingRef = useRef(false);
+    const abortControllerRef = useRef<AbortController | null>(null);
 
     useEffect(() => {
         const ta = inputRef.current;
@@ -510,6 +544,8 @@ export default function ChatPanel({
                         'organization',
                         'item',
                         'lore',
+                        'scene',
+                        'sequence',
                     ].includes(type)
                 ) {
                     const existing = mentions.find(
@@ -578,6 +614,8 @@ export default function ChatPanel({
                     organizations,
                     items,
                     loreEntries,
+                    scenes,
+                    sequences,
                     resolvedTemplates,
                 });
             }
@@ -600,6 +638,159 @@ export default function ChatPanel({
         const command = cmdMatch ? cmdMatch[1].toLowerCase() : '';
         const cmdArgs = cmdMatch?.[2]?.trim() ?? '';
         const isCreateCommand = COMMAND_MAP[command] !== undefined;
+
+        let isAnalysisCommand = false;
+        let analysisResult: {
+            scenes: Partial<StoryScene>[];
+            sequences: Partial<StorySequence & { sceneIndices: number[] }>[];
+        } | null = null;
+
+        if (ANALYSIS_COMMANDS.has(command)) {
+            isAnalysisCommand = true;
+            displayText = 'Analyzing chapter structure...';
+
+            const chapterContext = (() => {
+                const chId = activeTabType === 'chapter' ? activeTabId : null;
+                if (!chId) return null;
+                const ch = chapters.find((c) => c.id === chId);
+                if (!ch) return null;
+
+                let summary = '';
+                try {
+                    const parsed = JSON.parse(ch.outline || '{}');
+                    summary = parsed.summary || '';
+                } catch {
+                    summary = '';
+                }
+
+                const chapterScenes = scenes.filter(
+                    (s) => s.chapterId === chId
+                );
+                const chapterSequences = sequences.filter(
+                    (s) => s.chapterId === chId
+                );
+
+                return {
+                    title: ch.title,
+                    summary,
+                    content: ch.content || '',
+                    scenes: chapterScenes,
+                    sequences: chapterSequences,
+                };
+            })();
+
+            const userInput = cmdArgs;
+            const parts: string[] = [];
+            if (chapterContext) {
+                parts.push(`Chapter: "${chapterContext.title}"`);
+                if (chapterContext.summary)
+                    parts.push(`Summary: ${chapterContext.summary}`);
+                if (chapterContext.content)
+                    parts.push(`Content:\n${chapterContext.content}`);
+                if (chapterContext.sequences.length > 0) {
+                    parts.push('\nExisting sequences:');
+                    for (const seq of chapterContext.sequences) {
+                        parts.push(
+                            `  - "${seq.title}"${seq.summary ? `: ${seq.summary}` : ''}`
+                        );
+                    }
+                }
+                if (chapterContext.scenes.length > 0) {
+                    parts.push('\nExisting scenes:');
+                    for (const sc of chapterContext.scenes) {
+                        parts.push(
+                            `  - "${sc.title}"${sc.summary ? `: ${sc.summary}` : ''}`
+                        );
+                    }
+                }
+            }
+            if (userInput) parts.push(`\nAdditional context: ${userInput}`);
+
+            const analysisInput = parts.join('\n');
+            /*
+            if (systemPromptMessage) {
+                const bt = '\x60\x60\x60';
+                systemPromptMessage.content =
+                    "You are a senior developmental editor analyzing a chapter's structure.\n\n" +
+                    (analysisInput
+                        ? `Chapter context:\n${analysisInput}\n\n`
+                        : '') +
+                    'Provide a thorough editorial analysis of this chapter. Cover:\n\n' +
+                    '## Structural Analysis\n' +
+                    '- **Pacing**: Is the chapter well-paced? Are there sections that drag or feel rushed?\n' +
+                    '- **Scene breaks**: Are the scene transitions smooth? Are there moments that should be split or merged?\n' +
+                    '- **Tension arc**: Does the chapter build and release tension effectively?\n\n' +
+                    '## Content Quality\n' +
+                    '- **Strengths**: What works well in this chapter? What should be preserved?\n' +
+                    '- **Weaknesses**: What feels underdeveloped, confusing, or flat?\n' +
+                    '- **Character arcs**: Are character motivations clear? Do relationships feel authentic?\n' +
+                    '- **Dialogue vs. prose balance**: Is there a good rhythm between action, description, and dialogue?\n\n' +
+                    '## Grammar & Prose\n' +
+                    '- **Prose style**: Notes on sentence variety, word choice, voice consistency\n' +
+                    '- **Grammar issues**: Any notable grammar, punctuation, or style problems\n' +
+                    '- **Show vs. tell**: Areas where telling could be converted to showing\n\n' +
+                    '## Recommendations\n' +
+                    '- **Must-fix issues**: Things that need immediate attention\n' +
+                    '- **Nice-to-have improvements**: Polish-level suggestions\n' +
+                    '- **Things to keep in mind**: Continuity notes, character consistency, thematic threads\n\n' +
+                    '---\n\n' +
+                    'After your analysis, provide the recommended chapter structure as a JSON code block:\n' +
+                    bt +
+                    'structure-data\n' +
+                    '{\n' +
+                    '  "scenes": [\n' +
+                    '    {"title": "...", "summary": "...", "setting": "...", "characters": ["..."], "keyEvents": ["..."], "conflict": "...", "duration": "..."}\n' +
+                    '  ],\n' +
+                    '  "sequences": [\n' +
+                    '    {"title": "...", "summary": "...", "sceneIndices": [0, 1]}\n' +
+                    '  ]\n' +
+                    '}\n' +
+                    bt +
+                    '\n\nRules for scenes and sequences:\n' +
+                    '- Each scene is a discrete moment with a single location/time\n' +
+                    '- Sequences group related scenes into narrative units\n' +
+                    '- Scenes not in any sequence appear at chapter level\n' +
+                    '- If existing scenes/sequences are provided, use them as reference but create new ones as needed\n' +
+                    '- sceneIndices refer to the scenes array (0-indexed)';
+            }
+            */
+
+            if (systemPromptMessage) {
+                const bt = '\x60\x60\x60';
+                systemPromptMessage.content =
+                    "You are a senior developmental editor analyzing a chapter's structure.\n\n" +
+                    (analysisInput
+                        ? `Chapter context:\n${analysisInput}\n\n`
+                        : '') +
+                    'Provide a concise editorial analysis focusing on key structural and prose elements:\n\n' +
+                    '## Editorial Review\n' +
+                    '- **Pacing & Tension**: Highlight major drag points, rushed sections, and the overall tension arc.\n' +
+                    '- **Core Pros & Cons**: Identify primary strengths to keep and critical weaknesses/unclear motivations.\n' +
+                    '- **Show vs. Tell**: Note key areas where telling must become showing.\n' +
+                    '- **Must-Fix Actions**: Immediate structural or narrative changes required.\n\n' +
+                    '---\n\n' +
+                    'After your analysis, provide the recommended chapter structure as a JSON code block:\n' +
+                    bt +
+                    'structure-data\n' +
+                    '{\n' +
+                    '  "scenes": [\n' +
+                    '    {"title": "...", "summary": "...", "setting": "...", "charactersPresent": ["character name", ...], "keyEvents": ["event description", ...], "conflict": "...", "duration": "..."}\n' +
+                    '  ],\n' +
+                    '  "sequences": [\n' +
+                    '    {"title": "...", "summary": "...", "sceneIndices": [0, 1]}\n' +
+                    '  ]\n' +
+                    '}\n' +
+                    bt +
+                    '\n\nRules for scenes and sequences:\n' +
+                    '- Each scene is a discrete moment with a single location/time\n' +
+                    '- Sequences group related scenes into narrative units\n' +
+                    '- Scenes not in any sequence appear at chapter level\n' +
+                    '- If existing scenes/sequences are provided, use them as reference but create new ones as needed\n' +
+                    '- sceneIndices refer to the scenes array (0-indexed)\n' +
+                    '- charactersPresent: array of character name strings present in the scene\n' +
+                    '- keyEvents: array of brief event description strings';
+            }
+        }
 
         if (isCreateCommand || EXTRACT_COMMANDS.has(command)) {
             const category = COMMAND_MAP[command];
@@ -752,6 +943,11 @@ export default function ChatPanel({
             streamedContentRef.current = '';
             streamedReasoningRef.current = '';
 
+            const abortController = new AbortController();
+            abortControllerRef.current = abortController;
+
+            const completionMaxTokens = isAnalysisCommand ? 16384 : undefined;
+
             const result = await chatCompletion(endpoint, {
                 provider: {
                     type: provider?.type || 'lm-studio',
@@ -761,6 +957,9 @@ export default function ChatPanel({
                 },
                 messages: [...messages, userMessage],
                 systemPrompt: systemPromptMessage?.content,
+                maxTokens: completionMaxTokens,
+                signal: abortController.signal,
+                chunkTimeoutMs: isAnalysisCommand ? 300_000 : 120_000,
                 onChunk: (chunk) => {
                     streamedContentRef.current += chunk;
                     if (rafIdRef.current === null) {
@@ -877,6 +1076,35 @@ export default function ChatPanel({
                         onExtractEntities(extracted, extractionSource!);
                     }
                 }
+            } else if (isAnalysisCommand) {
+                const structureMatch = (
+                    Array.isArray(result.content)
+                        ? result.content.join('')
+                        : result.content
+                ).match(/```structure-data\n([\s\S]*?)```/);
+                if (structureMatch) {
+                    try {
+                        analysisResult = JSON.parse(structureMatch[1]);
+                        if (analysisResult) {
+                            const data = analysisResult;
+                            setPendingStructureData((prev) => ({
+                                ...prev,
+                                [assistantId]: {
+                                    scenes: data.scenes || [],
+                                    sequences: (data.sequences || []).map(
+                                        (seq: any) => ({
+                                            ...seq,
+                                            sceneIndices:
+                                                seq.sceneIndices || [],
+                                        })
+                                    ),
+                                },
+                            }));
+                        }
+                    } catch (e) {
+                        console.error('Failed to parse structure data:', e);
+                    }
+                }
             } else {
                 const parsed = parseEntryData(result.content);
                 if (parsed) {
@@ -894,11 +1122,19 @@ export default function ChatPanel({
             }
         } catch (error) {
             console.error('Chat error:', error);
-            streamingUpdate(
-                assistantId,
-                'Error: Failed to get response from AI'
-            );
+            if (error instanceof AIAbortError) {
+                streamingUpdate(
+                    assistantId,
+                    streamedContentRef.current || `*${error.message}*`
+                );
+            } else {
+                streamingUpdate(
+                    assistantId,
+                    'Error: Failed to get response from AI'
+                );
+            }
         } finally {
+            abortControllerRef.current = null;
             isStreamingRef.current = false;
             setIsLoading(false);
         }
@@ -1044,6 +1280,9 @@ export default function ChatPanel({
             streamedContentRef.current = '';
             streamedReasoningRef.current = '';
 
+            const retryAbortController = new AbortController();
+            abortControllerRef.current = retryAbortController;
+
             const result = await chatCompletion(endpoint, {
                 provider: {
                     type: provider?.type || 'lm-studio',
@@ -1053,6 +1292,7 @@ export default function ChatPanel({
                 },
                 messages: precedingMessages,
                 systemPrompt: customSystemPrompt || undefined,
+                signal: retryAbortController.signal,
                 onChunk: (chunk) => {
                     streamedContentRef.current += chunk;
                     if (rafIdRef.current === null) {
@@ -1124,6 +1364,10 @@ export default function ChatPanel({
             }
         } catch (error) {
             console.error('Retry error:', error);
+            const errorMsg =
+                error instanceof AIAbortError
+                    ? error.message
+                    : 'Error: Request failed';
             setMessages((prev) =>
                 prev.map((m) =>
                     m.id === messageId && m.role === 'assistant'
@@ -1131,13 +1375,14 @@ export default function ChatPanel({
                               ...m,
                               content: [
                                   ...m.content.slice(0, newVariantIndex),
-                                  'Error: Request failed',
+                                  errorMsg,
                               ],
                           }
                         : m
                 )
             );
         } finally {
+            abortControllerRef.current = null;
             isStreamingRef.current = false;
             setIsLoading(false);
         }
@@ -1680,6 +1925,89 @@ export default function ChatPanel({
                                         </span>
                                     </button>
                                 ) : undefined;
+                            const structureData =
+                                msg.role === 'assistant'
+                                    ? pendingStructureData[msg.id]
+                                    : undefined;
+                            const createStructureBtn =
+                                structureData &&
+                                (structureData.scenes.length > 0 ||
+                                    structureData.sequences.length > 0) &&
+                                onCreateScenesAndSequences ? (
+                                    <button
+                                        className="message-action-btn create-entry-btn"
+                                        onClick={() => {
+                                            const reviewScenes: ReviewScene[] =
+                                                structureData.scenes.map(
+                                                    (s: any) => ({
+                                                        title: s.title || '',
+                                                        summary:
+                                                            s.summary || '',
+                                                        setting:
+                                                            s.setting || '',
+                                                        charactersPresent:
+                                                            Array.isArray(
+                                                                s.charactersPresent
+                                                            )
+                                                                ? s.charactersPresent
+                                                                : typeof s.charactersPresent ===
+                                                                        'string' &&
+                                                                    s.charactersPresent
+                                                                  ? JSON.parse(
+                                                                        s.charactersPresent
+                                                                    )
+                                                                  : [],
+                                                        keyEvents:
+                                                            Array.isArray(
+                                                                s.keyEvents
+                                                            )
+                                                                ? s.keyEvents
+                                                                : typeof s.keyEvents ===
+                                                                        'string' &&
+                                                                    s.keyEvents
+                                                                  ? JSON.parse(
+                                                                        s.keyEvents
+                                                                    )
+                                                                  : [],
+                                                        conflict:
+                                                            s.conflict || '',
+                                                        duration:
+                                                            s.duration || '',
+                                                        included: true,
+                                                    })
+                                                );
+                                            const reviewSequences: ReviewSequence[] =
+                                                structureData.sequences.map(
+                                                    (s: any) => ({
+                                                        title: s.title || '',
+                                                        summary:
+                                                            s.summary || '',
+                                                        sceneIndices:
+                                                            s.sceneIndices ||
+                                                            [],
+                                                        included: true,
+                                                    })
+                                                );
+                                            setStructureDialogData({
+                                                msgId: msg.id,
+                                                scenes: reviewScenes,
+                                                sequences: reviewSequences,
+                                            });
+                                            setStructureDialogOpen(true);
+                                        }}
+                                        title="Review & add scenes & sequences"
+                                    >
+                                        <IconSwords size={14} />
+                                        <span
+                                            style={{
+                                                fontSize: '11px',
+                                                marginLeft: '2px',
+                                            }}
+                                        >
+                                            Add Structure
+                                        </span>
+                                    </button>
+                                ) : undefined;
                             return (
                                 <MessageBubble
                                     key={msg.id}
@@ -1707,6 +2035,7 @@ export default function ChatPanel({
                                     onVariantChange={handleVariantChange}
                                     onExpand={handleExpand}
                                     createEntryButton={createEntryBtn}
+                                    createStructureButton={createStructureBtn}
                                 />
                             );
                         })}
@@ -1976,6 +2305,18 @@ export default function ChatPanel({
                             >
                                 <IconSend size={16} />
                             </button>
+                            {isLoading && (
+                                <button
+                                    onClick={() => {
+                                        abortControllerRef.current?.abort();
+                                        abortControllerRef.current = null;
+                                    }}
+                                    title="Cancel response"
+                                    className="cancel-stream-btn"
+                                >
+                                    <IconX size={16} />
+                                </button>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -1986,6 +2327,64 @@ export default function ChatPanel({
                     open={showSettings}
                     onClose={() => setShowSettings(false)}
                     defaultRoute={settingsRoute}
+                />
+            )}
+
+            {structureDialogOpen && structureDialogData && (
+                <SceneStructureReviewDialog
+                    open={structureDialogOpen}
+                    onClose={() => {
+                        setStructureDialogOpen(false);
+                        setStructureDialogData(null);
+                    }}
+                    initialScenes={structureDialogData.scenes}
+                    initialSequences={structureDialogData.sequences}
+                    onConfirm={async (confirmedScenes, confirmedSequences) => {
+                        const msgId = structureDialogData.msgId;
+                        setStructureDialogOpen(false);
+                        setStructureDialogData(null);
+                        try {
+                            if (onCreateScenesAndSequences) {
+                                await onCreateScenesAndSequences(
+                                    confirmedScenes
+                                        .filter((s) => s.included)
+                                        .map((s) => ({
+                                            title: s.title,
+                                            summary: s.summary || null,
+                                            setting: s.setting || null,
+                                            charactersPresent:
+                                                s.charactersPresent.length > 0
+                                                    ? JSON.stringify(
+                                                          s.charactersPresent
+                                                      )
+                                                    : null,
+                                            keyEvents:
+                                                s.keyEvents.length > 0
+                                                    ? JSON.stringify(
+                                                          s.keyEvents
+                                                      )
+                                                    : null,
+                                            conflict: s.conflict || null,
+                                            duration: s.duration || null,
+                                        })),
+                                    confirmedSequences
+                                        .filter((s) => s.included)
+                                        .map((s) => ({
+                                            title: s.title,
+                                            summary: s.summary || null,
+                                            sceneIndices: s.sceneIndices,
+                                        }))
+                                );
+                                setPendingStructureData((prev) => {
+                                    const copy = { ...prev };
+                                    delete copy[msgId];
+                                    return copy;
+                                });
+                            }
+                        } catch (err) {
+                            console.error('Failed to create structure:', err);
+                        }
+                    }}
                 />
             )}
         </div>

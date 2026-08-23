@@ -9,6 +9,8 @@ import type {
     LoreEntry,
     FieldDefinition,
     CompendiumCategory,
+    StoryScene,
+    StorySequence,
 } from '../types/index';
 import { isFieldVisible } from '../templates/fieldVisibility';
 import { isTreeEdge } from '../templates/tree';
@@ -30,6 +32,8 @@ export interface BuildContextParams {
     organizations: Organization[];
     items: Item[];
     loreEntries: LoreEntry[];
+    scenes?: StoryScene[];
+    sequences?: StorySequence[];
     resolvedTemplates?: Partial<Record<CompendiumCategory, FieldDefinition[]>>;
 }
 
@@ -150,6 +154,24 @@ function formatLoreEntity(
     return parts.join('\n');
 }
 
+function formatSceneEntity(scene: StoryScene): string {
+    const parts: string[] = [`\n[Scene: "${scene.title}"]`];
+    if (scene.summary) parts.push(`  summary: ${scene.summary}`);
+    if (scene.setting) parts.push(`  setting: ${scene.setting}`);
+    if (scene.charactersPresent)
+        parts.push(`  characters: ${scene.charactersPresent}`);
+    if (scene.keyEvents) parts.push(`  keyEvents: ${scene.keyEvents}`);
+    if (scene.conflict) parts.push(`  conflict: ${scene.conflict}`);
+    if (scene.duration) parts.push(`  duration: ${scene.duration}`);
+    return parts.join('\n');
+}
+
+function formatSequenceEntity(seq: StorySequence): string {
+    const parts: string[] = [`\n[Sequence: "${seq.title}"]`];
+    if (seq.summary) parts.push(`  summary: ${seq.summary}`);
+    return parts.join('\n');
+}
+
 export function buildContext(params: BuildContextParams): BuildContextResult {
     const {
         project,
@@ -164,6 +186,8 @@ export function buildContext(params: BuildContextParams): BuildContextResult {
         organizations,
         items,
         loreEntries,
+        scenes,
+        sequences,
         resolvedTemplates,
     } = params;
 
@@ -220,6 +244,12 @@ export function buildContext(params: BuildContextParams): BuildContextResult {
             } else if (m.type === 'lore') {
                 const le = loreEntries.find((l) => l.id === m.id);
                 if (le) block = formatLoreEntity(le, resolvedTemplates?.lore);
+            } else if (m.type === 'scene') {
+                const sc = scenes?.find((s) => s.id === m.id);
+                if (sc) block = formatSceneEntity(sc);
+            } else if (m.type === 'sequence') {
+                const seq = sequences?.find((s) => s.id === m.id);
+                if (seq) block = formatSequenceEntity(seq);
             }
             if (block) parts.push(block);
         }

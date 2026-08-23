@@ -575,6 +575,16 @@ CREATE TABLE IF NOT EXISTS scratch_notes (
             type: 'TEXT REFERENCES series_templates(id)',
         },
         { table: 'lore_entries', name: 'file_path', type: 'TEXT' },
+        {
+            table: 'story_sequences',
+            name: 'display_order',
+            type: 'INTEGER NOT NULL DEFAULT 0',
+        },
+        {
+            table: 'story_scenes',
+            name: 'display_order',
+            type: 'INTEGER NOT NULL DEFAULT 0',
+        },
     ];
 
     for (const col of migrations) {

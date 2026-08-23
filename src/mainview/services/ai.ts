@@ -74,6 +74,9 @@ export interface AICompletionOptions {
     maxTokens?: number;
     onChunk?: (chunk: string) => void;
     onReasoningChunk?: (chunk: string) => void;
+    signal?: AbortSignal;
+    connectTimeoutMs?: number;
+    chunkTimeoutMs?: number;
 }
 
 export interface ChatCompletionResult {
@@ -84,6 +87,66 @@ export interface ChatCompletionResult {
         completion_tokens: number;
         total_tokens: number;
     } | null;
+}
+
+export class AIAbortError extends Error {
+    constructor(message: string) {
+        super(message);
+        this.name = 'AIAbortError';
+    }
+}
+
+function withTimeout<T>(
+    promise: Promise<T>,
+    ms: number,
+    signal?: AbortSignal,
+    label = 'Request'
+): Promise<T> {
+    return new Promise<T>((resolve, reject) => {
+        const timer = setTimeout(() => {
+            abortController.abort();
+            reject(
+                new AIAbortError(
+                    `${label} timed out after ${Math.round(ms / 1000)}s`
+                )
+            );
+        }, ms);
+
+        const abortController = new AbortController();
+
+        if (signal) {
+            if (signal.aborted) {
+                clearTimeout(timer);
+                reject(new AIAbortError(`${label} was aborted`));
+                return;
+            }
+            signal.addEventListener(
+                'abort',
+                () => {
+                    clearTimeout(timer);
+                    abortController.abort();
+                    reject(new AIAbortError(`${label} was aborted`));
+                },
+                { once: true }
+            );
+        }
+
+        promise
+            .then((result) => {
+                clearTimeout(timer);
+                resolve(result);
+            })
+            .catch((err) => {
+                clearTimeout(timer);
+                if (err instanceof AIAbortError) {
+                    reject(err);
+                } else if (abortController.signal.aborted) {
+                    reject(new AIAbortError(`${label} timed out`));
+                } else {
+                    reject(err);
+                }
+            });
+    });
 }
 
 export async function chatCompletion(
@@ -97,6 +160,9 @@ export async function chatCompletion(
         onChunk,
         onReasoningChunk,
         systemPrompt,
+        signal,
+        connectTimeoutMs = 30_000,
+        chunkTimeoutMs = 120_000,
     } = options;
 
     const model = options.provider.models
@@ -118,13 +184,29 @@ export async function chatCompletion(
         stream: !!onChunk,
     };
 
-    const response = await fetch(`${endpoint}/chat/completions`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(request),
-    });
+    const controller = new AbortController();
+    if (signal) {
+        if (signal.aborted) {
+            throw new AIAbortError('Request was aborted');
+        }
+        signal.addEventListener('abort', () => controller.abort(), {
+            once: true,
+        });
+    }
+
+    const response = await withTimeout(
+        fetch(`${endpoint}/chat/completions`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(request),
+            signal: controller.signal,
+        }),
+        connectTimeoutMs,
+        signal,
+        'Connection'
+    );
 
     if (!response.ok) {
         const error = await response.text();
@@ -138,9 +220,29 @@ export async function chatCompletion(
         let fullReasoning = '';
         let usage: ChatCompletionResult['usage'] = null;
 
+        const chunkTimeout = chunkTimeoutMs;
+
         while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
+            const readPromise = reader.read();
+            const result = await Promise.race([
+                readPromise,
+                new Promise<{ done: true; value: undefined }>((_, reject) => {
+                    const timer = setTimeout(() => {
+                        reader.cancel().catch(() => {});
+                        reject(
+                            new AIAbortError(
+                                `No data received for ${Math.round(chunkTimeout / 1000)}s, stream may be stuck`
+                            )
+                        );
+                    }, chunkTimeout);
+                    readPromise
+                        .then(() => clearTimeout(timer))
+                        .catch(() => clearTimeout(timer));
+                }),
+            ]);
+
+            if (result.done) break;
+            const { value } = result;
 
             const chunk = decoder.decode(value);
             const lines = chunk

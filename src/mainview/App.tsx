@@ -1952,6 +1952,20 @@ function App() {
                                       (s) => s.id === sequenceId
                                   )
                                 : undefined;
+                            const chapterDirectScenes = storyScenes.filter(
+                                (s) =>
+                                    s.chapterId === chapter.id && !s.sequenceId
+                            );
+                            const chapterSequences = storySequences.filter(
+                                (s) => s.chapterId === chapter.id
+                            );
+                            const maxDisplayOrder = Math.max(
+                                0,
+                                ...chapterDirectScenes.map(
+                                    (s) => s.displayOrder
+                                ),
+                                ...chapterSequences.map((s) => s.displayOrder)
+                            );
                             const scene = await rpc.request[
                                 'db:create-story-scene'
                             ]({
@@ -1965,11 +1979,8 @@ function App() {
                                     ? storyScenes.filter(
                                           (s) => s.sequenceId === seq.id
                                       ).length
-                                    : storyScenes.filter(
-                                          (s) =>
-                                              s.chapterId === chapter.id &&
-                                              !s.sequenceId
-                                      ).length,
+                                    : chapterDirectScenes.length,
+                                displayOrder: seq ? 0 : maxDisplayOrder + 1,
                             } as any);
                             if (scene)
                                 setStoryScenes((prev) => [...prev, scene]);
@@ -1992,7 +2003,25 @@ function App() {
                                     prev.map((s) => (s.id === id ? updated : s))
                                 );
                         }}
-                        onSceneReorder={async (_container, orderedIds) => {
+                        onSceneReorder={async (
+                            targetContainer,
+                            orderedIds,
+                            movedSceneId,
+                            sourceContainer
+                        ) => {
+                            if (
+                                movedSceneId &&
+                                sourceContainer !== targetContainer
+                            ) {
+                                await rpc.request['db:move-scene']({
+                                    id: movedSceneId,
+                                    data: {
+                                        sequenceId: targetContainer,
+                                        orderIndex:
+                                            orderedIds.indexOf(movedSceneId),
+                                    },
+                                });
+                            }
                             await rpc.request['db:reorder-scenes'](
                                 orderedIds.map((id, orderIndex) => ({
                                     id,
@@ -2002,13 +2031,37 @@ function App() {
                             setStoryScenes((prev) =>
                                 prev.map((s) => {
                                     const idx = orderedIds.indexOf(s.id);
-                                    return idx >= 0
-                                        ? { ...s, orderIndex: idx }
-                                        : s;
+                                    if (idx >= 0) {
+                                        const updated = {
+                                            ...s,
+                                            orderIndex: idx,
+                                        };
+                                        if (
+                                            movedSceneId &&
+                                            s.id === movedSceneId
+                                        ) {
+                                            updated.sequenceId =
+                                                targetContainer;
+                                        }
+                                        return updated;
+                                    }
+                                    return s;
                                 })
                             );
                         }}
                         onSequenceCreate={async () => {
+                            const chapterSeqs = storySequences.filter(
+                                (s) => s.chapterId === chapter.id
+                            );
+                            const chapterScenesList = storyScenes.filter(
+                                (s) =>
+                                    s.chapterId === chapter.id && !s.sequenceId
+                            );
+                            const maxDisplayOrder = Math.max(
+                                0,
+                                ...chapterSeqs.map((s) => s.displayOrder),
+                                ...chapterScenesList.map((s) => s.displayOrder)
+                            );
                             const seq = await rpc.request[
                                 'db:create-story-sequence'
                             ]({
@@ -2018,9 +2071,8 @@ function App() {
                                 actId: chapter.actId,
                                 title: 'New Sequence',
                                 summary: null,
-                                orderIndex: storySequences.filter(
-                                    (s) => s.chapterId === chapter.id
-                                ).length,
+                                orderIndex: chapterSeqs.length,
+                                displayOrder: maxDisplayOrder + 1,
                                 status: 'outline',
                             } as any);
                             if (seq)
@@ -2047,19 +2099,72 @@ function App() {
                                     prev.map((s) => (s.id === id ? updated : s))
                                 );
                         }}
-                        onSequenceReorder={async (orderedIds) => {
-                            await rpc.request['db:reorder-sequences'](
-                                orderedIds.map((id, orderIndex) => ({
-                                    id,
-                                    orderIndex,
+                        onStructureReorder={async (unifiedItems) => {
+                            const chapterScenes = unifiedItems.filter(
+                                (item) => item.type === 'scene'
+                            );
+                            const chapterSequences = unifiedItems.filter(
+                                (item) => item.type === 'sequence'
+                            );
+
+                            await rpc.request['db:reorder-scenes'](
+                                chapterScenes.map((item) => ({
+                                    id: item.id,
+                                    orderIndex: 0,
+                                    displayOrder: item.displayOrder,
                                 }))
+                            );
+                            await rpc.request['db:reorder-sequences'](
+                                chapterSequences.map((item) => ({
+                                    id: item.id,
+                                    orderIndex: 0,
+                                    displayOrder: item.displayOrder,
+                                }))
+                            );
+
+                            for (const item of chapterScenes) {
+                                if (item.sequenceId !== undefined) {
+                                    await rpc.request['db:move-scene']({
+                                        id: item.id,
+                                        data: {
+                                            sequenceId: item.sequenceId,
+                                            displayOrder: item.displayOrder,
+                                        } as any,
+                                    });
+                                }
+                            }
+
+                            setStoryScenes((prev) =>
+                                prev.map((s) => {
+                                    const item = chapterScenes.find(
+                                        (ci) => ci.id === s.id
+                                    );
+                                    if (item) {
+                                        const updated: any = {
+                                            ...s,
+                                            displayOrder: item.displayOrder,
+                                        };
+                                        if (item.sequenceId !== undefined) {
+                                            updated.sequenceId =
+                                                item.sequenceId;
+                                        }
+                                        return updated;
+                                    }
+                                    return s;
+                                })
                             );
                             setStorySequences((prev) =>
                                 prev.map((s) => {
-                                    const idx = orderedIds.indexOf(s.id);
-                                    return idx >= 0
-                                        ? { ...s, orderIndex: idx }
-                                        : s;
+                                    const item = chapterSequences.find(
+                                        (ci) => ci.id === s.id
+                                    );
+                                    if (item) {
+                                        return {
+                                            ...s,
+                                            displayOrder: item.displayOrder,
+                                        };
+                                    }
+                                    return s;
                                 })
                             );
                         }}
@@ -2595,6 +2700,8 @@ function App() {
                                     organizations={organizations}
                                     items={items}
                                     loreEntries={loreEntries}
+                                    scenes={storyScenes}
+                                    sequences={storySequences}
                                     editorRef={editorRef}
                                     onCreateCompendiumEntry={
                                         handleCreateCompendiumEntryFromAI
@@ -2605,6 +2712,161 @@ function App() {
                                     activeTabType={getActiveTab()?.type ?? null}
                                     resolvedTemplates={resolvedTemplateFields}
                                     style={{ width: rightSidebarWidth }}
+                                    onCreateScenesAndSequences={async (
+                                        newScenes,
+                                        newSequences
+                                    ) => {
+                                        const chapter =
+                                            getActiveTab()?.type === 'chapter'
+                                                ? chapters.find(
+                                                      (c) =>
+                                                          c.id === activeTabId
+                                                  )
+                                                : null;
+                                        if (!chapter) return;
+
+                                        const existingDisplayOrders = [
+                                            ...storyScenes
+                                                .filter(
+                                                    (s) =>
+                                                        s.chapterId ===
+                                                            chapter.id &&
+                                                        !s.sequenceId
+                                                )
+                                                .map((s) => s.displayOrder),
+                                            ...storySequences
+                                                .filter(
+                                                    (s) =>
+                                                        s.chapterId ===
+                                                        chapter.id
+                                                )
+                                                .map((s) => s.displayOrder),
+                                        ];
+                                        let nextDisplayOrder =
+                                            existingDisplayOrders.length > 0
+                                                ? Math.max(
+                                                      ...existingDisplayOrders
+                                                  ) + 1
+                                                : 0;
+
+                                        const createdScenes: StoryScene[] = [];
+                                        for (const sceneData of newScenes) {
+                                            const cp = Array.isArray(
+                                                sceneData.charactersPresent
+                                            )
+                                                ? JSON.stringify(
+                                                      sceneData.charactersPresent
+                                                  )
+                                                : sceneData.charactersPresent ||
+                                                  null;
+                                            const ke = Array.isArray(
+                                                sceneData.keyEvents
+                                            )
+                                                ? JSON.stringify(
+                                                      sceneData.keyEvents
+                                                  )
+                                                : sceneData.keyEvents || null;
+                                            const scene = await rpc.request[
+                                                'db:create-story-scene'
+                                            ]({
+                                                id: crypto.randomUUID(),
+                                                projectId: chapter.projectId,
+                                                chapterId: chapter.id,
+                                                actId: chapter.actId,
+                                                sequenceId: null,
+                                                title:
+                                                    sceneData.title ||
+                                                    'New Scene',
+                                                summary:
+                                                    sceneData.summary || null,
+                                                setting:
+                                                    sceneData.setting || null,
+                                                charactersPresent: cp,
+                                                keyEvents: ke,
+                                                conflict:
+                                                    sceneData.conflict || null,
+                                                duration:
+                                                    sceneData.duration || null,
+                                                status: 'outline',
+                                                orderIndex:
+                                                    createdScenes.length,
+                                                displayOrder:
+                                                    nextDisplayOrder++,
+                                            } as any);
+                                            if (scene)
+                                                createdScenes.push(scene);
+                                        }
+
+                                        const createdSequences: StorySequence[] =
+                                            [];
+                                        for (const seqData of newSequences) {
+                                            const seq = await rpc.request[
+                                                'db:create-story-sequence'
+                                            ]({
+                                                id: crypto.randomUUID(),
+                                                projectId: chapter.projectId,
+                                                chapterId: chapter.id,
+                                                actId: chapter.actId,
+                                                title:
+                                                    seqData.title ||
+                                                    'New Sequence',
+                                                summary:
+                                                    seqData.summary || null,
+                                                status: 'outline',
+                                                orderIndex:
+                                                    createdSequences.length,
+                                                displayOrder:
+                                                    nextDisplayOrder++,
+                                            } as any);
+                                            if (seq) {
+                                                createdSequences.push(seq);
+                                                const sceneIndices =
+                                                    seqData.sceneIndices || [];
+                                                for (
+                                                    let i = 0;
+                                                    i < sceneIndices.length;
+                                                    i++
+                                                ) {
+                                                    const sceneIdx =
+                                                        sceneIndices[i];
+                                                    if (
+                                                        createdScenes[sceneIdx]
+                                                    ) {
+                                                        await rpc.request[
+                                                            'db:update-story-scene'
+                                                        ]({
+                                                            id: createdScenes[
+                                                                sceneIdx
+                                                            ].id,
+                                                            data: {
+                                                                sequenceId:
+                                                                    seq.id,
+                                                                orderIndex: i,
+                                                            } as any,
+                                                        });
+                                                        createdScenes[
+                                                            sceneIdx
+                                                        ] = {
+                                                            ...createdScenes[
+                                                                sceneIdx
+                                                            ],
+                                                            sequenceId: seq.id,
+                                                            orderIndex: i,
+                                                        };
+                                                    }
+                                                }
+                                            }
+                                        }
+
+                                        setStoryScenes((prev) => [
+                                            ...prev,
+                                            ...createdScenes,
+                                        ]);
+                                        setStorySequences((prev) => [
+                                            ...prev,
+                                            ...createdSequences,
+                                        ]);
+                                    }}
                                 />
                             </>
                         )}

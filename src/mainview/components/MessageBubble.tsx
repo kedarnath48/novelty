@@ -15,7 +15,7 @@ import {
     IconChevronUp,
 } from '@tabler/icons-react';
 import type { ChatMessage } from '../services/ai';
-import 'highlight.js/styles/github-dark.css';
+//import 'highlight.js/styles/github-dark.css';
 
 interface MessageBubbleProps {
     message: ChatMessage;
@@ -32,6 +32,7 @@ interface MessageBubbleProps {
     onVariantChange: (id: string, variantIndex: number) => void;
     onExpand: (id: string) => void;
     createEntryButton?: React.ReactNode;
+    createStructureButton?: React.ReactNode;
 }
 
 function formatTimestamp(iso: string): string {
@@ -60,6 +61,7 @@ const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
             onVariantChange,
             onExpand,
             createEntryButton,
+            createStructureButton,
         },
         ref
     ) => {
@@ -204,6 +206,7 @@ const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
                         )}
                         <div className="message-spacer" />
                         {createEntryButton && <>{createEntryButton}</>}
+                        {createStructureButton && <>{createStructureButton}</>}
                         <button
                             className={
                                 'message-action-btn' +

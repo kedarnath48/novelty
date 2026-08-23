@@ -189,6 +189,12 @@ export default function PlotArchitectureView({
     async function handleAddSequence(chapterId: string) {
         const chapter = chapters.find((c) => c.id === chapterId);
         const list = sequencesOfChapter(chapterId);
+        const chapterScenesList = scenesOfChapter(chapterId);
+        const maxDisplayOrder = Math.max(
+            0,
+            ...list.map((s) => s.displayOrder),
+            ...chapterScenesList.map((s) => s.displayOrder)
+        );
         await rpc.request['db:create-story-sequence']({
             id: crypto.randomUUID(),
             actId: chapter?.actId ?? null,
@@ -197,6 +203,7 @@ export default function PlotArchitectureView({
             title: `Sequence ${list.length + 1}`,
             summary: null,
             orderIndex: list.length,
+            displayOrder: maxDisplayOrder + 1,
             status: 'outline',
         });
         await loadData();
@@ -218,6 +225,14 @@ export default function PlotArchitectureView({
             : container.chapterId
               ? scenesOfChapter(container.chapterId)
               : [];
+        const chapterSeqs = container.chapterId
+            ? sequencesOfChapter(container.chapterId)
+            : [];
+        const maxDisplayOrder = Math.max(
+            0,
+            ...list.map((s) => s.displayOrder),
+            ...chapterSeqs.map((s) => s.displayOrder)
+        );
         await rpc.request['db:create-story-scene']({
             id: crypto.randomUUID(),
             projectId,
@@ -233,6 +248,7 @@ export default function PlotArchitectureView({
             conflict: null,
             status: 'outline',
             orderIndex: list.length,
+            displayOrder: container.sequenceId ? 0 : maxDisplayOrder + 1,
         });
         await loadData();
         onDataChange?.();
@@ -468,7 +484,7 @@ export default function PlotArchitectureView({
             arr.push(item);
             return arr;
         }
-        let idx = arr.findIndex((x) => x.id === targetId);
+        const idx = arr.findIndex((x) => x.id === targetId);
         if (idx < 0) {
             arr.push(item);
             return arr;
@@ -807,7 +823,7 @@ export default function PlotArchitectureView({
     const renderScene = (scene: StoryScene, index: number) => (
         <div
             key={scene.id}
-            className={`scene-drag-wrap ${cardDropClass('scene', scene.id)}`}
+            className={`scene-content-wrap ${cardDropClass('scene', scene.id)}`}
             onDragOver={(e) => dragOverCard(e, 'scene', scene.id)}
             onDrop={(e) => dropCard(e, 'scene', scene.id)}
             onDragLeave={dragLeaveTarget}
@@ -868,7 +884,7 @@ export default function PlotArchitectureView({
                     onDragStart={(e) => startDrag(e, 'sequence', seq.id)}
                     onDragEnd={clearDrag}
                 >
-                    <IconGripVertical size={12} />
+                    <IconGripVertical size={16} />
                 </span>
                 <button
                     className="collapse-btn"
@@ -880,9 +896,9 @@ export default function PlotArchitectureView({
                     }
                 >
                     {collapsed.sequences.includes(seq.id) ? (
-                        <IconChevronRight size={12} />
+                        <IconChevronRight size={16} />
                     ) : (
-                        <IconChevronDown size={12} />
+                        <IconChevronDown size={16} />
                     )}
                 </button>
                 <input
@@ -971,7 +987,7 @@ export default function PlotArchitectureView({
                     onDragStart={(e) => startDrag(e, 'chapter', ch.id)}
                     onDragEnd={clearDrag}
                 >
-                    <IconGripVertical size={12} />
+                    <IconGripVertical size={16} />
                 </span>
                 <button
                     className="collapse-btn"
@@ -983,9 +999,9 @@ export default function PlotArchitectureView({
                     }
                 >
                     {collapsed.chapters.includes(ch.id) ? (
-                        <IconChevronRight size={12} />
+                        <IconChevronRight size={16} />
                     ) : (
-                        <IconChevronDown size={12} />
+                        <IconChevronDown size={16} />
                     )}
                 </button>
                 <span
@@ -1108,12 +1124,12 @@ export default function PlotArchitectureView({
                                         }
                                         onDragEnd={clearDrag}
                                     >
-                                        <IconGripVertical size={14} />
+                                        <IconGripVertical size={16} />
                                     </span>
                                     {collapsed.acts.includes(act.id) ? (
-                                        <IconChevronRight size={14} />
+                                        <IconChevronRight size={16} />
                                     ) : (
-                                        <IconChevronDown size={14} />
+                                        <IconChevronDown size={16} />
                                     )}
                                     <input
                                         className="act-title-input"

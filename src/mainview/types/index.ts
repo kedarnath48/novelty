@@ -123,7 +123,14 @@ export type NewInspiration = Omit<Inspiration, 'createdAt' | 'updatedAt'>;
 
 export type MentionTarget = {
     type:
-        'chapter' | 'character' | 'location' | 'organization' | 'item' | 'lore';
+        | 'chapter'
+        | 'character'
+        | 'location'
+        | 'organization'
+        | 'item'
+        | 'lore'
+        | 'scene'
+        | 'sequence';
     id: string;
     label: string;
     mode?: 'brief' | 'full';
@@ -259,6 +266,7 @@ export type StorySequence = {
     title: string;
     summary: string | null;
     orderIndex: number;
+    displayOrder: number;
     status: ChapterStatus;
     createdAt: Date;
     updatedAt: Date;
@@ -281,6 +289,7 @@ export type StoryScene = {
     conflict: string | null;
     status: ChapterStatus;
     orderIndex: number;
+    displayOrder: number;
     createdAt: Date;
     updatedAt: Date;
 };

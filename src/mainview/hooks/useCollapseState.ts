@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 
 export type CollapseKind = 'acts' | 'chapters' | 'sequences' | 'scenes';
 
-type CollapseState = Record<CollapseKind, string[]>;
+export type CollapseState = Record<CollapseKind, string[]>;
 
 const EMPTY_STATE: CollapseState = {
     acts: [],

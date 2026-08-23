@@ -189,9 +189,9 @@ export default function PlotHolePanel({ context, onNavigateChapter }: Props) {
                                     {issue.category}
                                 </span>
                                 {isExpanded ? (
-                                    <IconChevronDown size={14} />
+                                    <IconChevronDown size={16} />
                                 ) : (
-                                    <IconChevronRight size={14} />
+                                    <IconChevronRight size={16} />
                                 )}
                             </div>
                             {isExpanded && (
