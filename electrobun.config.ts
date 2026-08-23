@@ -49,26 +49,26 @@ setupViews();
 */
 
 export default {
-  app: {
-    name: pkg.name,
-    // Transforms package.json name ("novelty") into "com.yourcompany.novelty" or "novelty.app"
-    identifier: `${pkg.name}.app`,
-    version: pkg.version,
-  },
-  build: {
-    copy: {
-      'dist/mainview': 'views/mainview',
+    app: {
+        name: pkg.name,
+        // Transforms package.json name ("novelty") into "com.yourcompany.novelty" or "novelty.app"
+        identifier: `${pkg.name}.app`,
+        version: pkg.version,
     },
-    watchIgnore: ['dist/**', 'views/**'],
-    mac: {
-      bundleCEF: false,
+    build: {
+        copy: {
+            'dist/mainview': 'views/mainview',
+        },
+        watchIgnore: ['dist/**', 'views/**'],
+        mac: {
+            bundleCEF: false,
+        },
+        linux: {
+            bundleCEF: false,
+        },
+        win: {
+            bundleCEF: false,
+            icon: 'public/assets/favicon_256x256.png',
+        },
     },
-    linux: {
-      bundleCEF: false,
-    },
-    win: {
-      bundleCEF: false,
-      icon: 'public/assets/favicon_256x256.png',
-    },
-  },
 } satisfies ElectrobunConfig;
