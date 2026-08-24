@@ -3936,8 +3936,9 @@ select {
     border-radius: 4px;
 }
 
-.structure-drop-zone.scene-drop-zone {
-    min-height: 8px;
+.outline-chapter-structure-inner {
+    display: flex;
+    flex-direction: column;
 }
 
 .structure-drop-zone.full-drop-zone {
@@ -3954,10 +3955,6 @@ select {
     background: rgba(74, 158, 255, 0.2);
     border: 2px dashed #4a9eff;
     min-height: 16px;
-}
-
-.structure-drop-zone.scene-drop-zone.drop-target-active {
-    min-height: 12px;
 }
 
 .structure-drop-zone.drop-target-invalid {
