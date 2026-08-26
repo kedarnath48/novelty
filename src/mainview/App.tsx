@@ -2714,7 +2714,9 @@ function App() {
                                     style={{ width: rightSidebarWidth }}
                                     onCreateScenesAndSequences={async (
                                         newScenes,
-                                        newSequences
+                                        newSequences,
+                                        mode = 'create',
+                                        removedIds = []
                                     ) => {
                                         const chapter =
                                             getActiveTab()?.type === 'chapter'
@@ -2725,20 +2727,54 @@ function App() {
                                                 : null;
                                         if (!chapter) return;
 
+                                        // Delete removed items (merge/replace modes)
+                                        if (removedIds.length > 0) {
+                                            for (const id of removedIds) {
+                                                const isScene = storyScenes.some(s => s.id === id);
+                                                if (isScene) {
+                                                    await rpc.request['db:delete-story-scene'](id);
+                                                } else {
+                                                    await rpc.request['db:delete-story-sequence'](id);
+                                                }
+                                            }
+                                            setStoryScenes(prev => prev.filter(s => !removedIds.includes(s.id)));
+                                            setStorySequences(prev => prev.filter(s => !removedIds.includes(s.id)));
+                                        }
+
+                                        // For replace mode: also delete ALL remaining chapter structure
+                                        if (mode === 'replace') {
+                                            const chapterSceneIds = storyScenes
+                                                .filter(s => s.chapterId === chapter.id)
+                                                .map(s => s.id);
+                                            const chapterSeqIds = storySequences
+                                                .filter(s => s.chapterId === chapter.id)
+                                                .map(s => s.id);
+                                            for (const id of chapterSceneIds) {
+                                                await rpc.request['db:delete-story-scene'](id);
+                                            }
+                                            for (const id of chapterSeqIds) {
+                                                await rpc.request['db:delete-story-sequence'](id);
+                                            }
+                                            setStoryScenes(prev => prev.filter(s => !chapterSceneIds.includes(s.id)));
+                                            setStorySequences(prev => prev.filter(s => !chapterSeqIds.includes(s.id)));
+                                        }
+
                                         const existingDisplayOrders = [
                                             ...storyScenes
                                                 .filter(
                                                     (s) =>
                                                         s.chapterId ===
                                                             chapter.id &&
-                                                        !s.sequenceId
+                                                        !s.sequenceId &&
+                                                        !removedIds.includes(s.id)
                                                 )
                                                 .map((s) => s.displayOrder),
                                             ...storySequences
                                                 .filter(
                                                     (s) =>
                                                         s.chapterId ===
-                                                        chapter.id
+                                                        chapter.id &&
+                                                        !removedIds.includes(s.id)
                                                 )
                                                 .map((s) => s.displayOrder),
                                         ];
@@ -2766,6 +2802,37 @@ function App() {
                                                       sceneData.keyEvents
                                                   )
                                                 : sceneData.keyEvents || null;
+
+                                            // Merge mode: update existing if id provided
+                                            if (mode === 'merge' && sceneData.id) {
+                                                await rpc.request['db:update-story-scene']({
+                                                    id: sceneData.id,
+                                                    data: {
+                                                        title: sceneData.title || 'New Scene',
+                                                        summary: sceneData.summary || null,
+                                                        setting: sceneData.setting || null,
+                                                        charactersPresent: cp,
+                                                        keyEvents: ke,
+                                                        conflict: sceneData.conflict || null,
+                                                        duration: sceneData.duration || null,
+                                                    } as any,
+                                                });
+                                                const existing = storyScenes.find(s => s.id === sceneData.id);
+                                                if (existing) {
+                                                    createdScenes.push({
+                                                        ...existing,
+                                                        title: sceneData.title || existing.title,
+                                                        summary: sceneData.summary ?? existing.summary,
+                                                        setting: sceneData.setting ?? existing.setting,
+                                                        charactersPresent: cp ?? existing.charactersPresent,
+                                                        keyEvents: ke ?? existing.keyEvents,
+                                                        conflict: sceneData.conflict ?? existing.conflict,
+                                                        duration: sceneData.duration ?? existing.duration,
+                                                    });
+                                                }
+                                                continue;
+                                            }
+
                                             const scene = await rpc.request[
                                                 'db:create-story-scene'
                                             ]({
@@ -2800,6 +2867,26 @@ function App() {
                                         const createdSequences: StorySequence[] =
                                             [];
                                         for (const seqData of newSequences) {
+                                            // Merge mode: update existing if id provided
+                                            if (mode === 'merge' && seqData.id) {
+                                                await rpc.request['db:update-story-sequence']({
+                                                    id: seqData.id,
+                                                    data: {
+                                                        title: seqData.title || 'New Sequence',
+                                                        summary: seqData.summary || null,
+                                                    } as any,
+                                                });
+                                                const existing = storySequences.find(s => s.id === seqData.id);
+                                                if (existing) {
+                                                    createdSequences.push({
+                                                        ...existing,
+                                                        title: seqData.title || existing.title,
+                                                        summary: seqData.summary ?? existing.summary,
+                                                    });
+                                                }
+                                                continue;
+                                            }
+
                                             const seq = await rpc.request[
                                                 'db:create-story-sequence'
                                             ]({
@@ -2858,14 +2945,20 @@ function App() {
                                             }
                                         }
 
-                                        setStoryScenes((prev) => [
-                                            ...prev,
-                                            ...createdScenes,
-                                        ]);
-                                        setStorySequences((prev) => [
-                                            ...prev,
-                                            ...createdSequences,
-                                        ]);
+                                        // Update state: for replace, replace entirely; otherwise append
+                                        if (mode === 'replace') {
+                                            setStoryScenes(createdScenes);
+                                            setStorySequences(createdSequences);
+                                        } else {
+                                            setStoryScenes((prev) => [
+                                                ...prev,
+                                                ...createdScenes,
+                                            ]);
+                                            setStorySequences((prev) => [
+                                                ...prev,
+                                                ...createdSequences,
+                                            ]);
+                                        }
                                     }}
                                 />
                             </>

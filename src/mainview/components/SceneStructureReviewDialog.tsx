@@ -19,6 +19,8 @@ export interface ReviewScene {
     conflict: string;
     duration: string;
     included: boolean;
+    id?: string;
+    diffStatus?: 'new' | 'modified' | 'unchanged' | 'removed';
 }
 
 export interface ReviewSequence {
@@ -26,6 +28,8 @@ export interface ReviewSequence {
     summary: string;
     sceneIndices: number[];
     included: boolean;
+    id?: string;
+    diffStatus?: 'new' | 'modified' | 'unchanged' | 'removed';
 }
 
 interface Props {
@@ -33,6 +37,7 @@ interface Props {
     onClose: () => void;
     initialScenes: ReviewScene[];
     initialSequences: ReviewSequence[];
+    mode?: 'create' | 'merge' | 'replace';
     onConfirm: (scenes: ReviewScene[], sequences: ReviewSequence[]) => void;
 }
 
@@ -63,6 +68,7 @@ export default function SceneStructureReviewDialog({
     onClose,
     initialScenes,
     initialSequences,
+    mode = 'create',
     onConfirm,
 }: Props) {
     const [scenes, setScenes] = useState<ReviewScene[]>(() =>
@@ -308,6 +314,12 @@ export default function SceneStructureReviewDialog({
                     {' to add'}
                 </div>
 
+                {mode === 'replace' && (
+                    <div className="structure-review-warning">
+                        This will replace all existing chapter structure.
+                    </div>
+                )}
+
                 {sequences.length > 0 && (
                     <div className="structure-review-section">
                         <div className="structure-review-section-header">
@@ -334,6 +346,9 @@ export default function SceneStructureReviewDialog({
                                     </button>
                                     <span className="item-number">
                                         Seq {seqIdx + 1}
+                                        {mode === 'merge' && seq.diffStatus === 'new' && <span className="diff-badge diff-new">new</span>}
+                                        {mode === 'merge' && seq.diffStatus === 'modified' && <span className="diff-badge diff-modified">modified</span>}
+                                        {mode === 'merge' && seq.diffStatus === 'removed' && <span className="diff-badge diff-removed">removed</span>}
                                     </span>
                                     <input
                                         className="structure-review-title-input"
@@ -544,6 +559,9 @@ export default function SceneStructureReviewDialog({
                                     </button>
                                     <span className="item-number">
                                         Scene {sceneIdx + 1}
+                                        {mode === 'merge' && scene.diffStatus === 'new' && <span className="diff-badge diff-new">new</span>}
+                                        {mode === 'merge' && scene.diffStatus === 'modified' && <span className="diff-badge diff-modified">modified</span>}
+                                        {mode === 'merge' && scene.diffStatus === 'removed' && <span className="diff-badge diff-removed">removed</span>}
                                     </span>
                                     <input
                                         className="structure-review-title-input"

@@ -5326,6 +5326,41 @@ textarea {
     border-bottom: 1px solid #393a3b;
 }
 
+.structure-review-warning {
+    background: rgba(255, 149, 0, 0.15);
+    border: 1px solid rgba(255, 149, 0, 0.4);
+    border-radius: 6px;
+    padding: 8px 12px;
+    margin-bottom: 12px;
+    font-size: 13px;
+    color: #ff9500;
+    font-weight: 500;
+}
+
+.diff-badge {
+    font-size: 10px;
+    font-weight: 500;
+    padding: 1px 6px;
+    border-radius: 8px;
+    margin-left: 6px;
+    text-transform: uppercase;
+}
+
+.diff-badge.diff-new {
+    background: rgba(52, 199, 89, 0.2);
+    color: #34c759;
+}
+
+.diff-badge.diff-modified {
+    background: rgba(255, 204, 0, 0.2);
+    color: #ffcc00;
+}
+
+.diff-badge.diff-removed {
+    background: rgba(255, 59, 48, 0.2);
+    color: #ff3b30;
+}
+
 .structure-review-section {
     display: flex;
     flex-direction: column;

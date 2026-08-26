@@ -114,7 +114,9 @@ interface ChatPanelProps {
     resolvedTemplates?: Partial<Record<CompendiumCategory, FieldDefinition[]>>;
     onCreateScenesAndSequences?: (
         scenes: Partial<StoryScene>[],
-        sequences: Partial<StorySequence & { sceneIndices: number[] }>[]
+        sequences: Partial<StorySequence & { sceneIndices: number[] }>[],
+        mode: 'create' | 'merge' | 'replace',
+        removedIds: string[]
     ) => void;
 }
 
@@ -186,13 +188,14 @@ export default function ChatPanel({
         Record<string, { category: CompendiumCategory; name: string }>
     >({});
     const [pendingStructureData, setPendingStructureData] = useState<
-        Record<string, { scenes: any[]; sequences: any[] }>
+        Record<string, { scenes: any[]; sequences: any[]; mode: 'create' | 'merge' | 'replace' }>
     >({});
     const [structureDialogOpen, setStructureDialogOpen] = useState(false);
     const [structureDialogData, setStructureDialogData] = useState<{
         msgId: string;
         scenes: ReviewScene[];
         sequences: ReviewSequence[];
+        mode: 'create' | 'merge' | 'replace';
     } | null>(null);
     const [embeddingsAvailable, setEmbeddingsAvailable] = useState(false);
 
@@ -230,7 +233,7 @@ export default function ChatPanel({
         updatecompendium: null,
     };
 
-    const ANALYSIS_COMMANDS = new Set(['analyzesequences']);
+    const ANALYSIS_COMMANDS = new Set(['analyzestructure', 'generatestructure', 'extractstructure', 'modifystructure', 'rewritestructure']);
 
     const typeLabels: Record<MentionTarget['type'], string> = {
         chapter: 'Chapters',
@@ -341,9 +344,39 @@ export default function ChatPanel({
             type: 'context' as const,
         },
         {
-            command: '/analyzesequences',
-            description: 'Extract scenes and sequences from chapter summary',
+            command: '/analyzestructure',
+            description: 'Analyze chapter and extract structure',
             type: 'context' as const,
+            requiresChapter: true,
+            chapterState: 'hasText' as const,
+        },
+        {
+            command: '/generatestructure',
+            description: 'Generate chapter structure from a pitch',
+            type: 'context' as const,
+            requiresChapter: true,
+            chapterState: 'empty' as const,
+        },
+        {
+            command: '/extractstructure',
+            description: 'Extract structure from chapter text',
+            type: 'context' as const,
+            requiresChapter: true,
+            chapterState: 'hasText' as const,
+        },
+        {
+            command: '/modifystructure',
+            description: 'Modify existing chapter structure',
+            type: 'context' as const,
+            requiresChapter: true,
+            chapterState: 'hasStructure' as const,
+        },
+        {
+            command: '/rewritestructure',
+            description: 'Replace chapter structure entirely',
+            type: 'context' as const,
+            requiresChapter: true,
+            chapterState: 'hasStructure' as const,
         },
     ];
 
@@ -644,6 +677,7 @@ export default function ChatPanel({
             scenes: Partial<StoryScene>[];
             sequences: Partial<StorySequence & { sceneIndices: number[] }>[];
         } | null = null;
+        let structureMode: 'create' | 'merge' | 'replace' = 'create';
 
         if (ANALYSIS_COMMANDS.has(command)) {
             isAnalysisCommand = true;
@@ -707,88 +741,173 @@ export default function ChatPanel({
             if (userInput) parts.push(`\nAdditional context: ${userInput}`);
 
             const analysisInput = parts.join('\n');
-            /*
-            if (systemPromptMessage) {
-                const bt = '\x60\x60\x60';
-                systemPromptMessage.content =
-                    "You are a senior developmental editor analyzing a chapter's structure.\n\n" +
-                    (analysisInput
-                        ? `Chapter context:\n${analysisInput}\n\n`
-                        : '') +
-                    'Provide a thorough editorial analysis of this chapter. Cover:\n\n' +
-                    '## Structural Analysis\n' +
-                    '- **Pacing**: Is the chapter well-paced? Are there sections that drag or feel rushed?\n' +
-                    '- **Scene breaks**: Are the scene transitions smooth? Are there moments that should be split or merged?\n' +
-                    '- **Tension arc**: Does the chapter build and release tension effectively?\n\n' +
-                    '## Content Quality\n' +
-                    '- **Strengths**: What works well in this chapter? What should be preserved?\n' +
-                    '- **Weaknesses**: What feels underdeveloped, confusing, or flat?\n' +
-                    '- **Character arcs**: Are character motivations clear? Do relationships feel authentic?\n' +
-                    '- **Dialogue vs. prose balance**: Is there a good rhythm between action, description, and dialogue?\n\n' +
-                    '## Grammar & Prose\n' +
-                    '- **Prose style**: Notes on sentence variety, word choice, voice consistency\n' +
-                    '- **Grammar issues**: Any notable grammar, punctuation, or style problems\n' +
-                    '- **Show vs. tell**: Areas where telling could be converted to showing\n\n' +
-                    '## Recommendations\n' +
-                    '- **Must-fix issues**: Things that need immediate attention\n' +
-                    '- **Nice-to-have improvements**: Polish-level suggestions\n' +
-                    '- **Things to keep in mind**: Continuity notes, character consistency, thematic threads\n\n' +
-                    '---\n\n' +
-                    'After your analysis, provide the recommended chapter structure as a JSON code block:\n' +
-                    bt +
-                    'structure-data\n' +
-                    '{\n' +
-                    '  "scenes": [\n' +
-                    '    {"title": "...", "summary": "...", "setting": "...", "characters": ["..."], "keyEvents": ["..."], "conflict": "...", "duration": "..."}\n' +
-                    '  ],\n' +
-                    '  "sequences": [\n' +
-                    '    {"title": "...", "summary": "...", "sceneIndices": [0, 1]}\n' +
-                    '  ]\n' +
-                    '}\n' +
-                    bt +
-                    '\n\nRules for scenes and sequences:\n' +
-                    '- Each scene is a discrete moment with a single location/time\n' +
-                    '- Sequences group related scenes into narrative units\n' +
-                    '- Scenes not in any sequence appear at chapter level\n' +
-                    '- If existing scenes/sequences are provided, use them as reference but create new ones as needed\n' +
-                    '- sceneIndices refer to the scenes array (0-indexed)';
-            }
-            */
 
             if (systemPromptMessage) {
                 const bt = '\x60\x60\x60';
-                systemPromptMessage.content =
-                    "You are a senior developmental editor analyzing a chapter's structure.\n\n" +
-                    (analysisInput
-                        ? `Chapter context:\n${analysisInput}\n\n`
-                        : '') +
-                    'Provide a concise editorial analysis focusing on key structural and prose elements:\n\n' +
-                    '## Editorial Review\n' +
-                    '- **Pacing & Tension**: Highlight major drag points, rushed sections, and the overall tension arc.\n' +
-                    '- **Core Pros & Cons**: Identify primary strengths to keep and critical weaknesses/unclear motivations.\n' +
-                    '- **Show vs. Tell**: Note key areas where telling must become showing.\n' +
-                    '- **Must-Fix Actions**: Immediate structural or narrative changes required.\n\n' +
-                    '---\n\n' +
-                    'After your analysis, provide the recommended chapter structure as a JSON code block:\n' +
-                    bt +
-                    'structure-data\n' +
-                    '{\n' +
-                    '  "scenes": [\n' +
-                    '    {"title": "...", "summary": "...", "setting": "...", "charactersPresent": ["character name", ...], "keyEvents": ["event description", ...], "conflict": "...", "duration": "..."}\n' +
-                    '  ],\n' +
-                    '  "sequences": [\n' +
-                    '    {"title": "...", "summary": "...", "sceneIndices": [0, 1]}\n' +
-                    '  ]\n' +
-                    '}\n' +
-                    bt +
-                    '\n\nRules for scenes and sequences:\n' +
-                    '- Each scene is a discrete moment with a single location/time\n' +
-                    '- Sequences group related scenes into narrative units\n' +
-                    '- Scenes not in any sequence appear at chapter level\n' +
-                    '- If existing scenes/sequences are provided, use them as reference but create new ones as needed\n' +
-                    '- sceneIndices refer to the scenes array (0-indexed)\n' +
-                    '- charactersPresent: array of character name strings present in the scene\n' +
-                    '- keyEvents: array of brief event description strings';
+
+                if (command === 'generatestructure') {
+                    structureMode = 'create';
+                    systemPromptMessage.content =
+                        "You are a senior structural editor helping a writer plan a new chapter.\n\n" +
+                        (analysisInput
+                            ? `Chapter context:\n${analysisInput}\n\n`
+                            : '') +
+                        'The writer has provided a pitch for this chapter. Analyze the pitch and break it down into a structured arrangement of scenes and sequences.\n\n' +
+                        'Provide your structural analysis, then output the chapter structure as a JSON code block:\n' +
+                        bt + 'structure-data\n' +
+                        '{\n' +
+                        '  "scenes": [\n' +
+                        '    {"title": "...", "summary": "...", "setting": "...", "charactersPresent": ["character name", ...], "keyEvents": ["event description", ...], "conflict": "...", "duration": "..."}\n' +
+                        '  ],\n' +
+                        '  "sequences": [\n' +
+                        '    {"title": "...", "summary": "...", "sceneIndices": [0, 1]}\n' +
+                        '  ]\n' +
+                        '}\n' + bt +
+                        '\n\nRules:\n' +
+                        '- Each scene is a discrete moment with a single location/time\n' +
+                        '- Sequences group related scenes into narrative units\n' +
+                        '- Scenes not in any sequence appear at chapter level\n' +
+                        '- sceneIndices refer to the scenes array (0-indexed)\n' +
+                        '- charactersPresent: array of character name strings\n' +
+                        '- keyEvents: array of brief event description strings';
+                } else if (command === 'extractstructure') {
+                    structureMode = 'create';
+                    systemPromptMessage.content =
+                        "You are a senior structural editor extracting structure from a chapter's text.\n\n" +
+                        (analysisInput
+                            ? `Chapter context:\n${analysisInput}\n\n`
+                            : '') +
+                        'Read the chapter text and identify its natural structure. Extract discrete scenes and group them into sequences where appropriate.\n\n' +
+                        'Briefly describe what you found, then output the structure as a JSON code block:\n' +
+                        bt + 'structure-data\n' +
+                        '{\n' +
+                        '  "scenes": [\n' +
+                        '    {"title": "...", "summary": "...", "setting": "...", "charactersPresent": ["character name", ...], "keyEvents": ["event description", ...], "conflict": "...", "duration": "..."}\n' +
+                        '  ],\n' +
+                        '  "sequences": [\n' +
+                        '    {"title": "...", "summary": "...", "sceneIndices": [0, 1]}\n' +
+                        '  ]\n' +
+                        '}\n' + bt +
+                        '\n\nRules:\n' +
+                        '- Each scene is a discrete moment with a single location/time\n' +
+                        '- Sequences group related scenes into narrative units\n' +
+                        '- Scenes not in any sequence appear at chapter level\n' +
+                        '- sceneIndices refer to the scenes array (0-indexed)\n' +
+                        '- charactersPresent: array of character name strings\n' +
+                        '- keyEvents: array of brief event description strings';
+                } else if (command === 'modifystructure') {
+                    structureMode = 'merge';
+                    const idParts: string[] = [];
+                    if (chapterContext) {
+                        idParts.push(`Chapter: "${chapterContext.title}"`);
+                        if (chapterContext.summary)
+                            idParts.push(`Summary: ${chapterContext.summary}`);
+                        if (chapterContext.content)
+                            idParts.push(`Content:\n${chapterContext.content}`);
+                        if (chapterContext.sequences.length > 0) {
+                            idParts.push('\nCurrent structure — Sequences:');
+                            for (const seq of chapterContext.sequences) {
+                                idParts.push(
+                                    `  [Sequence: "${seq.title}" (id: ${seq.id})]\n    summary: ${seq.summary || '(none)'}`
+                                );
+                            }
+                        }
+                        if (chapterContext.scenes.length > 0) {
+                            idParts.push('\nCurrent structure — Scenes:');
+                            for (const sc of chapterContext.scenes) {
+                                idParts.push(
+                                    `  [Scene: "${sc.title}" (id: ${sc.id})]\n    summary: ${sc.summary || '(none)'}\n    sequence: ${sc.sequenceId || 'none (chapter-level)'}`
+                                );
+                            }
+                        }
+                    }
+                    if (userInput) idParts.push(`\nWriter's modification request: ${userInput}`);
+
+                    systemPromptMessage.content =
+                        "You are a senior structural editor helping a writer modify their chapter's structure.\n\n" +
+                        (idParts.length > 0
+                            ? `${idParts.join('\n')}\n\n`
+                            : '') +
+                        'Analyze the writer\'s requested changes against the current structure.\n\n' +
+                        'If anything is unclear, ambiguous, or logically inconsistent, ask clarifying questions first. Do NOT output a structure-data block until you have enough information.\n\n' +
+                        'When you have enough information to make the changes, provide the COMPLETE modified structure as a JSON code block:\n' +
+                        bt + 'structure-data\n' +
+                        '{\n' +
+                        '  "scenes": [\n' +
+                        '    {"id": "existing-scene-id", "title": "...", "summary": "...", "setting": "...", "charactersPresent": [...], "keyEvents": [...], "conflict": "...", "duration": "..."}\n' +
+                        '  ],\n' +
+                        '  "sequences": [\n' +
+                        '    {"id": "existing-sequence-id", "title": "...", "summary": "...", "sceneIndices": [0, 1]}\n' +
+                        '  ]\n' +
+                        '}\n' + bt +
+                        '\n\nIMPORTANT rules:\n' +
+                        '- Include the "id" field for every item that corresponds to an EXISTING scene or sequence listed above\n' +
+                        '- Omit the "id" field for brand new items\n' +
+                        '- Output the COMPLETE structure — both kept/modified and new items\n' +
+                        '- Items from the current structure whose IDs are omitted will be DELETED\n' +
+                        '- sceneIndices refer to the scenes array (0-indexed)\n' +
+                        '- charactersPresent: array of character name strings\n' +
+                        '- keyEvents: array of brief event description strings';
+                } else if (command === 'rewritestructure') {
+                    structureMode = 'replace';
+                    systemPromptMessage.content =
+                        "You are a senior structural editor. The writer wants to completely replace this chapter's structure.\n\n" +
+                        (analysisInput
+                            ? `Chapter context:\n${analysisInput}\n\n`
+                            : '') +
+                        'Analyze the writer\'s instructions and provide a fresh, complete structure.\n\n' +
+                        'Provide your structural notes, then output the new structure as a JSON code block:\n' +
+                        bt + 'structure-data\n' +
+                        '{\n' +
+                        '  "scenes": [\n' +
+                        '    {"title": "...", "summary": "...", "setting": "...", "charactersPresent": ["character name", ...], "keyEvents": ["event description", ...], "conflict": "...", "duration": "..."}\n' +
+                        '  ],\n' +
+                        '  "sequences": [\n' +
+                        '    {"title": "...", "summary": "...", "sceneIndices": [0, 1]}\n' +
+                        '  ]\n' +
+                        '}\n' + bt +
+                        '\n\nRules:\n' +
+                        '- Each scene is a discrete moment with a single location/time\n' +
+                        '- Sequences group related scenes into narrative units\n' +
+                        '- Scenes not in any sequence appear at chapter level\n' +
+                        '- sceneIndices refer to the scenes array (0-indexed)\n' +
+                        '- charactersPresent: array of character name strings\n' +
+                        '- keyEvents: array of brief event description strings\n' +
+                        '- This will REPLACE all existing structure, so provide a complete chapter structure';
+                } else {
+                    // analyzestructure (existing behavior)
+                    structureMode = 'create';
+                    systemPromptMessage.content =
+                        "You are a senior developmental editor analyzing a chapter's structure.\n\n" +
+                        (analysisInput
+                            ? `Chapter context:\n${analysisInput}\n\n`
+                            : '') +
+                        'Provide a concise editorial analysis focusing on key structural and prose elements:\n\n' +
+                        '## Editorial Review\n' +
+                        '- **Pacing & Tension**: Highlight major drag points, rushed sections, and the overall tension arc.\n' +
+                        '- **Core Pros & Cons**: Identify primary strengths to keep and critical weaknesses/unclear motivations.\n' +
+                        '- **Show vs. Tell**: Note key areas where telling must become showing.\n' +
+                        '- **Must-Fix Actions**: Immediate structural or narrative changes required.\n\n' +
+                        '---\n\n' +
+                        'After your analysis, provide the recommended chapter structure as a JSON code block:\n' +
+                        bt + 'structure-data\n' +
+                        '{\n' +
+                        '  "scenes": [\n' +
+                        '    {"title": "...", "summary": "...", "setting": "...", "charactersPresent": ["character name", ...], "keyEvents": ["event description", ...], "conflict": "...", "duration": "..."}\n' +
+                        '  ],\n' +
+                        '  "sequences": [\n' +
+                        '    {"title": "...", "summary": "...", "sceneIndices": [0, 1]}\n' +
+                        '  ]\n' +
+                        '}\n' + bt +
+                        '\n\nRules for scenes and sequences:\n' +
+                        '- Each scene is a discrete moment with a single location/time\n' +
+                        '- Sequences group related scenes into narrative units\n' +
+                        '- Scenes not in any sequence appear at chapter level\n' +
+                        '- If existing scenes/sequences are provided, use them as reference but create new ones as needed\n' +
+                        '- sceneIndices refer to the scenes array (0-indexed)\n' +
+                        '- charactersPresent: array of character name strings present in the scene\n' +
+                        '- keyEvents: array of brief event description strings';
+                }
             }
         }
 
@@ -1098,6 +1217,7 @@ export default function ChatPanel({
                                                 seq.sceneIndices || [],
                                         })
                                     ),
+                                    mode: structureMode,
                                 },
                             }));
                         }
@@ -1362,6 +1482,35 @@ export default function ChatPanel({
                     [messageId]: parsed,
                 }));
             }
+
+            // Scan for structure data in the retried response
+            const structureMatch = (
+                Array.isArray(result.content)
+                    ? result.content.join('')
+                    : result.content
+            ).match(/```structure-data\n([\s\S]*?)```/);
+            if (structureMatch) {
+                try {
+                    const structureResult = JSON.parse(structureMatch[1]);
+                    if (structureResult) {
+                        setPendingStructureData((prev) => ({
+                            ...prev,
+                            [messageId]: {
+                                scenes: structureResult.scenes || [],
+                                sequences: (structureResult.sequences || []).map(
+                                    (seq: any) => ({
+                                        ...seq,
+                                        sceneIndices: seq.sceneIndices || [],
+                                    })
+                                ),
+                                mode: 'create' as const,
+                            },
+                        }));
+                    }
+                } catch (e) {
+                    console.error('Failed to parse structure data on retry:', e);
+                }
+            }
         } catch (error) {
             console.error('Retry error:', error);
             const errorMsg =
@@ -1499,13 +1648,28 @@ export default function ChatPanel({
 
     const suggestionGroups = useMemo((): SuggestionGroup[] => {
         if (showSlashPopup) {
-            const filtered = SLASH_COMMANDS.filter(
-                (cmd) =>
-                    !slashSearchTerm ||
-                    cmd.command
-                        .toLowerCase()
-                        .startsWith(`/${slashSearchTerm.toLowerCase()}`)
-            );
+            const activeChapterId = activeTabType === 'chapter' ? activeTabId : null;
+            const activeChapter = activeChapterId ? chapters.find(c => c.id === activeChapterId) : null;
+            const hasContent = !!(activeChapter?.content?.trim());
+            const hasStructure = !!(activeChapterId && (
+                scenes.some(s => s.chapterId === activeChapterId) ||
+                sequences.some(s => s.chapterId === activeChapterId)
+            ));
+
+            const filtered = SLASH_COMMANDS.filter((cmd) => {
+                if (slashSearchTerm &&
+                    !cmd.command.toLowerCase().startsWith(`/${slashSearchTerm.toLowerCase()}`))
+                    return false;
+                if ('requiresChapter' in cmd && cmd.requiresChapter && activeTabType !== 'chapter')
+                    return false;
+                if ('chapterState' in cmd) {
+                    const state = cmd.chapterState;
+                    if (state === 'empty' && (hasContent || hasStructure)) return false;
+                    if (state === 'hasText' && !hasContent) return false;
+                    if (state === 'hasStructure' && !hasStructure) return false;
+                }
+                return true;
+            });
             return [
                 {
                     items: filtered.map((cmd) => ({
@@ -1571,6 +1735,10 @@ export default function ChatPanel({
         organizations,
         items,
         loreEntries,
+        scenes,
+        sequences,
+        activeTabType,
+        activeTabId,
     ]);
 
     const handleAttachFile = async () => {
@@ -1974,6 +2142,7 @@ export default function ChatPanel({
                                                         duration:
                                                             s.duration || '',
                                                         included: true,
+                                                        id: s.id || undefined,
                                                     })
                                                 );
                                             const reviewSequences: ReviewSequence[] =
@@ -1986,12 +2155,81 @@ export default function ChatPanel({
                                                             s.sceneIndices ||
                                                             [],
                                                         included: true,
+                                                        id: s.id || undefined,
                                                     })
                                                 );
+                                            const mode = structureData.mode || 'create';
+
+                                            // Compute diff for merge mode
+                                            if (mode === 'merge') {
+                                                const chapterId = activeTabType === 'chapter' ? activeTabId : null;
+                                                const existingScenes = chapterId ? scenes.filter(s => s.chapterId === chapterId) : [];
+                                                const existingSequences = chapterId ? sequences.filter(s => s.chapterId === chapterId) : [];
+
+                                                // Mark existing scenes/sequences with their IDs
+                                                for (const rs of reviewScenes) {
+                                                    const match = existingScenes.find(es => es.title === rs.title);
+                                                    if (match) {
+                                                        rs.id = match.id;
+                                                        const fieldsChanged =
+                                                            rs.summary !== (match.summary || '') ||
+                                                            rs.setting !== (match.setting || '') ||
+                                                            rs.conflict !== (match.conflict || '') ||
+                                                            rs.duration !== (match.duration || '');
+                                                        rs.diffStatus = fieldsChanged ? 'modified' : 'unchanged';
+                                                    } else {
+                                                        rs.diffStatus = 'new';
+                                                    }
+                                                }
+                                                for (const rseq of reviewSequences) {
+                                                    const match = existingSequences.find(es => es.title === rseq.title);
+                                                    if (match) {
+                                                        rseq.id = match.id;
+                                                        const fieldsChanged = rseq.summary !== (match.summary || '');
+                                                        rseq.diffStatus = fieldsChanged ? 'modified' : 'unchanged';
+                                                    } else {
+                                                        rseq.diffStatus = 'new';
+                                                    }
+                                                }
+
+                                                // Add removed items (existing not in AI output)
+                                                const outputSceneTitles = new Set(reviewScenes.map(s => s.title));
+                                                const outputSeqTitles = new Set(reviewSequences.map(s => s.title));
+                                                for (const es of existingScenes) {
+                                                    if (!outputSceneTitles.has(es.title)) {
+                                                        reviewScenes.push({
+                                                            title: es.title,
+                                                            summary: es.summary || '',
+                                                            setting: es.setting || '',
+                                                            charactersPresent: es.charactersPresent ? JSON.parse(es.charactersPresent || '[]') : [],
+                                                            keyEvents: es.keyEvents ? JSON.parse(es.keyEvents || '[]') : [],
+                                                            conflict: es.conflict || '',
+                                                            duration: es.duration || '',
+                                                            included: false,
+                                                            id: es.id,
+                                                            diffStatus: 'removed',
+                                                        });
+                                                    }
+                                                }
+                                                for (const es of existingSequences) {
+                                                    if (!outputSeqTitles.has(es.title)) {
+                                                        reviewSequences.push({
+                                                            title: es.title,
+                                                            summary: es.summary || '',
+                                                            sceneIndices: [],
+                                                            included: false,
+                                                            id: es.id,
+                                                            diffStatus: 'removed',
+                                                        });
+                                                    }
+                                                }
+                                            }
+
                                             setStructureDialogData({
                                                 msgId: msg.id,
                                                 scenes: reviewScenes,
                                                 sequences: reviewSequences,
+                                                mode,
                                             });
                                             setStructureDialogOpen(true);
                                         }}
@@ -2339,41 +2577,59 @@ export default function ChatPanel({
                     }}
                     initialScenes={structureDialogData.scenes}
                     initialSequences={structureDialogData.sequences}
+                    mode={structureDialogData.mode}
                     onConfirm={async (confirmedScenes, confirmedSequences) => {
                         const msgId = structureDialogData.msgId;
                         setStructureDialogOpen(false);
                         setStructureDialogData(null);
                         try {
                             if (onCreateScenesAndSequences) {
+                                const mode = structureDialogData.mode || 'create';
+                                const removedIds = mode === 'merge'
+                                    ? confirmedScenes.filter(s => s.diffStatus === 'removed').map(s => s.id!).filter(Boolean)
+                                        .concat(confirmedSequences.filter(s => s.diffStatus === 'removed').map(s => s.id!).filter(Boolean))
+                                    : mode === 'replace'
+                                        ? (() => {
+                                            const chId = activeTabType === 'chapter' ? activeTabId : null;
+                                            if (!chId) return [];
+                                            return scenes.filter(s => s.chapterId === chId).map(s => s.id)
+                                                .concat(sequences.filter(s => s.chapterId === chId).map(s => s.id));
+                                        })()
+                                        : [];
+
+                                // For merge: only create/update included items
+                                const scenesToCreate = confirmedScenes
+                                    .filter((s) => s.included)
+                                    .map((s) => ({
+                                        id: s.id || undefined,
+                                        title: s.title,
+                                        summary: s.summary || null,
+                                        setting: s.setting || null,
+                                        charactersPresent:
+                                            s.charactersPresent.length > 0
+                                                ? JSON.stringify(s.charactersPresent)
+                                                : null,
+                                        keyEvents:
+                                            s.keyEvents.length > 0
+                                                ? JSON.stringify(s.keyEvents)
+                                                : null,
+                                        conflict: s.conflict || null,
+                                        duration: s.duration || null,
+                                    }));
+                                const seqsToCreate = confirmedSequences
+                                    .filter((s) => s.included)
+                                    .map((s) => ({
+                                        id: s.id || undefined,
+                                        title: s.title,
+                                        summary: s.summary || null,
+                                        sceneIndices: s.sceneIndices,
+                                    }));
+
                                 await onCreateScenesAndSequences(
-                                    confirmedScenes
-                                        .filter((s) => s.included)
-                                        .map((s) => ({
-                                            title: s.title,
-                                            summary: s.summary || null,
-                                            setting: s.setting || null,
-                                            charactersPresent:
-                                                s.charactersPresent.length > 0
-                                                    ? JSON.stringify(
-                                                          s.charactersPresent
-                                                      )
-                                                    : null,
-                                            keyEvents:
-                                                s.keyEvents.length > 0
-                                                    ? JSON.stringify(
-                                                          s.keyEvents
-                                                      )
-                                                    : null,
-                                            conflict: s.conflict || null,
-                                            duration: s.duration || null,
-                                        })),
-                                    confirmedSequences
-                                        .filter((s) => s.included)
-                                        .map((s) => ({
-                                            title: s.title,
-                                            summary: s.summary || null,
-                                            sceneIndices: s.sceneIndices,
-                                        }))
+                                    scenesToCreate,
+                                    seqsToCreate,
+                                    mode,
+                                    removedIds
                                 );
                                 setPendingStructureData((prev) => {
                                     const copy = { ...prev };
