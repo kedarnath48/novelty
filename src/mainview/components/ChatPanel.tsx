@@ -21,6 +21,14 @@ import {
     IconSwords,
 } from '@tabler/icons-react';
 import { chatCompletion, toApiMessages, AIAbortError } from '../services/ai';
+import {
+    COMMAND_MAP,
+    EXTRACT_COMMANDS,
+    EXTRACT_CATEGORY_MAP,
+    ANALYSIS_COMMANDS,
+    typeLabels,
+    SLASH_COMMANDS,
+} from './../constants/ai/chatpanel_consts';
 import type {
     ChatMessage,
     UserChatMessage,
@@ -65,6 +73,7 @@ import type { SuggestionGroup } from './FloatingSuggestions';
 import ContextChips from './ContextChips';
 import SystemPromptToggle from './SystemPromptToggle';
 import { SettingsDialogActiveTab } from '../constants/layout_tabs';
+import { Model } from '../utils/ai/providerHelpers';
 
 function smartTruncate(text: string, maxLen = 50): string {
     const cleaned = text
@@ -143,6 +152,8 @@ export default function ChatPanel({
     resolvedTemplates,
     onCreateScenesAndSequences,
 }: ChatPanelProps) {
+    const { settings } = useSettings();
+
     const rpc = getRPC();
     const [input, setInput] = useState('');
     const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -163,7 +174,83 @@ export default function ChatPanel({
         | { tab: SettingsDialogActiveTab; section?: string; focus?: string }
         | undefined
     >(undefined);
-    const [selectedModel, setSelectedModel] = useState('');
+
+    const enabledProviders = useMemo(() => {
+        return (
+            settings?.providers?.configs.filter(
+                (provider) => provider.enabled
+            ) ?? []
+        );
+    }, [settings?.providers?.configs]);
+
+    const enabledModels = useMemo(() => {
+        return enabledProviders.reduce<Record<string, Model[]>>(
+            (acc, provider) => {
+                acc[provider.id] = provider.models.filter(
+                    (model) => model.enabled
+                );
+                return acc;
+            },
+            {}
+        );
+    }, [enabledProviders]);
+
+    const [selectedModel, setSelectedModel] =
+        useState<string>(
+            /*
+            () => {
+            const firstProvider = enabledProviders[0];
+            const firstModel = firstProvider?.models.find((m) => m.enabled);
+            return firstModel?.id ?? '';
+            }
+        */
+        );
+
+    // needs refactor
+    const enabledModel = useMemo(() => {
+        return {
+            provider: enabledProviders.find((p) =>
+                p.models.find((m) => m.id === selectedModel)
+            ) ?? {
+                id: 'local',
+                label: 'Local',
+                url: {
+                    base: '',
+                    endpoint: { type: 'lm-studio', value: '/v1' },
+                },
+                models: [],
+                enabled: true,
+            },
+            activeModelId: selectedModel,
+        };
+    }, [selectedModel, enabledProviders, enabledModels]);
+
+    /*
+    console.log(
+        Object.entries(enabledModels).flatMap(([p, ms]) =>
+            ms.filter((m) => m.enabled)
+        ),
+        enabledProviders.flatMap((provider) =>
+            provider.models.filter((model) => model.enabled)
+        ) ?? []
+    );
+    */
+
+    const getPlaceholderText = () => {
+        if (settings?.providers?.configs?.length === 0) {
+            return 'Add a Provider';
+        }
+        if (enabledProviders.length === 0) {
+            return 'Enable a Provider';
+        }
+        const hasAnyEnabledModels = Object.values(enabledModels).some(
+            (models) => models.length > 0
+        );
+        if (!hasAnyEnabledModels) {
+            return 'Enable Models';
+        }
+        return 'Select a Model';
+    };
 
     // Slash command state
     const [showSlashPopup, setShowSlashPopup] = useState(false);
@@ -188,7 +275,14 @@ export default function ChatPanel({
         Record<string, { category: CompendiumCategory; name: string }>
     >({});
     const [pendingStructureData, setPendingStructureData] = useState<
-        Record<string, { scenes: any[]; sequences: any[]; mode: 'create' | 'merge' | 'replace' }>
+        Record<
+            string,
+            {
+                scenes: StoryScene[];
+                sequences: StorySequence & { sceneIndices: number[] }[];
+                mode: 'create' | 'merge' | 'replace';
+            }
+        >
     >({});
     const [structureDialogOpen, setStructureDialogOpen] = useState(false);
     const [structureDialogData, setStructureDialogData] = useState<{
@@ -205,47 +299,6 @@ export default function ChatPanel({
             .catch(() => setEmbeddingsAvailable(false));
     }, []);
 
-    const COMMAND_MAP: Record<string, CompendiumCategory> = {
-        createcharacter: 'character',
-        createlocation: 'location',
-        createorganization: 'organization',
-        createitem: 'item',
-        createlore: 'lore',
-    };
-
-    const EXTRACT_COMMANDS = new Set([
-        'extractcharacters',
-        'extractlocations',
-        'extractorganizations',
-        'extractitems',
-        'extractlore',
-        'extractall',
-        'updatecompendium',
-    ]);
-
-    const EXTRACT_CATEGORY_MAP: Record<string, CompendiumCategory | null> = {
-        extractcharacters: 'character',
-        extractlocations: 'location',
-        extractorganizations: 'organization',
-        extractitems: 'item',
-        extractlore: 'lore',
-        extractall: null,
-        updatecompendium: null,
-    };
-
-    const ANALYSIS_COMMANDS = new Set(['analyzestructure', 'generatestructure', 'extractstructure', 'modifystructure', 'rewritestructure']);
-
-    const typeLabels: Record<MentionTarget['type'], string> = {
-        chapter: 'Chapters',
-        character: 'Characters',
-        location: 'Locations',
-        organization: 'Organizations',
-        item: 'Items',
-        lore: 'Lore',
-        scene: 'Scenes',
-        sequence: 'Sequences',
-    };
-
     const typeIcons: Record<MentionTarget['type'], React.ReactNode> = {
         chapter: <IconFiles size={14} />,
         character: <IconUsers size={14} />,
@@ -256,129 +309,6 @@ export default function ChatPanel({
         scene: <IconFiles size={14} />,
         sequence: <IconFiles size={14} />,
     };
-
-    const SLASH_COMMANDS = [
-        {
-            command: '/continue',
-            description: 'Continue writing from cursor',
-            type: 'instant' as const,
-        },
-        {
-            command: '/rewrite',
-            description: 'Rewrite selected text',
-            type: 'instant' as const,
-        },
-        {
-            command: '/expand',
-            description: 'Expand on selected text',
-            type: 'instant' as const,
-        },
-        {
-            command: '/summarize',
-            description: 'Summarize selected text',
-            type: 'instant' as const,
-        },
-        {
-            command: '/tone:',
-            description: 'Change tone (formal, casual, poetic...)',
-            type: 'context' as const,
-        },
-        {
-            command: '/createcharacter',
-            description: 'Create a new character entry',
-            type: 'context' as const,
-        },
-        {
-            command: '/createlocation',
-            description: 'Create a new location entry',
-            type: 'context' as const,
-        },
-        {
-            command: '/createorganization',
-            description: 'Create a new organization entry',
-            type: 'context' as const,
-        },
-        {
-            command: '/createitem',
-            description: 'Create a new item entry',
-            type: 'context' as const,
-        },
-        {
-            command: '/createlore',
-            description: 'Create a new lore entry',
-            type: 'context' as const,
-        },
-        {
-            command: '/extractcharacters',
-            description: 'Extract character entries from text',
-            type: 'context' as const,
-        },
-        {
-            command: '/extractlocations',
-            description: 'Extract location entries from text',
-            type: 'context' as const,
-        },
-        {
-            command: '/extractorganizations',
-            description: 'Extract organization entries from text',
-            type: 'context' as const,
-        },
-        {
-            command: '/extractitems',
-            description: 'Extract item entries from text',
-            type: 'context' as const,
-        },
-        {
-            command: '/extractlore',
-            description: 'Extract lore entries from text',
-            type: 'context' as const,
-        },
-        {
-            command: '/extractall',
-            description: 'Extract all entity types from text',
-            type: 'context' as const,
-        },
-        {
-            command: '/updatecompendium',
-            description: 'Update existing entries from text',
-            type: 'context' as const,
-        },
-        {
-            command: '/analyzestructure',
-            description: 'Analyze chapter and extract structure',
-            type: 'context' as const,
-            requiresChapter: true,
-            chapterState: 'hasText' as const,
-        },
-        {
-            command: '/generatestructure',
-            description: 'Generate chapter structure from a pitch',
-            type: 'context' as const,
-            requiresChapter: true,
-            chapterState: 'empty' as const,
-        },
-        {
-            command: '/extractstructure',
-            description: 'Extract structure from chapter text',
-            type: 'context' as const,
-            requiresChapter: true,
-            chapterState: 'hasText' as const,
-        },
-        {
-            command: '/modifystructure',
-            description: 'Modify existing chapter structure',
-            type: 'context' as const,
-            requiresChapter: true,
-            chapterState: 'hasStructure' as const,
-        },
-        {
-            command: '/rewritestructure',
-            description: 'Replace chapter structure entirely',
-            type: 'context' as const,
-            requiresChapter: true,
-            chapterState: 'hasStructure' as const,
-        },
-    ];
 
     const messagesRef = useRef<HTMLDivElement>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -399,7 +329,7 @@ export default function ChatPanel({
         }
     }, [input]);
     const prevMessagesLength = useRef(0);
-    const { settings } = useSettings();
+
     const {
         sessions,
         setSessions,
@@ -449,65 +379,6 @@ export default function ChatPanel({
         prevMessagesLength.current = messages.length;
     }, [messages, isLoading, scrollToBottom]);
 
-    const getEnabledModels = useCallback(() => {
-        const provider = settings?.providers.defaultProvider
-            ? settings.providers.configs[settings.providers.defaultProvider]
-            : null;
-        if (provider?.models) {
-            const displayMode =
-                provider.modelDisplayMode ??
-                settings?.providers.modelDisplayMode ??
-                'alias';
-            return Object.entries(provider.models)
-                .filter(([, entry]) =>
-                    typeof entry === 'boolean' ? entry : entry.enabled
-                )
-                .map(([name, entry]) => {
-                    const alias =
-                        typeof entry === 'object' ? entry.alias : undefined;
-                    const displayText = alias
-                        ? displayMode === 'both'
-                            ? `${alias} (${name})`
-                            : alias
-                        : name;
-                    return { name, displayText };
-                });
-        }
-        return [];
-    }, [settings]);
-
-    const getModelName = useCallback(() => {
-        if (selectedModel) return selectedModel;
-        const enabled = getEnabledModels();
-        return enabled[0]?.name || '';
-    }, [selectedModel, getEnabledModels]);
-
-    const getModelDisplayText = useCallback(
-        (modelName: string): string => {
-            const provider = settings?.providers.defaultProvider
-                ? settings.providers.configs[settings.providers.defaultProvider]
-                : null;
-            if (provider?.models) {
-                const entry = provider.models[modelName];
-                const alias =
-                    entry && typeof entry === 'object'
-                        ? entry.alias
-                        : undefined;
-                if (alias) {
-                    const displayMode =
-                        provider.modelDisplayMode ??
-                        settings?.providers.modelDisplayMode ??
-                        'alias';
-                    return displayMode === 'both'
-                        ? `${alias} (${modelName})`
-                        : alias;
-                }
-            }
-            return modelName;
-        },
-        [settings]
-    );
-
     const streamingUpdate = useCallback(
         (assistantId: string, content: string) => {
             setMessages((prev) => {
@@ -547,7 +418,7 @@ export default function ChatPanel({
         if (!text || isLoading || isStreamingRef.current) return;
 
         let sessionId = activeSessionId;
-        let sessionIsManuallyNamed = true;
+        let sessionIsManuallyNamed: boolean;
 
         if (!sessionId) {
             const session = await createSession();
@@ -674,9 +545,9 @@ export default function ChatPanel({
 
         let isAnalysisCommand = false;
         let analysisResult: {
-            scenes: Partial<StoryScene>[];
-            sequences: Partial<StorySequence & { sceneIndices: number[] }>[];
-        } | null = null;
+            scenes: StoryScene[];
+            sequences: StorySequence & { sceneIndices: number[] }[];
+        } | null;
         let structureMode: 'create' | 'merge' | 'replace' = 'create';
 
         if (ANALYSIS_COMMANDS.has(command)) {
@@ -689,7 +560,7 @@ export default function ChatPanel({
                 const ch = chapters.find((c) => c.id === chId);
                 if (!ch) return null;
 
-                let summary = '';
+                let summary: string;
                 try {
                     const parsed = JSON.parse(ch.outline || '{}');
                     summary = parsed.summary || '';
@@ -748,13 +619,14 @@ export default function ChatPanel({
                 if (command === 'generatestructure') {
                     structureMode = 'create';
                     systemPromptMessage.content =
-                        "You are a senior structural editor helping a writer plan a new chapter.\n\n" +
+                        'You are a senior structural editor helping a writer plan a new chapter.\n\n' +
                         (analysisInput
                             ? `Chapter context:\n${analysisInput}\n\n`
                             : '') +
                         'The writer has provided a pitch for this chapter. Analyze the pitch and break it down into a structured arrangement of scenes and sequences.\n\n' +
                         'Provide your structural analysis, then output the chapter structure as a JSON code block:\n' +
-                        bt + 'structure-data\n' +
+                        bt +
+                        'structure-data\n' +
                         '{\n' +
                         '  "scenes": [\n' +
                         '    {"title": "...", "summary": "...", "setting": "...", "charactersPresent": ["character name", ...], "keyEvents": ["event description", ...], "conflict": "...", "duration": "..."}\n' +
@@ -762,7 +634,8 @@ export default function ChatPanel({
                         '  "sequences": [\n' +
                         '    {"title": "...", "summary": "...", "sceneIndices": [0, 1]}\n' +
                         '  ]\n' +
-                        '}\n' + bt +
+                        '}\n' +
+                        bt +
                         '\n\nRules:\n' +
                         '- Each scene is a discrete moment with a single location/time\n' +
                         '- Sequences group related scenes into narrative units\n' +
@@ -779,7 +652,8 @@ export default function ChatPanel({
                             : '') +
                         'Read the chapter text and identify its natural structure. Extract discrete scenes and group them into sequences where appropriate.\n\n' +
                         'Briefly describe what you found, then output the structure as a JSON code block:\n' +
-                        bt + 'structure-data\n' +
+                        bt +
+                        'structure-data\n' +
                         '{\n' +
                         '  "scenes": [\n' +
                         '    {"title": "...", "summary": "...", "setting": "...", "charactersPresent": ["character name", ...], "keyEvents": ["event description", ...], "conflict": "...", "duration": "..."}\n' +
@@ -787,7 +661,8 @@ export default function ChatPanel({
                         '  "sequences": [\n' +
                         '    {"title": "...", "summary": "...", "sceneIndices": [0, 1]}\n' +
                         '  ]\n' +
-                        '}\n' + bt +
+                        '}\n' +
+                        bt +
                         '\n\nRules:\n' +
                         '- Each scene is a discrete moment with a single location/time\n' +
                         '- Sequences group related scenes into narrative units\n' +
@@ -821,17 +696,21 @@ export default function ChatPanel({
                             }
                         }
                     }
-                    if (userInput) idParts.push(`\nWriter's modification request: ${userInput}`);
+                    if (userInput)
+                        idParts.push(
+                            `\nWriter's modification request: ${userInput}`
+                        );
 
                     systemPromptMessage.content =
                         "You are a senior structural editor helping a writer modify their chapter's structure.\n\n" +
                         (idParts.length > 0
                             ? `${idParts.join('\n')}\n\n`
                             : '') +
-                        'Analyze the writer\'s requested changes against the current structure.\n\n' +
+                        "Analyze the writer's requested changes against the current structure.\n\n" +
                         'If anything is unclear, ambiguous, or logically inconsistent, ask clarifying questions first. Do NOT output a structure-data block until you have enough information.\n\n' +
                         'When you have enough information to make the changes, provide the COMPLETE modified structure as a JSON code block:\n' +
-                        bt + 'structure-data\n' +
+                        bt +
+                        'structure-data\n' +
                         '{\n' +
                         '  "scenes": [\n' +
                         '    {"id": "existing-scene-id", "title": "...", "summary": "...", "setting": "...", "charactersPresent": [...], "keyEvents": [...], "conflict": "...", "duration": "..."}\n' +
@@ -839,7 +718,8 @@ export default function ChatPanel({
                         '  "sequences": [\n' +
                         '    {"id": "existing-sequence-id", "title": "...", "summary": "...", "sceneIndices": [0, 1]}\n' +
                         '  ]\n' +
-                        '}\n' + bt +
+                        '}\n' +
+                        bt +
                         '\n\nIMPORTANT rules:\n' +
                         '- Include the "id" field for every item that corresponds to an EXISTING scene or sequence listed above\n' +
                         '- Omit the "id" field for brand new items\n' +
@@ -855,9 +735,10 @@ export default function ChatPanel({
                         (analysisInput
                             ? `Chapter context:\n${analysisInput}\n\n`
                             : '') +
-                        'Analyze the writer\'s instructions and provide a fresh, complete structure.\n\n' +
+                        "Analyze the writer's instructions and provide a fresh, complete structure.\n\n" +
                         'Provide your structural notes, then output the new structure as a JSON code block:\n' +
-                        bt + 'structure-data\n' +
+                        bt +
+                        'structure-data\n' +
                         '{\n' +
                         '  "scenes": [\n' +
                         '    {"title": "...", "summary": "...", "setting": "...", "charactersPresent": ["character name", ...], "keyEvents": ["event description", ...], "conflict": "...", "duration": "..."}\n' +
@@ -865,7 +746,8 @@ export default function ChatPanel({
                         '  "sequences": [\n' +
                         '    {"title": "...", "summary": "...", "sceneIndices": [0, 1]}\n' +
                         '  ]\n' +
-                        '}\n' + bt +
+                        '}\n' +
+                        bt +
                         '\n\nRules:\n' +
                         '- Each scene is a discrete moment with a single location/time\n' +
                         '- Sequences group related scenes into narrative units\n' +
@@ -890,7 +772,8 @@ export default function ChatPanel({
                         '- **Must-Fix Actions**: Immediate structural or narrative changes required.\n\n' +
                         '---\n\n' +
                         'After your analysis, provide the recommended chapter structure as a JSON code block:\n' +
-                        bt + 'structure-data\n' +
+                        bt +
+                        'structure-data\n' +
                         '{\n' +
                         '  "scenes": [\n' +
                         '    {"title": "...", "summary": "...", "setting": "...", "charactersPresent": ["character name", ...], "keyEvents": ["event description", ...], "conflict": "...", "duration": "..."}\n' +
@@ -898,7 +781,8 @@ export default function ChatPanel({
                         '  "sequences": [\n' +
                         '    {"title": "...", "summary": "...", "sceneIndices": [0, 1]}\n' +
                         '  ]\n' +
-                        '}\n' + bt +
+                        '}\n' +
+                        bt +
                         '\n\nRules for scenes and sequences:\n' +
                         '- Each scene is a discrete moment with a single location/time\n' +
                         '- Sequences group related scenes into narrative units\n' +
@@ -992,6 +876,9 @@ export default function ChatPanel({
                 } else {
                     displayText =
                         'No text available for extraction. Open a chapter or select text first.';
+
+                    // needs refactor
+                    console.log('chatpanel 938: displaytext', displayText);
                     setIsLoading(false);
                     isStreamingRef.current = false;
                     return;
@@ -1026,14 +913,13 @@ export default function ChatPanel({
         };
 
         const assistantId = crypto.randomUUID();
-        const modelName = getModelName();
         const assistantMessage: AssistantChatMessage = {
             id: assistantId,
             role: 'assistant',
             content: [''],
             reasoning: '',
             currentVariantIndex: 0,
-            model: modelName,
+            model: enabledModel.activeModelId || '',
             mode,
             timestamp: new Date().toISOString(),
         };
@@ -1053,11 +939,11 @@ export default function ChatPanel({
                 content: userMessage.content,
             });
 
-            const provider = settings?.providers.defaultProvider
-                ? settings.providers.configs[settings.providers.defaultProvider]
-                : null;
+            const provider = enabledModel.provider;
 
-            const endpoint = provider?.endpoint || 'http://localhost:1234/v1';
+            const endpoint = provider
+                ? `${provider.url.base}/${provider.url.endpoint.value}`
+                : 'http://localhost:1234/v1';
 
             streamedContentRef.current = '';
             streamedReasoningRef.current = '';
@@ -1068,12 +954,7 @@ export default function ChatPanel({
             const completionMaxTokens = isAnalysisCommand ? 16384 : undefined;
 
             const result = await chatCompletion(endpoint, {
-                provider: {
-                    type: provider?.type || 'lm-studio',
-                    endpoint,
-                    models: modelName ? { [modelName]: { enabled: true } } : {},
-                    enabled: true,
-                },
+                enabledModel,
                 messages: [...messages, userMessage],
                 systemPrompt: systemPromptMessage?.content,
                 maxTokens: completionMaxTokens,
@@ -1122,7 +1003,7 @@ export default function ChatPanel({
                     promptTokens: result.usage.prompt_tokens,
                     completionTokens: result.usage.completion_tokens,
                     totalTokens: result.usage.total_tokens,
-                    model: modelName || null,
+                    model: enabledModel.activeModelId || null,
                 });
             }
 
@@ -1149,14 +1030,7 @@ export default function ChatPanel({
                             recentApiMessages.unshift(systemPromptMessage);
                         }
                         const titleResult = await chatCompletion(endpoint, {
-                            provider: {
-                                type: provider?.type || 'lm-studio',
-                                endpoint,
-                                models: modelName
-                                    ? { [modelName]: { enabled: true } }
-                                    : {},
-                                enabled: true,
-                            },
+                            enabledModel,
                             messages: [...messages, userMessage],
                             systemPrompt:
                                 systemPromptMessage?.content ||
@@ -1205,13 +1079,26 @@ export default function ChatPanel({
                     try {
                         analysisResult = JSON.parse(structureMatch[1]);
                         if (analysisResult) {
-                            const data = analysisResult;
+                            const data: any = analysisResult;
+
+                            // needs refactor
+                            console.log(
+                                'setPendingStructureData',
+                                data,
+                                pendingStructureData
+                            );
                             setPendingStructureData((prev) => ({
                                 ...prev,
                                 [assistantId]: {
                                     scenes: data.scenes || [],
                                     sequences: (data.sequences || []).map(
-                                        (seq: any) => ({
+                                        (
+                                            seq: Partial<
+                                                StorySequence & {
+                                                    sceneIndices: number[];
+                                                }
+                                            >
+                                        ) => ({
                                             ...seq,
                                             sceneIndices:
                                                 seq.sceneIndices || [],
@@ -1390,12 +1277,11 @@ export default function ChatPanel({
         );
 
         try {
-            const provider = settings?.providers.defaultProvider
-                ? settings.providers.configs[settings.providers.defaultProvider]
-                : null;
+            const provider = enabledModel.provider;
 
-            const endpoint = provider?.endpoint || 'http://localhost:1234/v1';
-            const modelName = getModelName();
+            const endpoint = provider
+                ? `${provider.url.base}/${provider.url.endpoint.value}`
+                : 'http://localhost:1234/v1';
 
             streamedContentRef.current = '';
             streamedReasoningRef.current = '';
@@ -1404,12 +1290,7 @@ export default function ChatPanel({
             abortControllerRef.current = retryAbortController;
 
             const result = await chatCompletion(endpoint, {
-                provider: {
-                    type: provider?.type || 'lm-studio',
-                    endpoint,
-                    models: modelName ? { [modelName]: { enabled: true } } : {},
-                    enabled: true,
-                },
+                enabledModel,
                 messages: precedingMessages,
                 systemPrompt: customSystemPrompt || undefined,
                 signal: retryAbortController.signal,
@@ -1497,8 +1378,16 @@ export default function ChatPanel({
                             ...prev,
                             [messageId]: {
                                 scenes: structureResult.scenes || [],
-                                sequences: (structureResult.sequences || []).map(
-                                    (seq: any) => ({
+                                sequences: (
+                                    structureResult.sequences || []
+                                ).map(
+                                    (
+                                        seq: Partial<
+                                            StorySequence & {
+                                                sceneIndices: number[];
+                                            }
+                                        >
+                                    ) => ({
                                         ...seq,
                                         sceneIndices: seq.sceneIndices || [],
                                     })
@@ -1508,7 +1397,10 @@ export default function ChatPanel({
                         }));
                     }
                 } catch (e) {
-                    console.error('Failed to parse structure data on retry:', e);
+                    console.error(
+                        'Failed to parse structure data on retry:',
+                        e
+                    );
                 }
             }
         } catch (error) {
@@ -1648,23 +1540,36 @@ export default function ChatPanel({
 
     const suggestionGroups = useMemo((): SuggestionGroup[] => {
         if (showSlashPopup) {
-            const activeChapterId = activeTabType === 'chapter' ? activeTabId : null;
-            const activeChapter = activeChapterId ? chapters.find(c => c.id === activeChapterId) : null;
-            const hasContent = !!(activeChapter?.content?.trim());
-            const hasStructure = !!(activeChapterId && (
-                scenes.some(s => s.chapterId === activeChapterId) ||
-                sequences.some(s => s.chapterId === activeChapterId)
-            ));
+            const activeChapterId =
+                activeTabType === 'chapter' ? activeTabId : null;
+            const activeChapter = activeChapterId
+                ? chapters.find((c) => c.id === activeChapterId)
+                : null;
+            const hasContent = !!activeChapter?.content?.trim();
+            const hasStructure = !!(
+                activeChapterId &&
+                (scenes.some((s) => s.chapterId === activeChapterId) ||
+                    sequences.some((s) => s.chapterId === activeChapterId))
+            );
 
             const filtered = SLASH_COMMANDS.filter((cmd) => {
-                if (slashSearchTerm &&
-                    !cmd.command.toLowerCase().startsWith(`/${slashSearchTerm.toLowerCase()}`))
+                if (
+                    slashSearchTerm &&
+                    !cmd.command
+                        .toLowerCase()
+                        .startsWith(`/${slashSearchTerm.toLowerCase()}`)
+                )
                     return false;
-                if ('requiresChapter' in cmd && cmd.requiresChapter && activeTabType !== 'chapter')
+                if (
+                    'requiresChapter' in cmd &&
+                    cmd.requiresChapter &&
+                    activeTabType !== 'chapter'
+                )
                     return false;
                 if ('chapterState' in cmd) {
                     const state = cmd.chapterState;
-                    if (state === 'empty' && (hasContent || hasStructure)) return false;
+                    if (state === 'empty' && (hasContent || hasStructure))
+                        return false;
                     if (state === 'hasText' && !hasContent) return false;
                     if (state === 'hasStructure' && !hasStructure) return false;
                 }
@@ -1790,7 +1695,7 @@ export default function ChatPanel({
         const trimmed = content.trim();
         if (trimmed.startsWith('/rewrite') || trimmed.startsWith('/tone:')) {
             editorRef.current.replaceSelection(
-                trimmed.replace(/^\/\w+\:?\S*\s*/, '')
+                trimmed.replace(/^\/\w+\\:?\S*\s*/, '') // (/^\/\w+:?\S*\s*/, '') /cmd or /cmd:val
             );
         } else {
             editorRef.current.insertContent(trimmed);
@@ -2107,7 +2012,7 @@ export default function ChatPanel({
                                         onClick={() => {
                                             const reviewScenes: ReviewScene[] =
                                                 structureData.scenes.map(
-                                                    (s: any) => ({
+                                                    (s: StoryScene) => ({
                                                         title: s.title || '',
                                                         summary:
                                                             s.summary || '',
@@ -2147,7 +2052,13 @@ export default function ChatPanel({
                                                 );
                                             const reviewSequences: ReviewSequence[] =
                                                 structureData.sequences.map(
-                                                    (s: any) => ({
+                                                    (
+                                                        s: Partial<
+                                                            StorySequence & {
+                                                                sceneIndices: number[];
+                                                            }
+                                                        >
+                                                    ) => ({
                                                         title: s.title || '',
                                                         summary:
                                                             s.summary || '',
@@ -2158,68 +2069,153 @@ export default function ChatPanel({
                                                         id: s.id || undefined,
                                                     })
                                                 );
-                                            const mode = structureData.mode || 'create';
+                                            const mode =
+                                                structureData.mode || 'create';
 
                                             // Compute diff for merge mode
                                             if (mode === 'merge') {
-                                                const chapterId = activeTabType === 'chapter' ? activeTabId : null;
-                                                const existingScenes = chapterId ? scenes.filter(s => s.chapterId === chapterId) : [];
-                                                const existingSequences = chapterId ? sequences.filter(s => s.chapterId === chapterId) : [];
+                                                const chapterId =
+                                                    activeTabType === 'chapter'
+                                                        ? activeTabId
+                                                        : null;
+                                                const existingScenes = chapterId
+                                                    ? scenes.filter(
+                                                          (s) =>
+                                                              s.chapterId ===
+                                                              chapterId
+                                                      )
+                                                    : [];
+                                                const existingSequences =
+                                                    chapterId
+                                                        ? sequences.filter(
+                                                              (s) =>
+                                                                  s.chapterId ===
+                                                                  chapterId
+                                                          )
+                                                        : [];
 
                                                 // Mark existing scenes/sequences with their IDs
                                                 for (const rs of reviewScenes) {
-                                                    const match = existingScenes.find(es => es.title === rs.title);
+                                                    const match =
+                                                        existingScenes.find(
+                                                            (es) =>
+                                                                es.title ===
+                                                                rs.title
+                                                        );
                                                     if (match) {
                                                         rs.id = match.id;
                                                         const fieldsChanged =
-                                                            rs.summary !== (match.summary || '') ||
-                                                            rs.setting !== (match.setting || '') ||
-                                                            rs.conflict !== (match.conflict || '') ||
-                                                            rs.duration !== (match.duration || '');
-                                                        rs.diffStatus = fieldsChanged ? 'modified' : 'unchanged';
+                                                            rs.summary !==
+                                                                (match.summary ||
+                                                                    '') ||
+                                                            rs.setting !==
+                                                                (match.setting ||
+                                                                    '') ||
+                                                            rs.conflict !==
+                                                                (match.conflict ||
+                                                                    '') ||
+                                                            rs.duration !==
+                                                                (match.duration ||
+                                                                    '');
+                                                        rs.diffStatus =
+                                                            fieldsChanged
+                                                                ? 'modified'
+                                                                : 'unchanged';
                                                     } else {
                                                         rs.diffStatus = 'new';
                                                     }
                                                 }
                                                 for (const rseq of reviewSequences) {
-                                                    const match = existingSequences.find(es => es.title === rseq.title);
+                                                    const match =
+                                                        existingSequences.find(
+                                                            (es) =>
+                                                                es.title ===
+                                                                rseq.title
+                                                        );
                                                     if (match) {
                                                         rseq.id = match.id;
-                                                        const fieldsChanged = rseq.summary !== (match.summary || '');
-                                                        rseq.diffStatus = fieldsChanged ? 'modified' : 'unchanged';
+                                                        const fieldsChanged =
+                                                            rseq.summary !==
+                                                            (match.summary ||
+                                                                '');
+                                                        rseq.diffStatus =
+                                                            fieldsChanged
+                                                                ? 'modified'
+                                                                : 'unchanged';
                                                     } else {
                                                         rseq.diffStatus = 'new';
                                                     }
                                                 }
 
                                                 // Add removed items (existing not in AI output)
-                                                const outputSceneTitles = new Set(reviewScenes.map(s => s.title));
-                                                const outputSeqTitles = new Set(reviewSequences.map(s => s.title));
+                                                const outputSceneTitles =
+                                                    new Set(
+                                                        reviewScenes.map(
+                                                            (s) => s.title
+                                                        )
+                                                    );
+                                                const outputSeqTitles = new Set(
+                                                    reviewSequences.map(
+                                                        (s) => s.title
+                                                    )
+                                                );
                                                 for (const es of existingScenes) {
-                                                    if (!outputSceneTitles.has(es.title)) {
+                                                    if (
+                                                        !outputSceneTitles.has(
+                                                            es.title
+                                                        )
+                                                    ) {
                                                         reviewScenes.push({
                                                             title: es.title,
-                                                            summary: es.summary || '',
-                                                            setting: es.setting || '',
-                                                            charactersPresent: es.charactersPresent ? JSON.parse(es.charactersPresent || '[]') : [],
-                                                            keyEvents: es.keyEvents ? JSON.parse(es.keyEvents || '[]') : [],
-                                                            conflict: es.conflict || '',
-                                                            duration: es.duration || '',
+                                                            summary:
+                                                                es.summary ||
+                                                                '',
+                                                            setting:
+                                                                es.setting ||
+                                                                '',
+                                                            charactersPresent:
+                                                                es.charactersPresent
+                                                                    ? JSON.parse(
+                                                                          es.charactersPresent ||
+                                                                              '[]'
+                                                                      )
+                                                                    : [],
+                                                            keyEvents:
+                                                                es.keyEvents
+                                                                    ? JSON.parse(
+                                                                          es.keyEvents ||
+                                                                              '[]'
+                                                                      )
+                                                                    : [],
+                                                            conflict:
+                                                                es.conflict ||
+                                                                '',
+                                                            duration:
+                                                                es.duration ||
+                                                                '',
                                                             included: false,
                                                             id: es.id,
-                                                            diffStatus: 'removed',
+                                                            diffStatus:
+                                                                'removed',
                                                         });
                                                     }
                                                 }
                                                 for (const es of existingSequences) {
-                                                    if (!outputSeqTitles.has(es.title)) {
+                                                    if (
+                                                        !outputSeqTitles.has(
+                                                            es.title
+                                                        )
+                                                    ) {
                                                         reviewSequences.push({
                                                             title: es.title,
-                                                            summary: es.summary || '',
+                                                            summary:
+                                                                es.summary ||
+                                                                '',
                                                             sceneIndices: [],
                                                             included: false,
                                                             id: es.id,
-                                                            diffStatus: 'removed',
+                                                            diffStatus:
+                                                                'removed',
                                                         });
                                                     }
                                                 }
@@ -2247,6 +2243,7 @@ export default function ChatPanel({
                                     </button>
                                 ) : undefined;
                             return (
+                                // needs refactor
                                 <MessageBubble
                                     key={msg.id}
                                     ref={
@@ -2255,10 +2252,8 @@ export default function ChatPanel({
                                     message={msg}
                                     modelDisplayText={
                                         msg.role === 'assistant'
-                                            ? getModelDisplayText(
-                                                  (msg as AssistantChatMessage)
-                                                      .model
-                                              )
+                                            ? (msg as AssistantChatMessage)
+                                                  .model
                                             : undefined
                                     }
                                     justCopiedId={lastCopiedId}
@@ -2501,24 +2496,49 @@ export default function ChatPanel({
                                 <option value="assistant">Assistant</option>
                                 <option value="editor">Editor</option>
                             </select>
+
                             <select
-                                value={selectedModel || getModelName()}
-                                onChange={(e) =>
-                                    setSelectedModel(e.target.value)
-                                }
                                 className="model-select"
+                                value={selectedModel ?? getPlaceholderText()}
+                                onChange={(e) => {
+                                    setSelectedModel(e.target.value);
+                                }}
+                                disabled={
+                                    settings?.providers?.configs?.length ===
+                                        0 ||
+                                    enabledProviders.length === 0 ||
+                                    !Object.values(enabledModels).some(
+                                        (models) => models.length > 0
+                                    )
+                                }
                             >
-                                {getEnabledModels().length > 0 ? (
-                                    getEnabledModels().map((m) => (
-                                        <option key={m.name} value={m.name}>
-                                            {m.displayText}
-                                        </option>
-                                    ))
-                                ) : (
-                                    <option value="" disabled>
-                                        Select model
-                                    </option>
-                                )}
+                                <option value={getPlaceholderText()}>
+                                    {getPlaceholderText()}
+                                </option>
+                                {enabledProviders.map((provider) => {
+                                    const models =
+                                        enabledModels[provider.id] || [];
+                                    if (models.length === 0) return null;
+
+                                    return (
+                                        <optgroup
+                                            key={provider.id}
+                                            label={provider.label}
+                                        >
+                                            {models.map((model) => (
+                                                <option
+                                                    key={model.id}
+                                                    value={model.id}
+                                                >
+                                                    {model.labelType
+                                                        ? model.alias
+                                                        : model.label ||
+                                                          model.id}
+                                                </option>
+                                            ))}
+                                        </optgroup>
+                                    );
+                                })}
                             </select>
                         </div>
                         <div className="chat-panel-footer-right">
@@ -2584,18 +2604,51 @@ export default function ChatPanel({
                         setStructureDialogData(null);
                         try {
                             if (onCreateScenesAndSequences) {
-                                const mode = structureDialogData.mode || 'create';
-                                const removedIds = mode === 'merge'
-                                    ? confirmedScenes.filter(s => s.diffStatus === 'removed').map(s => s.id!).filter(Boolean)
-                                        .concat(confirmedSequences.filter(s => s.diffStatus === 'removed').map(s => s.id!).filter(Boolean))
-                                    : mode === 'replace'
-                                        ? (() => {
-                                            const chId = activeTabType === 'chapter' ? activeTabId : null;
-                                            if (!chId) return [];
-                                            return scenes.filter(s => s.chapterId === chId).map(s => s.id)
-                                                .concat(sequences.filter(s => s.chapterId === chId).map(s => s.id));
-                                        })()
-                                        : [];
+                                const mode =
+                                    structureDialogData.mode || 'create';
+                                const removedIds =
+                                    mode === 'merge'
+                                        ? confirmedScenes
+                                              .filter(
+                                                  (s) =>
+                                                      s.diffStatus === 'removed'
+                                              )
+                                              .map((s) => s.id!)
+                                              .filter(Boolean)
+                                              .concat(
+                                                  confirmedSequences
+                                                      .filter(
+                                                          (s) =>
+                                                              s.diffStatus ===
+                                                              'removed'
+                                                      )
+                                                      .map((s) => s.id!)
+                                                      .filter(Boolean)
+                                              )
+                                        : mode === 'replace'
+                                          ? (() => {
+                                                const chId =
+                                                    activeTabType === 'chapter'
+                                                        ? activeTabId
+                                                        : null;
+                                                if (!chId) return [];
+                                                return scenes
+                                                    .filter(
+                                                        (s) =>
+                                                            s.chapterId === chId
+                                                    )
+                                                    .map((s) => s.id)
+                                                    .concat(
+                                                        sequences
+                                                            .filter(
+                                                                (s) =>
+                                                                    s.chapterId ===
+                                                                    chId
+                                                            )
+                                                            .map((s) => s.id)
+                                                    );
+                                            })()
+                                          : [];
 
                                 // For merge: only create/update included items
                                 const scenesToCreate = confirmedScenes
@@ -2607,7 +2660,9 @@ export default function ChatPanel({
                                         setting: s.setting || null,
                                         charactersPresent:
                                             s.charactersPresent.length > 0
-                                                ? JSON.stringify(s.charactersPresent)
+                                                ? JSON.stringify(
+                                                      s.charactersPresent
+                                                  )
                                                 : null,
                                         keyEvents:
                                             s.keyEvents.length > 0

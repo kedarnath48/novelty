@@ -200,6 +200,8 @@
         }
     }
 
+    .modelGroups {
+    }
     .modelsList {
         min-height: 60px;
         margin: 12px 0px;
@@ -273,5 +275,12 @@
             color: var(--text-accent);
             border: 1px solid var(--accent);
         }
+    }
+}
+
+.connectionBtn {
+    &.active,
+    &.active:hover {
+        color: greenyellow;
     }
 }

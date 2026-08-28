@@ -346,9 +346,24 @@ export default function SceneStructureReviewDialog({
                                     </button>
                                     <span className="item-number">
                                         Seq {seqIdx + 1}
-                                        {mode === 'merge' && seq.diffStatus === 'new' && <span className="diff-badge diff-new">new</span>}
-                                        {mode === 'merge' && seq.diffStatus === 'modified' && <span className="diff-badge diff-modified">modified</span>}
-                                        {mode === 'merge' && seq.diffStatus === 'removed' && <span className="diff-badge diff-removed">removed</span>}
+                                        {mode === 'merge' &&
+                                            seq.diffStatus === 'new' && (
+                                                <span className="diff-badge diff-new">
+                                                    new
+                                                </span>
+                                            )}
+                                        {mode === 'merge' &&
+                                            seq.diffStatus === 'modified' && (
+                                                <span className="diff-badge diff-modified">
+                                                    modified
+                                                </span>
+                                            )}
+                                        {mode === 'merge' &&
+                                            seq.diffStatus === 'removed' && (
+                                                <span className="diff-badge diff-removed">
+                                                    removed
+                                                </span>
+                                            )}
                                     </span>
                                     <input
                                         className="structure-review-title-input"
@@ -559,9 +574,24 @@ export default function SceneStructureReviewDialog({
                                     </button>
                                     <span className="item-number">
                                         Scene {sceneIdx + 1}
-                                        {mode === 'merge' && scene.diffStatus === 'new' && <span className="diff-badge diff-new">new</span>}
-                                        {mode === 'merge' && scene.diffStatus === 'modified' && <span className="diff-badge diff-modified">modified</span>}
-                                        {mode === 'merge' && scene.diffStatus === 'removed' && <span className="diff-badge diff-removed">removed</span>}
+                                        {mode === 'merge' &&
+                                            scene.diffStatus === 'new' && (
+                                                <span className="diff-badge diff-new">
+                                                    new
+                                                </span>
+                                            )}
+                                        {mode === 'merge' &&
+                                            scene.diffStatus === 'modified' && (
+                                                <span className="diff-badge diff-modified">
+                                                    modified
+                                                </span>
+                                            )}
+                                        {mode === 'merge' &&
+                                            scene.diffStatus === 'removed' && (
+                                                <span className="diff-badge diff-removed">
+                                                    removed
+                                                </span>
+                                            )}
                                     </span>
                                     <input
                                         className="structure-review-title-input"

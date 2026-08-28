@@ -11,7 +11,7 @@ export interface Model {
     active: boolean;
 }
 
-export interface Provider {
+export type Provider = {
     id: string;
     label: string;
     url: {
@@ -25,7 +25,7 @@ export interface Provider {
     api?: string;
     models: Model[];
     enabled: boolean;
-}
+};
 
 export interface ProviderConf {
     showAlias: boolean;

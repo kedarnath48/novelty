@@ -9,6 +9,7 @@
     margin-bottom: 10px;
     padding-bottom: 10px;
     display: flex;
+    justify-content: space-between;
 
     &:last-child {
         margin-bottom: 0px;
@@ -21,7 +22,7 @@
 }
 
 .tabContent {
-    height: 100%;
+    height: auto;
 }
 
 .providerSection {

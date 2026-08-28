@@ -7,7 +7,7 @@ import {
     ReactNode,
 } from 'react';
 import { getRPC } from './RPCContext';
-import type { Settings, ProviderConfig } from '../types/index';
+import type { Settings, Provider } from '../types/index';
 
 interface SettingsContextType {
     settings: Settings | null;
@@ -34,11 +34,8 @@ interface SettingsContextType {
         key: K,
         value: Settings['providers'][K]
     ) => Promise<void>;
-    updateProviderConfig: (
-        providerId: string,
-        config: ProviderConfig
-    ) => Promise<void>;
-    deleteProvider: (providerId: string) => Promise<void>;
+    updateProviderConf: (index: number, config: Provider) => Promise<void>;
+    deleteProvider: (index: number) => Promise<void>;
     updateStorage: <K extends keyof Settings['storage']>(
         key: K,
         value: Settings['storage'][K]
@@ -172,23 +169,27 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
         [settings, isLocked, updateSetting]
     );
 
-    const updateProviderConfig = useCallback(
-        async (providerId: string, config: ProviderConfig) => {
+    const updateProviderConf = useCallback(
+        async (index: number, conf: Provider) => {
             if (!settings || isLocked) return;
-            const newConfigs = {
-                ...settings.providers.configs,
-                [providerId]: config,
-            };
+
+            const newConfigs = [...settings.providers.configs];
+            if (index === -1) {
+                newConfigs.push(conf);
+            } else {
+                newConfigs[index] = conf;
+            }
+
             await updateProviders('configs', newConfigs);
         },
         [settings, isLocked, updateProviders]
     );
 
     const deleteProvider = useCallback(
-        async (providerId: string) => {
+        async (index: number) => {
             if (!settings || isLocked) return;
-            const newConfigs = { ...settings.providers.configs };
-            delete newConfigs[providerId];
+            const newConfigs = [...settings.providers.configs];
+            newConfigs.splice(index, 1);
             await updateProviders('configs', newConfigs);
         },
         [settings, isLocked, updateProviders]
@@ -344,7 +345,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
         updateProjects,
         updateAssetLibrary,
         updateProviders,
-        updateProviderConfig,
+        updateProviderConf,
         deleteProvider,
         updateStorage,
         updateAppearance,

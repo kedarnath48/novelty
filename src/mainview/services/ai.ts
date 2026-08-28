@@ -1,4 +1,5 @@
-import type { ProviderConfig } from '../types/index';
+import type { Provider } from '../types/index';
+import { Model } from '../utils/ai/providerHelpers';
 
 export interface ApiMessage {
     role: string;
@@ -67,7 +68,10 @@ export interface ChatCompletionResponse {
 }
 
 export interface AICompletionOptions {
-    provider: ProviderConfig;
+    enabledModel: {
+        provider: Provider;
+        activeModelId?: string;
+    };
     messages: ChatMessage[];
     systemPrompt?: string;
     temperature?: number;
@@ -150,7 +154,7 @@ function withTimeout<T>(
 }
 
 export async function chatCompletion(
-    endpoint: string,
+    url: string,
     options: AICompletionOptions
 ): Promise<ChatCompletionResult> {
     const {
@@ -165,11 +169,12 @@ export async function chatCompletion(
         chunkTimeoutMs = 120_000,
     } = options;
 
-    const model = options.provider.models
-        ? Object.entries(options.provider.models).find(([, v]) =>
-              typeof v === 'boolean' ? v : v.enabled
-          )?.[0] || 'local-model'
-        : 'local-model';
+    const modelLabel =
+        options.enabledModel.provider.models.find(
+            (m) => m.id === options.enabledModel.activeModelId
+        )?.label || 'local-model';
+
+    console.log('ai.ts', modelLabel);
 
     const apiMessages = toApiMessages(messages);
     if (systemPrompt) {
@@ -177,7 +182,7 @@ export async function chatCompletion(
     }
 
     const request: ChatCompletionRequest = {
-        model,
+        model: modelLabel,
         messages: apiMessages,
         temperature,
         max_tokens: maxTokens,
@@ -195,7 +200,7 @@ export async function chatCompletion(
     }
 
     const response = await withTimeout(
-        fetch(`${endpoint}/chat/completions`, {
+        fetch(`${url}/chat/completions`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -210,6 +215,9 @@ export async function chatCompletion(
 
     if (!response.ok) {
         const error = await response.text();
+        console.log('ai.ts', error);
+        console.log('ai.ts', response);
+        console.log('ai.ts', request);
         throw new Error(`AI request failed: ${response.status} ${error}`);
     }
 
@@ -303,7 +311,10 @@ export async function chatCompletion(
 
 export async function generateCompletion(
     endpoint: string,
-    model: string,
+    enabledModel: {
+        provider: Provider;
+        activeModelId?: string;
+    },
     prompt: string,
     options?: {
         temperature?: number;
@@ -318,12 +329,7 @@ export async function generateCompletion(
         timestamp: new Date().toISOString(),
     };
     return chatCompletion(endpoint, {
-        provider: {
-            type: 'lm-studio',
-            endpoint,
-            models: { [model]: { enabled: true } },
-            enabled: true,
-        },
+        enabledModel,
         messages: [msg],
         temperature: options?.temperature,
         maxTokens: options?.maxTokens,
@@ -332,7 +338,10 @@ export async function generateCompletion(
 
 export async function streamCompletion(
     endpoint: string,
-    model: string,
+    enabledModel: {
+        provider: Provider;
+        activeModelId?: string;
+    },
     prompt: string,
     onChunk: (chunk: string) => void,
     options?: {
@@ -348,12 +357,7 @@ export async function streamCompletion(
         timestamp: new Date().toISOString(),
     };
     return chatCompletion(endpoint, {
-        provider: {
-            type: 'lm-studio',
-            endpoint,
-            models: { [model]: { enabled: true } },
-            enabled: true,
-        },
+        enabledModel,
         messages: [msg],
         temperature: options?.temperature,
         maxTokens: options?.maxTokens,
@@ -361,7 +365,7 @@ export async function streamCompletion(
     });
 }
 
-export async function checkLMStudioConnection(
+export async function checkProviderConnection(
     endpoint: string = 'http://localhost:1234'
 ): Promise<boolean> {
     try {
@@ -372,15 +376,27 @@ export async function checkLMStudioConnection(
     }
 }
 
-export async function getLMStudioModels(
+export async function getModelsFromProvider(
     endpoint: string = 'http://localhost:1234'
-): Promise<string[]> {
+): Promise<Model[]> {
     try {
         const response = await fetch(`${endpoint}/models`);
         if (!response.ok) return [];
-
         const data = await response.json();
-        return data.data?.map((m: { id: string }) => m.id) || [];
+        console.log('data', data);
+        return (
+            data.data?.map((m: Model) => {
+                const model: Model = {
+                    id: crypto.randomUUID().slice(0, 8),
+                    label: m.id,
+                    labelType: false,
+                    favorite: false,
+                    enabled: false,
+                    active: false,
+                };
+                return model;
+            }) || []
+        );
     } catch {
         return [];
     }

@@ -162,7 +162,8 @@ export default function ChapterStructureEditor({
             if (target.index >= unifiedItems.length) return true;
             const targetItem = unifiedItems[target.index];
             if (!targetItem) return true;
-            if (targetItem.kind === 'sequence' && targetItem.id === dragItemId) return false;
+            if (targetItem.kind === 'sequence' && targetItem.id === dragItemId)
+                return false;
             return true;
         },
         [dragItemType, dragItemId, unifiedItems]
@@ -190,8 +191,7 @@ export default function ChapterStructureEditor({
                 if (!onStructureReorder) return;
 
                 const newItems = unifiedItems.filter(
-                    (item) =>
-                        !(item.kind === 'scene' && item.id === dragItemId)
+                    (item) => !(item.kind === 'scene' && item.id === dragItemId)
                 );
                 const rawIdx =
                     target.type === 'after' ? target.index + 1 : target.index;
@@ -315,7 +315,11 @@ export default function ChapterStructureEditor({
     const isEmpty = unifiedItems.length === 0;
 
     function renderUnifiedBeforeZone(unifiedIdx: number) {
-        const target: DropTarget = { type: 'before', containerKey: null, index: unifiedIdx };
+        const target: DropTarget = {
+            type: 'before',
+            containerKey: null,
+            index: unifiedIdx,
+        };
         return (
             <DropZoneDiv
                 key={`drop-before-${unifiedIdx}`}
@@ -326,7 +330,10 @@ export default function ChapterStructureEditor({
                     setDropTarget(target);
                 }}
                 onDragLeave={() => {
-                    if (dropTarget?.index === unifiedIdx && dropTarget?.type === 'before')
+                    if (
+                        dropTarget?.index === unifiedIdx &&
+                        dropTarget?.type === 'before'
+                    )
                         setDropTarget(null);
                 }}
                 onDrop={() => handleUnifiedDrop(target)}
@@ -335,7 +342,11 @@ export default function ChapterStructureEditor({
     }
 
     function renderSequenceSceneDropZones(seqId: string, sceneIdx: number) {
-        const beforeTarget: DropTarget = { type: 'before', containerKey: seqId, index: sceneIdx };
+        const beforeTarget: DropTarget = {
+            type: 'before',
+            containerKey: seqId,
+            index: sceneIdx,
+        };
         return (
             <Fragment key={`scene-drop-${seqId}-${sceneIdx}`}>
                 <DropZoneDiv
@@ -386,20 +397,35 @@ export default function ChapterStructureEditor({
                                         if (dragItemType === 'sequence') return;
                                         if (!dragItemType) return;
                                         e.preventDefault();
-                                        setDropTarget({ type: 'inside', containerKey: item.seq.id, index: 0 });
+                                        setDropTarget({
+                                            type: 'inside',
+                                            containerKey: item.seq.id,
+                                            index: 0,
+                                        });
                                     }}
                                     onDragLeave={() => {
-                                        if (dropTarget?.containerKey === item.seq.id && dropTarget?.type === 'inside')
+                                        if (
+                                            dropTarget?.containerKey ===
+                                                item.seq.id &&
+                                            dropTarget?.type === 'inside'
+                                        )
                                             setDropTarget(null);
                                     }}
-                                    onDrop={() => handleUnifiedDrop({ type: 'inside', containerKey: item.seq.id, index: 0 })}
+                                    onDrop={() =>
+                                        handleUnifiedDrop({
+                                            type: 'inside',
+                                            containerKey: item.seq.id,
+                                            index: 0,
+                                        })
+                                    }
                                 >
                                     <div className="outline-sequence-header">
                                         <span
                                             className="drag-handle"
                                             draggable
                                             onDragStart={(e) => {
-                                                e.dataTransfer.effectAllowed = 'move';
+                                                e.dataTransfer.effectAllowed =
+                                                    'move';
                                                 setDragItemType('sequence');
                                                 setDragItemId(item.seq.id);
                                                 setDragSourceContainer(null);
@@ -410,24 +436,45 @@ export default function ChapterStructureEditor({
                                         </span>
                                         <button
                                             className="collapse-btn"
-                                            onClick={() => toggleSequence(item.seq.id)}
-                                            title={collapsed.sequences.includes(item.seq.id) ? 'Expand' : 'Collapse'}
-                                        >
-                                            {collapsed.sequences.includes(item.seq.id)
-                                                ? <IconChevronRight size={16} />
-                                                : <IconChevronDown size={16} />
+                                            onClick={() =>
+                                                toggleSequence(item.seq.id)
                                             }
+                                            title={
+                                                collapsed.sequences.includes(
+                                                    item.seq.id
+                                                )
+                                                    ? 'Expand'
+                                                    : 'Collapse'
+                                            }
+                                        >
+                                            {collapsed.sequences.includes(
+                                                item.seq.id
+                                            ) ? (
+                                                <IconChevronRight size={16} />
+                                            ) : (
+                                                <IconChevronDown size={16} />
+                                            )}
                                         </button>
                                         <input
                                             className="sequence-title-input"
                                             placeholder="Sequence title..."
                                             value={item.seq.title}
-                                            onChange={(e) => onSequenceUpdate(item.seq.id, 'title', e.target.value)}
+                                            onChange={(e) =>
+                                                onSequenceUpdate(
+                                                    item.seq.id,
+                                                    'title',
+                                                    e.target.value
+                                                )
+                                            }
                                         />
-                                        <span className="act-badge">{item.seq.status}</span>
+                                        <span className="act-badge">
+                                            {item.seq.status}
+                                        </span>
                                         <button
                                             className="icon-btn icon-btn-sm"
-                                            onClick={() => onSequenceDelete(item.seq.id)}
+                                            onClick={() =>
+                                                onSequenceDelete(item.seq.id)
+                                            }
                                         >
                                             <IconTrash size={12} />
                                         </button>
@@ -436,63 +483,134 @@ export default function ChapterStructureEditor({
                                         className="sequence-summary-input"
                                         placeholder="Sequence summary..."
                                         value={item.seq.summary || ''}
-                                        onChange={(e) => onSequenceUpdate(item.seq.id, 'summary', e.target.value)}
+                                        onChange={(e) =>
+                                            onSequenceUpdate(
+                                                item.seq.id,
+                                                'summary',
+                                                e.target.value
+                                            )
+                                        }
                                         rows={1}
                                     />
-                                    {!collapsed.sequences.includes(item.seq.id) && (
+                                    {!collapsed.sequences.includes(
+                                        item.seq.id
+                                    ) && (
                                         <div className="outline-sequence-scenes">
-                                            {scenesOfSequence(item.seq.id).length === 0 && (
+                                            {scenesOfSequence(item.seq.id)
+                                                .length === 0 && (
                                                 <div className="empty-scenes">
-                                                    Drop scenes here or add new ones.
+                                                    Drop scenes here or add new
+                                                    ones.
                                                 </div>
                                             )}
-                                            {scenesOfSequence(item.seq.id).map((scene, sceneIdx) => (
-                                                <Fragment key={scene.id}>
-                                                    {renderSequenceSceneDropZones(item.seq.id, sceneIdx)}
-                                                    <div className="scene-content-wrap">
-                                                        <SceneCardEditor
-                                                            scene={scene}
-                                                            index={sceneIdx}
-                                                            characters={characters}
-                                                            collapsed={collapsed.scenes.includes(scene.id)}
-                                                            onToggleCollapsed={() => toggle('scenes', scene.id)}
-                                                            onChange={onSceneUpdate}
-                                                            onRemove={onSceneDelete}
-                                                            dragHandle={
-                                                                <span
-                                                                    className="drag-handle"
-                                                                    draggable
-                                                                    onDragStart={(e) => {
-                                                                        e.dataTransfer.effectAllowed = 'move';
-                                                                        setDragItemType('scene');
-                                                                        setDragItemId(scene.id);
-                                                                        setDragSourceContainer(item.seq.id);
-                                                                    }}
-                                                                    onDragEnd={resetDragState}
-                                                                >
-                                                                    <IconGripVertical size={16} />
-                                                                </span>
-                                                            }
-                                                        />
-                                                    </div>
-                                                </Fragment>
-                                            ))}
+                                            {scenesOfSequence(item.seq.id).map(
+                                                (scene, sceneIdx) => (
+                                                    <Fragment key={scene.id}>
+                                                        {renderSequenceSceneDropZones(
+                                                            item.seq.id,
+                                                            sceneIdx
+                                                        )}
+                                                        <div className="scene-content-wrap">
+                                                            <SceneCardEditor
+                                                                scene={scene}
+                                                                index={sceneIdx}
+                                                                characters={
+                                                                    characters
+                                                                }
+                                                                collapsed={collapsed.scenes.includes(
+                                                                    scene.id
+                                                                )}
+                                                                onToggleCollapsed={() =>
+                                                                    toggle(
+                                                                        'scenes',
+                                                                        scene.id
+                                                                    )
+                                                                }
+                                                                onChange={
+                                                                    onSceneUpdate
+                                                                }
+                                                                onRemove={
+                                                                    onSceneDelete
+                                                                }
+                                                                dragHandle={
+                                                                    <span
+                                                                        className="drag-handle"
+                                                                        draggable
+                                                                        onDragStart={(
+                                                                            e
+                                                                        ) => {
+                                                                            e.dataTransfer.effectAllowed =
+                                                                                'move';
+                                                                            setDragItemType(
+                                                                                'scene'
+                                                                            );
+                                                                            setDragItemId(
+                                                                                scene.id
+                                                                            );
+                                                                            setDragSourceContainer(
+                                                                                item
+                                                                                    .seq
+                                                                                    .id
+                                                                            );
+                                                                        }}
+                                                                        onDragEnd={
+                                                                            resetDragState
+                                                                        }
+                                                                    >
+                                                                        <IconGripVertical
+                                                                            size={
+                                                                                16
+                                                                            }
+                                                                        />
+                                                                    </span>
+                                                                }
+                                                            />
+                                                        </div>
+                                                    </Fragment>
+                                                )
+                                            )}
                                             <div
                                                 className={`structure-drop-zone ${getDropClassName({ type: 'inside', containerKey: item.seq.id, index: scenesOfSequence(item.seq.id).length })}`}
                                                 onDragOver={(e) => {
-                                                    if (dragItemType !== 'scene') return;
+                                                    if (
+                                                        dragItemType !== 'scene'
+                                                    )
+                                                        return;
                                                     e.preventDefault();
-                                                    setDropTarget({ type: 'inside', containerKey: item.seq.id, index: scenesOfSequence(item.seq.id).length });
+                                                    setDropTarget({
+                                                        type: 'inside',
+                                                        containerKey:
+                                                            item.seq.id,
+                                                        index: scenesOfSequence(
+                                                            item.seq.id
+                                                        ).length,
+                                                    });
                                                 }}
                                                 onDragLeave={() => {
-                                                    if (dropTarget?.containerKey === item.seq.id && dropTarget?.type === 'inside')
+                                                    if (
+                                                        dropTarget?.containerKey ===
+                                                            item.seq.id &&
+                                                        dropTarget?.type ===
+                                                            'inside'
+                                                    )
                                                         setDropTarget(null);
                                                 }}
-                                                onDrop={() => handleUnifiedDrop({ type: 'inside', containerKey: item.seq.id, index: scenesOfSequence(item.seq.id).length })}
+                                                onDrop={() =>
+                                                    handleUnifiedDrop({
+                                                        type: 'inside',
+                                                        containerKey:
+                                                            item.seq.id,
+                                                        index: scenesOfSequence(
+                                                            item.seq.id
+                                                        ).length,
+                                                    })
+                                                }
                                             />
                                             <button
                                                 className="add-scene-btn"
-                                                onClick={() => onSceneCreate(item.seq.id)}
+                                                onClick={() =>
+                                                    onSceneCreate(item.seq.id)
+                                                }
                                             >
                                                 <IconPlus size={12} /> Add Scene
                                             </button>
@@ -505,7 +623,11 @@ export default function ChapterStructureEditor({
                                     onDragOver={(e) => {
                                         if (dragItemType !== 'scene') return;
                                         e.preventDefault();
-                                        setDropTarget({ type: 'after', containerKey: null, index: unifiedIdx });
+                                        setDropTarget({
+                                            type: 'after',
+                                            containerKey: null,
+                                            index: unifiedIdx,
+                                        });
                                     }}
                                     onDragLeave={() => {
                                         if (
@@ -515,14 +637,24 @@ export default function ChapterStructureEditor({
                                         )
                                             setDropTarget(null);
                                     }}
-                                    onDrop={() => handleUnifiedDrop({ type: 'after', containerKey: null, index: unifiedIdx })}
+                                    onDrop={() =>
+                                        handleUnifiedDrop({
+                                            type: 'after',
+                                            containerKey: null,
+                                            index: unifiedIdx,
+                                        })
+                                    }
                                 >
                                     <SceneCardEditor
                                         scene={item.scene}
                                         index={unifiedIdx}
                                         characters={characters}
-                                        collapsed={collapsed.scenes.includes(item.scene.id)}
-                                        onToggleCollapsed={() => toggle('scenes', item.scene.id)}
+                                        collapsed={collapsed.scenes.includes(
+                                            item.scene.id
+                                        )}
+                                        onToggleCollapsed={() =>
+                                            toggle('scenes', item.scene.id)
+                                        }
                                         onChange={onSceneUpdate}
                                         onRemove={onSceneDelete}
                                         dragHandle={
@@ -530,10 +662,15 @@ export default function ChapterStructureEditor({
                                                 className="drag-handle"
                                                 draggable
                                                 onDragStart={(e) => {
-                                                    e.dataTransfer.effectAllowed = 'move';
+                                                    e.dataTransfer.effectAllowed =
+                                                        'move';
                                                     setDragItemType('scene');
-                                                    setDragItemId(item.scene.id);
-                                                    setDragSourceContainer(null);
+                                                    setDragItemId(
+                                                        item.scene.id
+                                                    );
+                                                    setDragSourceContainer(
+                                                        null
+                                                    );
                                                 }}
                                                 onDragEnd={resetDragState}
                                             >
@@ -552,13 +689,23 @@ export default function ChapterStructureEditor({
                             onDragOver={(e) => {
                                 if (!dragItemType) return;
                                 e.preventDefault();
-                                setDropTarget({ type: 'inside', containerKey: null, index: 0 });
+                                setDropTarget({
+                                    type: 'inside',
+                                    containerKey: null,
+                                    index: 0,
+                                });
                             }}
                             onDragLeave={() => {
                                 if (dropTarget?.containerKey === null)
                                     setDropTarget(null);
                             }}
-                            onDrop={() => handleUnifiedDrop({ type: 'inside', containerKey: null, index: 0 })}
+                            onDrop={() =>
+                                handleUnifiedDrop({
+                                    type: 'inside',
+                                    containerKey: null,
+                                    index: 0,
+                                })
+                            }
                         >
                             Drop scenes here
                         </div>
@@ -568,13 +715,27 @@ export default function ChapterStructureEditor({
                             onDragOver={(e) => {
                                 if (!dragItemType) return;
                                 e.preventDefault();
-                                setDropTarget({ type: 'after', containerKey: null, index: unifiedItems.length - 1 });
+                                setDropTarget({
+                                    type: 'after',
+                                    containerKey: null,
+                                    index: unifiedItems.length - 1,
+                                });
                             }}
                             onDragLeave={() => {
-                                if (dropTarget?.index === unifiedItems.length - 1 && dropTarget?.type === 'after')
+                                if (
+                                    dropTarget?.index ===
+                                        unifiedItems.length - 1 &&
+                                    dropTarget?.type === 'after'
+                                )
                                     setDropTarget(null);
                             }}
-                            onDrop={() => handleUnifiedDrop({ type: 'after', containerKey: null, index: unifiedItems.length - 1 })}
+                            onDrop={() =>
+                                handleUnifiedDrop({
+                                    type: 'after',
+                                    containerKey: null,
+                                    index: unifiedItems.length - 1,
+                                })
+                            }
                         />
                     )}
                 </div>

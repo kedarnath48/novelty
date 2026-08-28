@@ -1,3 +1,5 @@
+import { Provider } from '../utils/ai/providerHelpers';
+
 export type WindowRequests = {
     'close-window': () => void;
 };
@@ -625,6 +627,7 @@ export type AssetLibrarySettings = {
 
 export type ProviderType = 'lm-studio' | 'openai' | 'anthropic' | 'custom';
 
+/*
 export type ModelEntry = {
     enabled: boolean;
     alias?: string;
@@ -638,11 +641,13 @@ export type ProviderConfig = {
     enabled: boolean;
     modelDisplayMode?: 'alias' | 'both';
 };
-
+*/
+export type { Provider };
+export type ModelDisplayMode = 'label' | 'alias' | 'both';
 export type ProviderSettings = {
     defaultProvider: string | null;
-    configs: Record<string, ProviderConfig>;
-    modelDisplayMode?: 'alias' | 'both';
+    configs: Provider[];
+    modelDisplayMode: ModelDisplayMode;
 };
 
 export type EmbeddingSettings = {
@@ -702,6 +707,7 @@ export type Settings = {
     embeddings: EmbeddingSettings;
 };
 
+// needs refactor
 export type SelectorSchema = {
     bun: {
         messages: {

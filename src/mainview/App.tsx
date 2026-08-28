@@ -2730,33 +2730,80 @@ function App() {
                                         // Delete removed items (merge/replace modes)
                                         if (removedIds.length > 0) {
                                             for (const id of removedIds) {
-                                                const isScene = storyScenes.some(s => s.id === id);
+                                                const isScene =
+                                                    storyScenes.some(
+                                                        (s) => s.id === id
+                                                    );
                                                 if (isScene) {
-                                                    await rpc.request['db:delete-story-scene'](id);
+                                                    await rpc.request[
+                                                        'db:delete-story-scene'
+                                                    ](id);
                                                 } else {
-                                                    await rpc.request['db:delete-story-sequence'](id);
+                                                    await rpc.request[
+                                                        'db:delete-story-sequence'
+                                                    ](id);
                                                 }
                                             }
-                                            setStoryScenes(prev => prev.filter(s => !removedIds.includes(s.id)));
-                                            setStorySequences(prev => prev.filter(s => !removedIds.includes(s.id)));
+                                            setStoryScenes((prev) =>
+                                                prev.filter(
+                                                    (s) =>
+                                                        !removedIds.includes(
+                                                            s.id
+                                                        )
+                                                )
+                                            );
+                                            setStorySequences((prev) =>
+                                                prev.filter(
+                                                    (s) =>
+                                                        !removedIds.includes(
+                                                            s.id
+                                                        )
+                                                )
+                                            );
                                         }
 
                                         // For replace mode: also delete ALL remaining chapter structure
                                         if (mode === 'replace') {
                                             const chapterSceneIds = storyScenes
-                                                .filter(s => s.chapterId === chapter.id)
-                                                .map(s => s.id);
+                                                .filter(
+                                                    (s) =>
+                                                        s.chapterId ===
+                                                        chapter.id
+                                                )
+                                                .map((s) => s.id);
                                             const chapterSeqIds = storySequences
-                                                .filter(s => s.chapterId === chapter.id)
-                                                .map(s => s.id);
+                                                .filter(
+                                                    (s) =>
+                                                        s.chapterId ===
+                                                        chapter.id
+                                                )
+                                                .map((s) => s.id);
                                             for (const id of chapterSceneIds) {
-                                                await rpc.request['db:delete-story-scene'](id);
+                                                await rpc.request[
+                                                    'db:delete-story-scene'
+                                                ](id);
                                             }
                                             for (const id of chapterSeqIds) {
-                                                await rpc.request['db:delete-story-sequence'](id);
+                                                await rpc.request[
+                                                    'db:delete-story-sequence'
+                                                ](id);
                                             }
-                                            setStoryScenes(prev => prev.filter(s => !chapterSceneIds.includes(s.id)));
-                                            setStorySequences(prev => prev.filter(s => !chapterSeqIds.includes(s.id)));
+                                            setStoryScenes((prev) =>
+                                                prev.filter(
+                                                    (s) =>
+                                                        !chapterSceneIds.includes(
+                                                            s.id
+                                                        )
+                                                )
+                                            );
+                                            setStorySequences((prev) =>
+                                                prev.filter(
+                                                    (s) =>
+                                                        !chapterSeqIds.includes(
+                                                            s.id
+                                                        )
+                                                )
+                                            );
                                         }
 
                                         const existingDisplayOrders = [
@@ -2766,15 +2813,19 @@ function App() {
                                                         s.chapterId ===
                                                             chapter.id &&
                                                         !s.sequenceId &&
-                                                        !removedIds.includes(s.id)
+                                                        !removedIds.includes(
+                                                            s.id
+                                                        )
                                                 )
                                                 .map((s) => s.displayOrder),
                                             ...storySequences
                                                 .filter(
                                                     (s) =>
                                                         s.chapterId ===
-                                                        chapter.id &&
-                                                        !removedIds.includes(s.id)
+                                                            chapter.id &&
+                                                        !removedIds.includes(
+                                                            s.id
+                                                        )
                                                 )
                                                 .map((s) => s.displayOrder),
                                         ];
@@ -2804,30 +2855,64 @@ function App() {
                                                 : sceneData.keyEvents || null;
 
                                             // Merge mode: update existing if id provided
-                                            if (mode === 'merge' && sceneData.id) {
-                                                await rpc.request['db:update-story-scene']({
+                                            if (
+                                                mode === 'merge' &&
+                                                sceneData.id
+                                            ) {
+                                                await rpc.request[
+                                                    'db:update-story-scene'
+                                                ]({
                                                     id: sceneData.id,
                                                     data: {
-                                                        title: sceneData.title || 'New Scene',
-                                                        summary: sceneData.summary || null,
-                                                        setting: sceneData.setting || null,
+                                                        title:
+                                                            sceneData.title ||
+                                                            'New Scene',
+                                                        summary:
+                                                            sceneData.summary ||
+                                                            null,
+                                                        setting:
+                                                            sceneData.setting ||
+                                                            null,
                                                         charactersPresent: cp,
                                                         keyEvents: ke,
-                                                        conflict: sceneData.conflict || null,
-                                                        duration: sceneData.duration || null,
+                                                        conflict:
+                                                            sceneData.conflict ||
+                                                            null,
+                                                        duration:
+                                                            sceneData.duration ||
+                                                            null,
                                                     } as any,
                                                 });
-                                                const existing = storyScenes.find(s => s.id === sceneData.id);
+                                                const existing =
+                                                    storyScenes.find(
+                                                        (s) =>
+                                                            s.id ===
+                                                            sceneData.id
+                                                    );
                                                 if (existing) {
                                                     createdScenes.push({
                                                         ...existing,
-                                                        title: sceneData.title || existing.title,
-                                                        summary: sceneData.summary ?? existing.summary,
-                                                        setting: sceneData.setting ?? existing.setting,
-                                                        charactersPresent: cp ?? existing.charactersPresent,
-                                                        keyEvents: ke ?? existing.keyEvents,
-                                                        conflict: sceneData.conflict ?? existing.conflict,
-                                                        duration: sceneData.duration ?? existing.duration,
+                                                        title:
+                                                            sceneData.title ||
+                                                            existing.title,
+                                                        summary:
+                                                            sceneData.summary ??
+                                                            existing.summary,
+                                                        setting:
+                                                            sceneData.setting ??
+                                                            existing.setting,
+                                                        charactersPresent:
+                                                            cp ??
+                                                            existing.charactersPresent,
+                                                        keyEvents:
+                                                            ke ??
+                                                            existing.keyEvents,
+                                                        conflict:
+                                                            sceneData.conflict ??
+                                                            existing.conflict,
+                                                        duration:
+                                                            sceneData.duration ??
+                                                            existing.duration,
                                                     });
                                                 }
                                                 continue;
@@ -2868,20 +2953,37 @@ function App() {
                                             [];
                                         for (const seqData of newSequences) {
                                             // Merge mode: update existing if id provided
-                                            if (mode === 'merge' && seqData.id) {
-                                                await rpc.request['db:update-story-sequence']({
+                                            if (
+                                                mode === 'merge' &&
+                                                seqData.id
+                                            ) {
+                                                await rpc.request[
+                                                    'db:update-story-sequence'
+                                                ]({
                                                     id: seqData.id,
                                                     data: {
-                                                        title: seqData.title || 'New Sequence',
-                                                        summary: seqData.summary || null,
+                                                        title:
+                                                            seqData.title ||
+                                                            'New Sequence',
+                                                        summary:
+                                                            seqData.summary ||
+                                                            null,
                                                     } as any,
                                                 });
-                                                const existing = storySequences.find(s => s.id === seqData.id);
+                                                const existing =
+                                                    storySequences.find(
+                                                        (s) =>
+                                                            s.id === seqData.id
+                                                    );
                                                 if (existing) {
                                                     createdSequences.push({
                                                         ...existing,
-                                                        title: seqData.title || existing.title,
-                                                        summary: seqData.summary ?? existing.summary,
+                                                        title:
+                                                            seqData.title ||
+                                                            existing.title,
+                                                        summary:
+                                                            seqData.summary ??
+                                                            existing.summary,
                                                     });
                                                 }
                                                 continue;
