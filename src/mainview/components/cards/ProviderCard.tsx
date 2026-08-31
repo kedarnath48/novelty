@@ -8,7 +8,6 @@ import {
     IconTrash,
     IconX,
 } from '@tabler/icons-react';
-import styles from './ProviderCard.module.css';
 import { useSettings } from '../../contexts/SettingsContext';
 import {
     checkProviderConnection,
@@ -19,14 +18,14 @@ import {
 import type { Model, Provider } from './../../utils/ai/providerHelpers';
 import { getModelDisplayName } from '../../utils/ai/helper';
 
+import styles from './ProviderCard.module.css';
+
 type DefaultCardProps = {
     cardType?: 'default';
     cardData: {
         index: number;
         config: Provider;
     };
-    onDelete?: (id: string) => void;
-    onTestConnection?: (id: string) => void;
 };
 
 type AddCardProps = {
@@ -45,7 +44,6 @@ export default function ProviderCard(props: Props) {
     const [apiToggle, setApiToggle] = useState(false);
     const [apiKey, setApiKey] = useState('');
 
-    const [isPillModelsView, setIsPillModelView] = useState(true);
     const [isEditingProviderLabel, setIsEditingProviderLabel] = useState(false);
 
     const [activeModelEdit, setActiveModelEdit] = useState<number | null>(null);
@@ -197,18 +195,16 @@ export default function ProviderCard(props: Props) {
                 models: mergeModels(config.models || []),
             };
             if (config) {
+                setConf(() => ({
+                    ...newModel,
+                }));
+                // needs refactor - add fail states
                 updateProviderConf(index, newModel);
             }
         }
     };
 
     const toggleModel = (index: number) => {
-        //setActiveModels((prev) =>
-        //    prev.includes(index)
-        //        ? prev.filter((i) => i !== index)
-        //        : [...prev, index]
-        //);
-
         setConf((prev) => ({
             ...prev,
             models: prev.models.map((model, i) =>
@@ -230,7 +226,7 @@ export default function ProviderCard(props: Props) {
         });
 
         return { enabled, disabled };
-    }, [conf.models]);
+    }, [conf.models, settings?.providers.configs]);
 
     const renderModelButton = ({
         model,
@@ -250,10 +246,18 @@ export default function ProviderCard(props: Props) {
                     textAlign: 'center',
                     cursor: 'pointer',
                 }}
-                onClick={() => toggleModel(index)}
-                onDoubleClick={() =>
-                    setActiveModelEdit(isEditing ? null : index)
-                }
+                onClick={(e) => {
+                    setTimeout(() => {
+                        if (e.detail === 1) {
+                            if (!isEditing) {
+                                toggleModel(index);
+                            }
+                        }
+                    }, 500);
+                }}
+                onDoubleClick={() => {
+                    setActiveModelEdit(isEditing ? null : index);
+                }}
             >
                 {isEditing ? (
                     <div style={{ display: 'flex' }}>
@@ -263,7 +267,12 @@ export default function ProviderCard(props: Props) {
                             id=""
                             onClick={(e) => e.stopPropagation()}
                         />
-                        <button onClick={() => setActiveModelEdit(null)}>
+                        <button
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                setActiveModelEdit(null);
+                            }}
+                        >
                             <IconX />
                         </button>
                     </div>
@@ -351,12 +360,6 @@ export default function ProviderCard(props: Props) {
                         }
                         className={`${styles.connectionBtn} ${styles.iconBtn} ${testConnection ? styles.active : ''}`}
                         onClick={handleTestConnection}
-                        /*
-                        onClick={() =>
-                            !isAddType &&
-                            props.onTestConnection?.(props.cardData?.id)
-                        }
-                            */
                     >
                         <IconBolt stroke={2} size={18} />
                         {isTesting ? 'Testing...' : 'Test Connection'}
@@ -376,8 +379,8 @@ export default function ProviderCard(props: Props) {
                             title="Delete provider"
                             aria-label="Delete provider"
                             onClick={() => {
-                                if (props.cardData?.index) {
-                                    deleteProvider?.(props.cardData?.index);
+                                if (props.cardData?.index !== undefined) {
+                                    deleteProvider?.(props.cardData.index);
                                 }
                             }}
                         >
@@ -473,20 +476,6 @@ export default function ProviderCard(props: Props) {
                 <div className={styles.modelsSection}>
                     <div className={styles.settingsRow}>
                         <label>Models</label>
-                        <div className={styles.viewTyes}>
-                            <button
-                                className={`${isPillModelsView ? styles.active : ''}`}
-                                onClick={() => setIsPillModelView(true)}
-                            >
-                                pill
-                            </button>
-                            <button
-                                className={`${!isPillModelsView ? styles.active : ''}`}
-                                onClick={() => setIsPillModelView(false)}
-                            >
-                                list
-                            </button>
-                        </div>
 
                         <button
                             title="Get models"
@@ -515,7 +504,7 @@ export default function ProviderCard(props: Props) {
                     <div>
                         {groupedModels.enabled.length > 0 && (
                             <div
-                                className={`${styles.modelsList} ${isPillModelsView ? styles.pill : styles.list} pill-container`}
+                                className={`${styles.modelsList} pill-container`}
                                 style={{
                                     display: 'flex',
                                     gap: '8px',
@@ -537,7 +526,7 @@ export default function ProviderCard(props: Props) {
                                     {groupedModels.disabled.length})
                                 </summary>
                                 <div
-                                    className={`${styles.modelsList} ${isPillModelsView ? styles.pill : styles.list} pill-container`}
+                                    className={`${styles.modelsList} pill-container`}
                                     style={{
                                         display: 'flex',
                                         gap: '8px',

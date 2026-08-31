@@ -726,8 +726,9 @@ function ProvidersTab() {
                 className={styles.settingRow}
                 id="settings-section-default-provider"
             >
-                <span>Default Provider</span>
+                <label htmlFor="defaultProvider">Default Provider</label>
                 <select
+                    id="defaultProvider"
                     value={settings?.providers.defaultProvider || ''}
                     onChange={(e) =>
                         updateProviders(
@@ -747,9 +748,10 @@ function ProvidersTab() {
                 </select>
             </div>
 
-            <div className={styles.settingsRow}>
-                <span>Model Labeling</span>
+            <div className={styles.settingRow}>
+                <label htmlFor="modelDisplayMode">Model Labeling</label>
                 <select
+                    id="modelDisplayMode"
                     style={{ marginLeft: 'auto' }}
                     value={settings?.providers?.modelDisplayMode || 'label'}
                     onChange={(e) =>
@@ -964,7 +966,13 @@ function EmbeddingsTab() {
 
                     <div className={styles.settingRow}>
                         <label>Server</label>
-                        <div style={{ display: 'flex', gap: '8px' }}>
+                        <div
+                            style={{
+                                display: 'flex',
+                                gap: '8px',
+                                width: '50%',
+                            }}
+                        >
                             <button
                                 disabled={isLocked || !emb.enabled}
                                 onClick={() =>
@@ -990,6 +998,7 @@ function EmbeddingsTab() {
                                     fontWeight: emb.endpoint.includes(':1234')
                                         ? '600'
                                         : '400',
+                                    minWidth: 'max-content',
                                 }}
                             >
                                 LM Studio
@@ -1019,6 +1028,7 @@ function EmbeddingsTab() {
                                     fontWeight: emb.endpoint.includes(':11434')
                                         ? '600'
                                         : '400',
+                                    minWidth: 'max-content',
                                 }}
                             >
                                 Ollama
@@ -1647,6 +1657,7 @@ export default function SettingsDialog({
                     style={{
                         textTransform: 'capitalize',
                         marginLeft: '16px',
+                        display: 'none',
                     }}
                 >
                     {activeTabDetails?.label}
@@ -1682,7 +1693,10 @@ export default function SettingsDialog({
                     />
 
                     <div className={localStyles.tabPanel}>
-                        <div className={styles.tabPanelHeader}>
+                        <div
+                            className={styles.tabPanelHeader}
+                            style={{ marginBottom: '12px' }}
+                        >
                             <input
                                 type="search"
                                 name=""

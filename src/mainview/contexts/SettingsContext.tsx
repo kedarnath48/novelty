@@ -188,8 +188,9 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     const deleteProvider = useCallback(
         async (index: number) => {
             if (!settings || isLocked) return;
-            const newConfigs = [...settings.providers.configs];
-            newConfigs.splice(index, 1);
+            const newConfigs = settings.providers.configs.filter(
+                (_, i) => i !== index
+            );
             await updateProviders('configs', newConfigs);
         },
         [settings, isLocked, updateProviders]

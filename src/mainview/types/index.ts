@@ -625,23 +625,6 @@ export type AssetLibrarySettings = {
     cleanupIntervalDays: number;
 };
 
-export type ProviderType = 'lm-studio' | 'openai' | 'anthropic' | 'custom';
-
-/*
-export type ModelEntry = {
-    enabled: boolean;
-    alias?: string;
-};
-
-export type ProviderConfig = {
-    type: ProviderType;
-    endpoint: string;
-    apiKey?: string;
-    models?: Record<string, ModelEntry>;
-    enabled: boolean;
-    modelDisplayMode?: 'alias' | 'both';
-};
-*/
 export type { Provider };
 export type ModelDisplayMode = 'label' | 'alias' | 'both';
 export type ProviderSettings = {
