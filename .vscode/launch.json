@@ -15,7 +15,18 @@
         {
             "type": "node",
             "request": "launch",
-            "name": "Debug: build",
+            "name": "Build: build",
+            "runtimeExecutable": "bun",
+            "runtimeArgs": ["run", "build"],
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal",
+            "internalConsoleOptions": "neverOpen",
+            "skipFiles": ["<node_internals>/**"]
+        },
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "Build Canary: build:canary",
             "runtimeExecutable": "bun",
             "runtimeArgs": ["run", "build"],
             "cwd": "${workspaceFolder}",
