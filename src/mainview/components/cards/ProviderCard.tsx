@@ -228,6 +228,7 @@ export default function ProviderCard(props: Props) {
         return { enabled, disabled };
     }, [conf.models, settings?.providers.configs]);
 
+    const clickTimeoutRef = useRef<NodeJS.Timeout | null>(null);
     const renderModelButton = ({
         model,
         index,
@@ -236,6 +237,30 @@ export default function ProviderCard(props: Props) {
         index: number;
     }) => {
         const isEditing = activeModelEdit === index;
+
+        const handleClick = (
+            e: React.MouseEvent<HTMLElement>,
+            index: number,
+            isEditing: boolean
+        ) => {
+            const detailValue = e.detail;
+
+            if (clickTimeoutRef.current) {
+                clearTimeout(clickTimeoutRef.current);
+                clickTimeoutRef.current = null;
+
+                setActiveModelEdit(isEditing ? null : index);
+            } else {
+                clickTimeoutRef.current = setTimeout(() => {
+                    clickTimeoutRef.current = null;
+
+                    if (detailValue === 1) {
+                        toggleModel(index);
+                    }
+                }, 150);
+            }
+        };
+
         return (
             <button
                 type="button"
@@ -246,18 +271,23 @@ export default function ProviderCard(props: Props) {
                     textAlign: 'center',
                     cursor: 'pointer',
                 }}
-                onClick={(e) => {
-                    setTimeout(() => {
-                        if (e.detail === 1) {
-                            if (!isEditing) {
-                                toggleModel(index);
-                            }
+                onClick={(e) => handleClick(e, index, isEditing)}
+                /*
+                    onClick={(e) => {
+                        if (clickTimeoutRef.current) {
+                            clearTimeout(clickTimeoutRef.current);
+                            clickTimeoutRef.current = null;
+                            setActiveModelEdit(isEditing ? null : index);
+                        } else {
+                            clickTimeoutRef.current = setTimeout(() => {
+                                clickTimeoutRef.current = null;
+                                if (e.detail === 1) {
+                                    toggleModel(index);
+                                }
+                            }, 250);
                         }
-                    }, 500);
-                }}
-                onDoubleClick={() => {
-                    setActiveModelEdit(isEditing ? null : index);
-                }}
+                    }}
+                */
             >
                 {isEditing ? (
                     <div style={{ display: 'flex' }}>
