@@ -291,4 +291,9 @@
     &.active:hover {
         color: greenyellow;
     }
+
+    &.inactive,
+    &.inactive:hover {
+        color: red;
+    }
 }
