@@ -285,7 +285,7 @@ export default function ProviderCard(props: Props) {
     const handleFetchModelsClick = () => {
         if (isAddType && !props.cardData?.index) {
             handleGetModels(-1, `${conf.url.base}/${conf.url.endpoint.value}`);
-        } else if (props.cardData?.index && conf.url.endpoint.value) {
+        } else if (props.cardData?.index !== undefined) {
             handleGetModels(props.cardData?.index, previewUrl);
         }
     };
