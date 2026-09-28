@@ -3,7 +3,7 @@ import {
     Updater,
     defineElectrobunRPC,
     Utils,
-} from 'electrobun/bun';
+} from 'electrobun/main';
 import type {
     SelectorSchema,
     NewProject,

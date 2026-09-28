@@ -2,8 +2,12 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { resolve } from 'path';
 import tsconfigPaths from 'vite-tsconfig-paths';
+import { electrobunViteAliases } from './.hutch/devkit/api/config/electrobun-vite';
 
 export default defineConfig({
+    resolve: {
+        alias: electrobunViteAliases(resolve(__dirname, '.hutch/devkit')),
+    },
     plugins: [
         react(),
         tsconfigPaths(),

@@ -1,6 +1,6 @@
 import { drizzle } from 'drizzle-orm/bun-sqlite';
 import { Database } from 'bun:sqlite';
-import { Utils } from 'electrobun/bun';
+import { Utils } from 'electrobun/main';
 import { join } from 'path';
 import { mkdirSync, existsSync } from 'fs';
 import * as schema from '../schema';

@@ -56,6 +56,10 @@ export default {
         version: pkg.version,
     },
     build: {
+        mainProcess: 'bun',
+        bun: {
+            entrypoint: 'src/bun/index.ts',
+        },
         copy: {
             'dist/mainview': 'views/mainview',
         },
@@ -68,7 +72,7 @@ export default {
         },
         win: {
             bundleCEF: false,
-            icon: 'public/assets/favicon_256x256.png',
+            icon: 'public/assets/favicon.ico',
         },
     },
 } satisfies ElectrobunConfig;

@@ -25,6 +25,7 @@
             "@/*": ["./src/*"]
         }
     },
-    "include": ["src"],
+    "extends": "./.hutch/devkit/tsconfig.json",
+    "include": ["src", "electrobun.config.ts"],
     "exclude": ["node_modules", "dist", "build", "../../package/dist"]
 }
