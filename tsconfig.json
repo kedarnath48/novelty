@@ -8,7 +8,7 @@
         "skipLibCheck": true,
         "forceConsistentCasingInFileNames": true,
         "useDefineForClassFields": true,
-        "lib": ["ES2020", "DOM", "DOM.Iterable"],
+        "lib": ["ES2021", "DOM", "DOM.Iterable"],
         "allowImportingTsExtensions": true,
         "isolatedModules": true,
         "moduleDetection": "force",
@@ -18,12 +18,7 @@
         "noUnusedParameters": true,
         "noFallthroughCasesInSwitch": true,
         "types": ["node", "bun-types"],
-        "paths": {
-            "@client/*": ["./src/mainview/*"],
-            "@bun/*": ["./src/bun/*"],
-            "@shared/*": ["./src/shared/*"],
-            "@/*": ["./src/*"]
-        }
+        "baseUrl": null
     },
     "extends": "./.hutch/devkit/tsconfig.json",
     "include": ["src", "electrobun.config.ts"],

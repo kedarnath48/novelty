@@ -1,12 +1,13 @@
 import js from '@eslint/js';
 import globals from 'globals';
+import { defineConfig } from 'eslint/config';
 import tseslint from 'typescript-eslint';
 import pluginReact from 'eslint-plugin-react';
 import json from '@eslint/json';
 import markdown from '@eslint/markdown';
 import css from '@eslint/css';
 
-export default tseslint.config(
+export default defineConfig(
     // 1. Global Ignores (Strictly skip internal tool folders and bundles)
     {
         ignores: [
@@ -17,6 +18,7 @@ export default tseslint.config(
             'node_modules/**',
             '.cottontail-tmp/**',
             '.vscode/**',
+            '.hutch/**',
         ],
     },
 
