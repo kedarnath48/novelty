@@ -70,6 +70,11 @@
     --text-accent: #f0a050;
     --accent: #f0a050;
 
+    /* Minimum height of one layout band. Every band is at least this tall, so
+       single-band fields share a common baseline while taller content (a
+       portrait, a textarea, a tree) still grows instead of being clipped. */
+    --band-unit: 96px;
+
     --font-mono: 'Geist Mono', ui-monospace, monospace;
     --font-sans:
         'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen,
@@ -2182,7 +2187,6 @@ select {
     background: #313233;
 }
 
-/* Accordion preview for old messages */
 .chat-message.accordion-preview {
     max-height: 1.6em;
     overflow: hidden;
@@ -2219,7 +2223,6 @@ select {
     margin-left: 8px;
 }
 
-/* View mode selector in chat header */
 .view-mode-select {
     padding: 4px 6px;
     background: transparent;
@@ -2236,7 +2239,6 @@ select {
     color: #fff;
 }
 
-/* Message footer for assistant responses */
 .chat-message-footer {
     display: flex;
     align-items: center;
@@ -2318,9 +2320,6 @@ select {
     color: #30d158;
 }
 
-/* @-Mention Popup — removed, now uses floating-suggestions */
-
-/* Context Chips */
 .context-chips {
     display: flex;
     flex-wrap: wrap;
@@ -2389,7 +2388,6 @@ select {
     opacity: 1;
 }
 
-/* System Prompt Toggle */
 .system-prompt-toggle {
     position: relative;
 }
@@ -2488,7 +2486,6 @@ select {
     background: #3a8eef;
 }
 
-/* Floating scroll navigation buttons */
 .scroll-nav-buttons {
     position: sticky;
     bottom: 16px;
@@ -2525,7 +2522,6 @@ select {
     transform: scale(1.05);
 }
 
-/* Compendium View */
 .compendium-view {
     display: flex;
     height: 100%;
@@ -2743,11 +2739,21 @@ select {
     font-size: 24px;
     font-weight: 500;
     box-sizing: border-box;
+    padding: 4px 0;
+    border-bottom: 1px solid transparent;
+    color: #9ca3af;
+    transition: all 0.2s;
+
+    &:hover {
+        outline: none;
+        border-color: var(--accent);
+    }
 }
 
 .entry-name-input:focus {
     outline: none;
-    border-color: #4a9eff;
+    border-bottom: 1px solid var(--accent);
+    color: #fff;
 }
 
 .entry-fields {
@@ -2976,7 +2982,6 @@ select {
     cursor: not-allowed;
 }
 
-/* Compendium Entry Editor */
 .compendium-entry-editor {
     /*max-width: 1200px;*/
     margin: 0 auto;
@@ -2997,141 +3002,16 @@ select {
     margin-bottom: 32px;
 }
 
-.entry-name-input {
-    width: 100%;
-    padding: 4px 0;
-    background: transparent;
-    border: none;
-    border-bottom: 1px solid transparent;
-    /* No border initially to match mockup */
-    color: #9ca3af;
-    /* Dimmed name like in mockup */
-    font-size: 24px;
-    font-weight: 500;
-    box-sizing: border-box;
-    transition: all 0.2s;
-}
-
-.entry-name-input:focus {
-    outline: none;
-    border-bottom: 1px solid #4a9eff;
-    color: #fff;
-}
-
 .entry-content-grid {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: minmax(0, 1fr);
     gap: 40px;
 }
 
 .entry-fields-column {
     display: flex;
     flex-direction: column;
-}
-
-.entry-sidebar-column {
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-}
-
-.sidebar-section {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-}
-
-.sidebar-section .section-label {
-    color: #6b7280;
-    font-size: 11px;
-    text-transform: uppercase;
-    font-weight: 600;
-    letter-spacing: 0.5px;
-    margin-bottom: 2px;
-}
-
-.portrait-box {
-    background-color: #1a1a1c;
-    border: 1px dashed #3f3f46;
-    border-radius: 6px;
-    aspect-ratio: 16 / 10;
-    aspect-ratio: 2 / 3;
-    aspect-ratio: 4 / 5;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.portrait-placeholder {
-    color: #6b7280;
-    font-size: 13px;
-}
-
-.portrait-controls {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 4px 0;
-}
-
-.portrait-pagination {
-    color: #595d68;
-    font-size: 12px;
-}
-
-.portrait-controls .icon-btn {
-    background: #1a1a1c;
-    border: none;
-    color: #6b7280;
-    border-radius: 4px;
-    padding: 4px 8px;
-    font-size: 14px;
-    cursor: pointer;
-}
-
-.portrait-controls .icon-btn:hover {
-    background: #27272a;
-    color: #fff;
-}
-
-.portrait-image {
-    width: 100%;
-    height: 100%;
-    object-fit: contain;
-    border-radius: 4px;
-}
-
-.portrait-options-wrapper {
-    position: relative;
-}
-
-.portrait-dropdown {
-    position: absolute;
-    top: 100%;
-    left: 0;
-    background: #27272a;
-    border: 1px solid #3f3f46;
-    border-radius: 6px;
-    padding: 4px;
-    z-index: 10;
-    min-width: 150px;
-    display: flex;
-    flex-direction: column;
-}
-
-.portrait-dropdown button {
-    background: transparent;
-    border: none;
-    color: #fff;
-    padding: 6px 10px;
-    font-size: 13px;
-    cursor: pointer;
-    text-align: left;
-    border-radius: 4px;
-}
-
-.portrait-dropdown button:hover {
-    background: #3f3f46;
+    min-width: 0;
 }
 
 .no-template-prompt {
@@ -3165,52 +3045,163 @@ select {
     background: #2563eb;
 }
 
-.asset-list,
-.location-list {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-}
-
-.asset-item {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    background-color: #1a1a1c;
-    border: 1px solid transparent;
-    border-radius: 6px;
-    padding: 10px 12px;
-    color: #fff;
-    font-size: 13px;
-    font-weight: 500;
-}
-
-.asset-item .icon-btn {
-    background: transparent;
-    border: none;
-    color: #6b7280;
-    font-size: 16px;
-    cursor: pointer;
-    padding: 0;
-    line-height: 1;
-}
-
-.asset-item .icon-btn:hover {
-    color: #fff;
-}
-
-.gallery-thumb {
-    width: 100%;
-    height: auto;
-    max-height: 120px;
-    object-fit: contain;
-    border-radius: 4px;
-}
-
 .location-list {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 10px;
+}
+
+.field-layout-item:hover .field-resize,
+.field-layout-item .field-resize:hover {
+    border-right-color: var(--accent, rgba(240, 160, 80, 0.6));
+}
+
+.field-layout-item:hover .field-resize-row,
+.field-layout-item .field-resize-row:hover {
+    border-bottom-color: var(--accent, rgba(240, 160, 80, 0.6));
+}
+
+.field-layout-item .field-layout-content > * {
+    margin-bottom: 0;
+}
+
+.field-drop-preview {
+    align-self: stretch;
+    min-width: 0;
+    border: 2px dashed var(--accent, rgba(240, 160, 80, 0.9));
+    border-radius: 8px;
+    background: rgba(240, 160, 80, 0.08);
+    pointer-events: none;
+    z-index: 3;
+}
+
+.field-drop-insert {
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: rgba(240, 160, 80, 0.35);
+    border-radius: 1px;
+    pointer-events: none;
+    z-index: 3;
+}
+
+.field-drop-insert-col {
+    position: absolute;
+    top: -1px;
+    height: 4px;
+    background: var(--accent, rgba(240, 160, 80, 0.95));
+    border-radius: 2px;
+    box-shadow: 0 0 6px rgba(240, 160, 80, 0.6);
+}
+
+.field-drop-insert-v {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: rgba(240, 160, 80, 0.35);
+    border-radius: 1px;
+    pointer-events: none;
+    z-index: 3;
+}
+
+.field-drop-insert-v-col {
+    position: absolute;
+    width: 4px;
+    left: -1px;
+    background: var(--accent, rgba(240, 160, 80, 0.95));
+    border-radius: 2px;
+    box-shadow: 0 0 6px rgba(240, 160, 80, 0.6);
+}
+
+.field-grid-guide-cell {
+    pointer-events: none;
+    box-sizing: border-box;
+    border: 1px dashed rgba(255, 255, 255, 0.07);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.015);
+}
+
+.field-grid-guide-label {
+    position: relative;
+    pointer-events: none;
+    z-index: 2;
+}
+
+.field-grid-guide-col,
+.field-grid-guide-row {
+    position: absolute;
+    font-size: 9px;
+    line-height: 1;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    color: rgba(255, 255, 255, 0.38);
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+}
+
+.field-grid-guide-col {
+    top: 3px;
+    left: 6px;
+}
+
+.field-grid-guide-row {
+    right: 6px;
+    bottom: 3px;
+}
+
+.field-layout-item.field-linked {
+    outline: 2px solid var(--accent, rgba(240, 160, 80, 0.9));
+    outline-offset: 2px;
+    border-radius: 8px;
+}
+
+.field-layout-matrix-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    align-items: flex-start;
+}
+
+.field-layout-matrix-caption {
+    font-size: 0.7em;
+    color: #888;
+    letter-spacing: 0.03em;
+}
+
+.field-layout-matrix {
+    display: grid;
+    gap: 2px;
+}
+
+.field-layout-matrix-cell {
+    width: 14px;
+    height: 14px;
+    padding: 0;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 3px;
+    background: transparent;
+    cursor: default;
+    transition:
+        background 0.15s ease,
+        border-color 0.15s ease;
+}
+
+.field-layout-matrix-cell.is-filled {
+    background: rgba(255, 255, 255, 0.12);
+    cursor: pointer;
+}
+
+.field-layout-matrix-cell.is-filled:hover {
+    background: rgba(255, 255, 255, 0.22);
+}
+
+.field-layout-matrix-cell.is-active {
+    background: var(--accent, rgba(240, 160, 80, 0.9));
+    border-color: var(--accent, rgba(240, 160, 80, 0.9));
+}
+
+.field-layout-matrix-cell:disabled {
+    cursor: default;
 }
 
 .location-box {
@@ -3297,7 +3288,6 @@ select {
     resize: vertical;
 }
 
-/* ======= Multi-select chip combobox ======= */
 .multiselect-combobox {
     display: flex;
     flex-wrap: wrap;

@@ -473,38 +473,35 @@ export type NewSeries = Omit<
     'createdAt' | 'updatedAt' | 'projectCount'
 >;
 
-export type GlobalTemplate = {
-    id: string;
-    name: string;
-    description: string | null;
-    baseType: CompendiumCategory;
-    customFields: FieldDefinition[];
-    createdAt: Date;
-    updatedAt: Date;
-};
-
-export type NewGlobalTemplate = Omit<GlobalTemplate, 'createdAt' | 'updatedAt'>;
-
 export type SeriesTemplate = {
     id: string;
     seriesId: string;
-    name: string;
-    description: string | null;
-    globalTemplateId: string | null;
     baseType: CompendiumCategory;
     customFields: FieldDefinition[];
+    // Default layout used when a project has not saved its own. The effective
+    // layout of a resolved project is always project-authoritative.
+    layout: TemplateLayout | null;
     createdAt: Date;
     updatedAt: Date;
 };
 
-export type NewSeriesTemplate = Omit<SeriesTemplate, 'createdAt' | 'updatedAt'>;
+export type SeriesTemplateInput = {
+    seriesId: string;
+    baseType: CompendiumCategory;
+    customFields: FieldDefinition[];
+    layout?: TemplateLayout | null;
+};
 
 export type CompendiumCategory =
     'character' | 'location' | 'organization' | 'item' | 'lore';
 
+// Number of grid columns a template's fields are laid out in by default.
+export const DEFAULT_TEMPLATE_COLUMNS = 4;
+
 export type ResolvedTemplateInfo = {
-    fields: FieldDefinition[];
-    globalTemplate: GlobalTemplate | null;
+    fields: ResolvedField[];
+    columns: number;
+    layout: TemplateLayout;
     seriesTemplate: SeriesTemplate | null;
     projectTemplate: EntityTemplate | null;
 };
@@ -556,7 +553,6 @@ export type FieldDefinition = {
     label: string;
     required: boolean;
     disabled?: boolean;
-    span?: 1 | 2 | 3 | 4;
     options?: string[];
     rangeMin?: number;
     rangeMax?: number;
@@ -566,13 +562,61 @@ export type FieldDefinition = {
     visibleWhen?: FieldVisibility;
 };
 
+// A field may span up to MAX_COLUMNS columns, keeping step with the column
+// count a layout can reach (spans can never exceed the grid width).
+export type TemplateSpan = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12;
+
+// Upper bound a template's column count (and any width span) can reach.
+export const MAX_COLUMNS = 12;
+
+// Bumped whenever the meaning of the layout's position keys changes, so the
+// editor knows to re-pack a layout saved under an older model instead of
+// rendering stale positions.
+export const LAYOUT_VERSION = 4;
+
+// Presentation state for a template, stored separately from the field
+// definitions it lays out. The grid is a real table: `columns` controls how
+// many columns wide it is, and every populated row is a content-height band.
+// A field occupies a `rowSpan × colSpan` rectangle of bands/cells, so a tall
+// field (a portrait) can span several rows. `order` is the canonical display
+// order as field names (name is the identity key used everywhere fields are
+// merged), `spans` maps a field name to how many grid columns it occupies,
+// `rowSpans` maps a field name to how many bands it spans, `cols` pins a
+// field's starting column (1-based) so empty columns can be left between
+// fields, and `rowStarts` maps a field name to the band (row) it starts in.
+// `fullWidth` marks a field that always spans every column regardless of the
+// column count.
+export type TemplateLayout = {
+    order: string[];
+    spans: Record<string, TemplateSpan>;
+    rowSpans: Record<string, number>;
+    cols: Record<string, number>;
+    rowStarts: Record<string, number>;
+    fullWidth: Record<string, true>;
+    // Layout model version. Absent/older means the position keys predate the
+    // band model, so the editor re-packs the layout before showing it.
+    version?: number;
+    // Grid column count. Null/absent falls back to DEFAULT_TEMPLATE_COLUMNS.
+    columns: number | null;
+};
+
+// A field definition resolved against a layout: identical to what is stored,
+// plus the display position the layout assigns it. `span`/`rowSpan`/
+// `rowStart`/`colStart` are derived, never persisted inside `customFields`.
+export type ResolvedField = FieldDefinition & {
+    span?: TemplateSpan;
+    rowSpan?: number;
+    colStart?: number;
+    rowStart?: number;
+    fullWidth?: boolean;
+};
+
 export type EntityTemplate = {
     id: string;
     projectId: string | null;
     baseType: CompendiumCategory;
-    globalTemplateId: string | null;
-    seriesTemplateId: string | null;
     customFields: FieldDefinition[];
+    layout: TemplateLayout | null;
     createdAt: Date;
     updatedAt: Date;
 };
@@ -942,40 +986,18 @@ export type SelectorSchema = {
             };
             'db:delete-series': { params: string; response: void };
             'db:get-series-projects': { params: string; response: Project[] };
-            'db:list-global-templates': {
-                params: { baseType?: CompendiumCategory } | void;
-                response: GlobalTemplate[];
-            };
-            'db:get-global-template': {
-                params: string;
-                response: GlobalTemplate | undefined;
-            };
-            'db:create-global-template': {
-                params: NewGlobalTemplate;
-                response: GlobalTemplate;
-            };
-            'db:update-global-template': {
-                params: { id: string; data: Partial<NewGlobalTemplate> };
-                response: GlobalTemplate | undefined;
-            };
-            'db:delete-global-template': { params: string; response: void };
             'db:list-series-templates': {
-                params: { seriesId: string; baseType?: CompendiumCategory };
+                params: { seriesId: string };
                 response: SeriesTemplate[];
             };
-            'db:get-series-template': {
-                params: string;
-                response: SeriesTemplate | undefined;
-            };
-            'db:create-series-template': {
-                params: NewSeriesTemplate;
+            'db:upsert-series-template': {
+                params: SeriesTemplateInput;
                 response: SeriesTemplate;
             };
-            'db:update-series-template': {
-                params: { id: string; data: Partial<NewSeriesTemplate> };
-                response: SeriesTemplate | undefined;
+            'db:delete-series-template': {
+                params: { seriesId: string; baseType: CompendiumCategory };
+                response: void;
             };
-            'db:delete-series-template': { params: string; response: void };
             'db:get-template': {
                 params: { projectId: string; baseType: CompendiumCategory };
                 response: EntityTemplate | undefined;
@@ -1130,9 +1152,8 @@ export type SelectorSchema = {
                 params: {
                     projectId: string;
                     baseType: CompendiumCategory;
-                    customFields: FieldDefinition[];
-                    globalTemplateId?: string | null;
-                    seriesTemplateId?: string | null;
+                    customFields?: FieldDefinition[];
+                    layout?: TemplateLayout | null;
                 };
                 response: EntityTemplate;
             };
@@ -1201,6 +1222,6 @@ export type SelectorSchema = {
             'maximize-window': void;
             'window-state-changed': boolean;
         };
-        requests: {};
+        requests: Record<string, never>;
     };
 };

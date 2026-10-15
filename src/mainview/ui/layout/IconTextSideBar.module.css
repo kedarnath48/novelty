@@ -1,15 +1,39 @@
-.sideBar {
+﻿.sideBar {
     flex-shrink: 0;
     overflow-y: auto;
     width: 30%;
-    max-width: 300px;
     max-width: 250px;
     min-height: 0;
     display: flex;
     flex-direction: column;
     gap: 12px;
+    transition:
+        max-width 0.04s ease-out,
+        width 0.04s ease-out;
+    will-change: width, max-width;
+
+    &.collapsed {
+        width: 48px;
+        max-width: 48px;
+        gap: 8px;
+        align-items: center;
+        margin-right: auto;
+    }
+
+    &.collapsed button {
+        padding: 8px;
+        min-width: 40px;
+        max-width: max-content;
+        justify-content: center;
+        gap: 0;
+    }
+
+    &.collapsed button > span:not(:first-child) {
+        display: none;
+    }
 
     button {
+        width: 100%;
         padding: 8px 16px;
         background: #1a1b1c;
         border: 1px solid #393a3b;
@@ -21,6 +45,8 @@
         display: flex;
         align-items: center;
         gap: 6px;
+        overflow: hidden;
+        white-space: nowrap;
 
         &:hover {
             border-color: #4a9eff;
@@ -30,15 +56,11 @@
         }
 
         &.active {
-            /*background: #4A9EFF;*/
-            /*border-color: #4A9EFF;*/
-            /*color: #fff;*/
             background: var(--accent-subtle, rgba(240, 160, 80, 0.08));
             border: 1px solid var(--accent);
             color: var(--accent);
 
             svg {
-                /*stroke: #fff;*/
                 color: var(--accent);
             }
         }
@@ -46,6 +68,32 @@
         svg {
             width: 18px;
             height: 18px;
+            flex-shrink: 0;
         }
+
+        > span:not(:first-child) {
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+    }
+}
+
+@media (max-width: 1500px) {
+    .sideBar {
+        width: 48px;
+        max-width: 48px;
+        gap: 8px;
+        align-items: center;
+    }
+
+    .sideBar button {
+        padding: 8px;
+        width: 40px;
+        justify-content: center;
+        gap: 0;
+    }
+
+    .sideBar button > span:not(:first-child) {
+        display: none;
     }
 }

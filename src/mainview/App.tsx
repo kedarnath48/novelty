@@ -20,6 +20,7 @@ import type {
     LoreEntry,
     EntityTemplate,
     FieldDefinition,
+    TemplateLayout,
     PlotThread,
     StoryBeat,
     StoryAct,
@@ -27,6 +28,7 @@ import type {
     StoryScene,
     ChapterPlotThread,
 } from './types/index';
+import { DEFAULT_TEMPLATE_COLUMNS } from './types/index';
 import { type TreeEdge, treeEdgeKey } from './templates/tree';
 import type { ParsedEntry } from './services/entryParser';
 import type { ExtractionSource } from './services/textExtractor';
@@ -213,6 +215,24 @@ function App() {
         organization: [],
         item: [],
         lore: [],
+    });
+    const [resolvedTemplateColumns, setResolvedTemplateColumns] = useState<
+        Record<CompendiumCategory, number>
+    >({
+        character: DEFAULT_TEMPLATE_COLUMNS,
+        location: DEFAULT_TEMPLATE_COLUMNS,
+        organization: DEFAULT_TEMPLATE_COLUMNS,
+        item: DEFAULT_TEMPLATE_COLUMNS,
+        lore: DEFAULT_TEMPLATE_COLUMNS,
+    });
+    const [templateLayouts, setTemplateLayouts] = useState<
+        Record<CompendiumCategory, TemplateLayout | null>
+    >({
+        character: null,
+        location: null,
+        organization: null,
+        item: null,
+        lore: null,
     });
 
     // Bulk extraction state
@@ -544,6 +564,14 @@ function App() {
         setResolvedTemplateFields((prev) => ({
             ...prev,
             [category]: resolved?.fields || [],
+        }));
+        setResolvedTemplateColumns((prev) => ({
+            ...prev,
+            [category]: resolved?.columns ?? DEFAULT_TEMPLATE_COLUMNS,
+        }));
+        setTemplateLayouts((prev) => ({
+            ...prev,
+            [category]: resolved?.layout ?? null,
         }));
     }
 
@@ -1294,10 +1322,6 @@ function App() {
                         projectId: currentProject.id,
                         baseType: category,
                         customFields: updatedFields,
-                        globalTemplateId:
-                            existingTemplate?.globalTemplateId ?? undefined,
-                        seriesTemplateId:
-                            existingTemplate?.seriesTemplateId ?? undefined,
                     });
                     // Refresh resolved fields
                     const newResolved = await rpc.request[
@@ -1309,6 +1333,11 @@ function App() {
                     setResolvedTemplateFields((prev) => ({
                         ...prev,
                         [category]: newResolved?.fields || [],
+                    }));
+                    setResolvedTemplateColumns((prev) => ({
+                        ...prev,
+                        [category]:
+                            newResolved?.columns ?? DEFAULT_TEMPLATE_COLUMNS,
                     }));
                 }
             }
@@ -1583,8 +1612,6 @@ function App() {
                 projectId: currentProject.id,
                 baseType: update.baseType,
                 customFields: updatedFields,
-                globalTemplateId: existing?.globalTemplateId ?? undefined,
-                seriesTemplateId: existing?.seriesTemplateId ?? undefined,
             });
             const newResolved = await rpc.request['db:get-resolved-template']({
                 projectId: currentProject.id,
@@ -1593,6 +1620,11 @@ function App() {
             setResolvedTemplateFields((prev) => ({
                 ...prev,
                 [update.baseType]: newResolved?.fields || [],
+            }));
+            setResolvedTemplateColumns((prev) => ({
+                ...prev,
+                [update.baseType]:
+                    newResolved?.columns ?? DEFAULT_TEMPLATE_COLUMNS,
             }));
         }
 
@@ -2276,6 +2308,8 @@ function App() {
                     }
                     category={category}
                     template={effectiveTemplate}
+                    columns={resolvedTemplateColumns[category]}
+                    layout={templateLayouts[category]}
                     characters={characters}
                     locations={locations}
                     organizations={organizations}
