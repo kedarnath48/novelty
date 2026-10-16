@@ -13,6 +13,9 @@ import type {
     SeriesArchitecture,
 } from '../types/index';
 import styles from './ProjectsDialog.module.css';
+import { IconBook, IconPlus } from '@tabler/icons-react';
+
+import { PROJECTS_MOCK } from './../constants/mock';
 
 const seriesArchOptions: { value: SeriesArchitecture; label: string }[] = [
     { value: 'duology', label: 'Duology' },
@@ -168,10 +171,11 @@ function ProjectCard({
                         {project.contentRating || 'general'}
                     </span>
                 </div>
-
+                {/*
                 <div className={styles.phaseText}>
                     Phase 1 of 15 · {project.projectStatus || 'planning'}
                 </div>
+                 */}
 
                 <div className={styles.wordsCount}>0 words</div>
             </div>
@@ -243,6 +247,8 @@ export default function ProjectsDialog({
         Array<{ id: string; name: string }>
     >([]);
     const [seriesProjectsName, setSeriesProjectsName] = useState('');
+
+    const [cardSize, setCardSize] = useState<'small' | 'large'>('small');
 
     const projectScopes: { value: ProjectScope; label: string }[] = [
         { value: 'fast_paced', label: 'Fast-Paced / Pulp' },
@@ -642,22 +648,80 @@ export default function ProjectsDialog({
                 loading ? (
                     <div className={styles.emptyState}>Loading...</div>
                 ) : (
-                    <div className={styles.booksGrid}>
-                        {projects.map((project) => (
-                            <ProjectCard
-                                key={project.id}
-                                project={project}
-                                onSelect={
-                                    onSelectProject
-                                        ? handleSelectProject
-                                        : undefined
-                                }
-                                onRename={handleRenameRequest}
-                                onChangeCover={handleChangeCoverRequest}
-                                onDelete={handleDeleteRequest}
-                            />
-                        ))}
-                    </div>
+                    <>
+                        <div className={styles.booksGrid}>
+                            {projects.map((project) => (
+                                <ProjectCard
+                                    key={project.id}
+                                    project={project}
+                                    onSelect={
+                                        onSelectProject
+                                            ? handleSelectProject
+                                            : undefined
+                                    }
+                                    onRename={handleRenameRequest}
+                                    onChangeCover={handleChangeCoverRequest}
+                                    onDelete={handleDeleteRequest}
+                                />
+                            ))}
+                        </div>
+
+                        <div className={styles.worksCont}>
+                            <div
+                                className={`${styles.project} ${styles.addProject}`}
+                                onClick={() => alert('new project')}
+                            >
+                                <div className={styles.svgIcon}>
+                                    <IconPlus />
+                                </div>
+                                <div className="text">New Book</div>
+                            </div>
+                            {PROJECTS_MOCK.map((p) => (
+                                <>
+                                    {p.series ? (
+                                        <div className={styles.series}>
+                                            <div className={styles.seriesmname}>
+                                                <label htmlFor="">
+                                                    series name
+                                                </label>
+                                            </div>
+                                            <div className={styles.projects}>
+                                                <div className={styles.project}>
+                                                    <div
+                                                        className={
+                                                            styles.projectCover
+                                                        }
+                                                    ></div>
+                                                </div>
+                                                <div className={styles.project}>
+                                                    <div
+                                                        className={
+                                                            styles.projectCover
+                                                        }
+                                                    ></div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <div className={styles.project}>
+                                            <div
+                                                className={styles.projectCover}
+                                            ></div>
+                                        </div>
+                                    )}
+                                </>
+                            ))}
+                            <div className={styles.project}>
+                                {1 == 1 ? (
+                                    <div className={styles.svgIcon}>
+                                        <IconBook />
+                                    </div>
+                                ) : (
+                                    <div className={styles.projectCover}></div>
+                                )}
+                            </div>
+                        </div>
+                    </>
                 )
             ) : (
                 <div className={styles.seriesContainer}>

@@ -3,6 +3,11 @@
     max-width: 95vw;
     border-radius: 16px !important;
     overflow: hidden !important;
+
+    width: 70%;
+    max-width: 70%;
+    height: 80%;
+    max-height: 80%;
 }
 
 /* Toolbar container with full pill rounding on both top and bottom edges */
@@ -366,4 +371,89 @@
     justify-content: flex-end !important;
     gap: 8px !important;
     margin-top: 14px !important;
+}
+
+.worksCont {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px;
+}
+
+.addProject {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+
+    border: 2px dotted #f0a0506b;
+    svg {
+        width: 42px;
+        height: 42px;
+        stroke: #9ca3af;
+    }
+
+    &:hover {
+        font-size: large;
+        border-color: var(--accent);
+        svg {
+            width: 48px;
+            height: 48px;
+            stroke: #eae5d9;
+        }
+    }
+    .icon {
+        vertical-align: middle;
+        margin: auto;
+    }
+}
+.series,
+.project {
+    border-radius: 12px;
+}
+
+.series {
+    width: max-content;
+    background-color: var(--accent-subtle);
+    padding: 12px;
+    background-color: #141416;
+
+    .seriesmname {
+        margin-bottom: 12px;
+        text-transform: uppercase;
+    }
+}
+.projects {
+    display: flex;
+    gap: 12px;
+    .project {
+        margin: 0px;
+    }
+}
+
+.project {
+    width: 230px;
+    aspect-ratio: 2/3;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    margin: 12px;
+    background-color: rgb(108, 85, 85);
+    background-color: #1c1c1f;
+
+    .svgIcon svg {
+        width: 42px;
+        height: 42px;
+        stroke: #eae5d9;
+        stroke: #484852;
+    }
+}
+.projectCover {
+    width: 100%;
+    aspect-ratio: 2/3;
+    border-radius: 9px;
+    background-color: #28282e;
+    background-color: #252627;
 }
