@@ -16,3 +16,6 @@ package-lock.json
 public/assets/fonts
 .hutch
 .cottontail-tmp
+
+
+public\assets\macos\__MACOSX

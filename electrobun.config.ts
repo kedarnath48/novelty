@@ -66,7 +66,7 @@ export default {
         watchIgnore: ['dist/**', 'views/**'],
         mac: {
             bundleCEF: false,
-            icons: 'public/assets/macos/icon-1024x1024px.icns',
+            icons: 'public/assets/macos/icon-1024x1024px.iconset',
         },
         linux: {
             bundleCEF: false,
