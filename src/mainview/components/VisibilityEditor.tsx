@@ -53,7 +53,7 @@ export default function VisibilityEditor({
     value,
     onChange,
 }: VisibilityEditorProps) {
-    const available = fields.slice(0, currentIndex);
+    const available = fields.slice(0, fields.length);
     const visibility = value && value.conditions.length > 0 ? value : undefined;
 
     function toggleEnabled() {
@@ -62,7 +62,7 @@ export default function VisibilityEditor({
             return;
         }
         if (available.length === 0) return;
-        const firstField = available[0];
+        const firstField = available[currentIndex];
         onChange({
             mode: 'all',
             conditions: [{ field: firstField.name, operator: 'isTrue' }],
@@ -208,11 +208,16 @@ export default function VisibilityEditor({
                                     }}
                                 >
                                     <option value="">— select field —</option>
-                                    {available.map((f) => (
-                                        <option key={f.name} value={f.name}>
-                                            {f.label || f.name}
-                                        </option>
-                                    ))}
+                                    {available.map((f) =>
+                                        f.name !==
+                                        available[currentIndex].name ? (
+                                            <option key={f.name} value={f.name}>
+                                                {f.label || f.name}
+                                            </option>
+                                        ) : (
+                                            ''
+                                        )
+                                    )}
                                 </select>
                                 <select
                                     value={effectiveCond.operator}
