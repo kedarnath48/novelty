@@ -1,7 +1,10 @@
-import styles from '../App.module.css';
+import styles from './TitleBar.module.css';
+import appStyles from '../../App.module.css';
 import { useState, useEffect, useRef } from 'react';
-import { useRPC } from '../contexts/RPCContext';
-import AppIcon from '../components/AppIcon';
+import { useRPC } from '../../contexts/RPCContext';
+import AppIcon from '../../components/AppIcon';
+import { QuickAccess } from './QuickAccess';
+import type { QuickAccessItem } from './quickAccessIndex';
 import {
     IconChevronDown,
     IconFolder,
@@ -10,6 +13,7 @@ import {
     IconLayoutSidebarRight,
     IconLayoutSidebarRightFilled,
     IconMinus,
+    IconSearch,
     IconSettings,
     IconSquare,
     IconSquares,
@@ -61,6 +65,8 @@ export function TitleBar({
     onTitleClick,
     onTimelineClick,
     projectName,
+    quickAccessItems,
+    onQuickAccessSelect,
     extras,
 }: {
     isCollapsed: boolean;
@@ -72,12 +78,15 @@ export function TitleBar({
     onTitleClick: () => void;
     onTimelineClick: () => void;
     projectName: string | null;
+    quickAccessItems: QuickAccessItem[];
+    onQuickAccessSelect: (item: QuickAccessItem) => void;
     extras?: React.ReactNode;
 }) {
     const rpc = useRPC();
 
     const [isMaximized, setIsMaximized] = useState(false);
     const [activeMenu, setActiveMenu] = useState<string | null>(null);
+    const [isSearchOpen, setIsSearchOpen] = useState(false);
     const menuBarRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
@@ -105,6 +114,36 @@ export function TitleBar({
         return () =>
             document.removeEventListener('mousedown', handleClickOutside);
     }, []);
+
+    useEffect(() => {
+        function handleShortcut(e: KeyboardEvent) {
+            if (e.key.toLowerCase() !== 'k' || !(e.metaKey || e.ctrlKey)) {
+                return;
+            }
+
+            if (isSearchOpen) {
+                e.preventDefault();
+                setIsSearchOpen(false);
+                return;
+            }
+
+            const target = e.target as HTMLElement | null;
+            if (
+                target &&
+                (target.tagName === 'INPUT' ||
+                    target.tagName === 'TEXTAREA' ||
+                    target.tagName === 'SELECT' ||
+                    target.isContentEditable)
+            ) {
+                return;
+            }
+
+            e.preventDefault();
+            setIsSearchOpen(true);
+        }
+        window.addEventListener('keydown', handleShortcut);
+        return () => window.removeEventListener('keydown', handleShortcut);
+    }, [isSearchOpen]);
 
     return (
         <>
@@ -181,37 +220,64 @@ export function TitleBar({
                         ))}
                     </div>
                 </div>
-                <div className={styles.projectSwitcher}>
-                    <button
-                        className={`${styles.projectTitleBtn} electrobun-webkit-app-region-no-drag`}
-                        onClick={onTitleClick}
-                        title="Open Project Manager"
-                    >
-                        <span>{projectName || 'Novelty'}</span>
-                        <IconChevronDown
-                            className={styles.chevron}
-                            size={14}
-                            stroke={2}
+
+                <div
+                    className={`${styles.titleBarCenterWrapper} ${
+                        isSearchOpen ? styles.active : ''
+                    }`}
+                >
+                    <div className={styles.titleBarCenter}>
+                        <button
+                            className={styles.projectBtn}
+                            onClick={onProjectsClick}
+                            title="Open Projects"
+                            aria-label="Open Projects"
+                        >
+                            <IconFolder stroke={2} />
+                        </button>
+                        <div className={styles.centerDivider} />
+
+                        <button
+                            className={styles.projectTitleBtn}
+                            onClick={onTitleClick}
+                            title="Open Project Manager"
+                        >
+                            <span>{projectName || 'Novelty'}</span>
+                            <IconChevronDown
+                                className={styles.chevron}
+                                size={14}
+                                stroke={2}
+                            />
+                        </button>
+
+                        <div className={styles.centerDivider} />
+
+                        <button
+                            className={styles.searchBtn}
+                            onClick={() => setIsSearchOpen(true)}
+                            title="Quick Access (Ctrl+K)"
+                            aria-label="Quick Access"
+                        >
+                            <IconSearch stroke={2} />
+                        </button>
+                    </div>
+
+                    {isSearchOpen && (
+                        <QuickAccess
+                            items={quickAccessItems}
+                            onSelect={onQuickAccessSelect}
+                            onClose={() => setIsSearchOpen(false)}
                         />
-                    </button>
-
-                    <div className={styles.projectSwitcherDivider} />
-
-                    <button
-                        className={styles.projectSwitcherBtn}
-                        onClick={onProjectsClick}
-                        title="Open Projects"
-                    >
-                        <IconFolder stroke={2} />
-                    </button>
+                    )}
                 </div>
+
                 <div
                     className={`${styles.titleBarRight} electrobun-webkit-app-region-no-drag`}
                 >
                     {extras && <div className="title-bar-extras">{extras}</div>}
                     <div className={styles.leftButtons}>
                         <button
-                            className={`${styles.iconBtn} ${styles.hidden}`}
+                            className={`${appStyles.iconBtn} ${styles.hidden}`}
                             onClick={() => setIsCollapsed(!isCollapsed)}
                             title={`${isCollapsed ? 'Open' : 'Close'} Explorer`}
                         >
@@ -222,7 +288,7 @@ export function TitleBar({
                             )}
                         </button>
                         <button
-                            className={`${styles.iconBtn} ${styles.hidden}`}
+                            className={`${appStyles.iconBtn} ${styles.hidden}`}
                             onClick={() => setIsChatCollapsed(!isChatCollapsed)}
                             title={`${isChatCollapsed ? 'Open' : 'Close'} Chat`}
                         >
@@ -233,7 +299,7 @@ export function TitleBar({
                             )}
                         </button>
                         <button
-                            className={styles.iconBtn}
+                            className={appStyles.iconBtn}
                             onClick={onTimelineClick}
                             title="Timeline"
                             aria-label="Timeline"
@@ -241,7 +307,7 @@ export function TitleBar({
                             <IconTimelineEventText stroke={2} />
                         </button>
                         <button
-                            className={styles.iconBtn}
+                            className={appStyles.iconBtn}
                             onClick={onSettingsClick}
                             title="Open settings"
                             aria-label="Open settings"

@@ -1,6 +1,7 @@
 import {
     useState,
     useEffect,
+    useMemo,
     useRef,
     useCallback,
     type ReactNode,
@@ -33,7 +34,11 @@ import { type TreeEdge, treeEdgeKey } from './templates/tree';
 import type { ParsedEntry } from './services/entryParser';
 import type { ExtractionSource } from './services/textExtractor';
 
-import { TitleBar } from './ui/titleBar';
+import { TitleBar } from './ui/window/TitleBar';
+import {
+    buildQuickAccessIndex,
+    type QuickAccessItem,
+} from './ui/window/quickAccessIndex';
 import {
     WorkshopDialog,
     ProjectManager,
@@ -728,6 +733,38 @@ function App() {
         setActiveTabId(chapter.id);
     }
 
+    function openPlotArchitectureTab() {
+        const existing = openTabs.find((t) => t.type === 'plot-architecture');
+        if (existing) {
+            setActiveTabId(existing.id);
+            return;
+        }
+        const tab: FileTab = {
+            id: 'plot-architecture',
+            name: 'Plot Architecture',
+            type: 'plot-architecture',
+            filePath: '',
+            isModified: false,
+        };
+        setOpenTabs((prev) => [...prev, tab]);
+        setActiveTabId(tab.id);
+    }
+
+    function togglePlotArchitectureTab() {
+        const existing = openTabs.find((t) => t.type === 'plot-architecture');
+        if (!existing) {
+            openPlotArchitectureTab();
+            return;
+        }
+        if (activeTabId === existing.id) {
+            const newTabs = openTabs.filter((t) => t.id !== existing.id);
+            setOpenTabs(newTabs);
+            setActiveTabId(newTabs.length > 0 ? newTabs[0].id : null);
+        } else {
+            setActiveTabId(existing.id);
+        }
+    }
+
     async function handleNewCompendiumEntry(category: CompendiumCategory) {
         if (!currentProject) return;
 
@@ -867,6 +904,83 @@ function App() {
             }
         } catch (e) {
             console.error('Failed to open entry:', e);
+        }
+    }
+
+    const quickAccessItems = useMemo(
+        () =>
+            buildQuickAccessIndex({
+                chapters,
+                characters,
+                locations,
+                organizations,
+                items,
+                loreEntries,
+                plotThreads,
+                storyActs,
+                storySequences,
+                storyScenes,
+                storyBeats,
+                openTabs,
+                scratchContent,
+            }),
+        [
+            chapters,
+            characters,
+            locations,
+            organizations,
+            items,
+            loreEntries,
+            plotThreads,
+            storyActs,
+            storySequences,
+            storyScenes,
+            storyBeats,
+            openTabs,
+            scratchContent,
+        ]
+    );
+
+    async function handleQuickAccessSelect(item: QuickAccessItem) {
+        switch (item.kind) {
+            case 'chapter': {
+                const chapter = chapters.find((c) => c.id === item.id);
+                if (chapter) await openChapterTab(chapter);
+                break;
+            }
+            case 'character':
+            case 'location':
+            case 'organization':
+            case 'item':
+            case 'lore': {
+                if (item.category) {
+                    await handleOpenCompendiumEntry(item.id, item.category);
+                }
+                break;
+            }
+            case 'act':
+            case 'sequence':
+            case 'scene':
+            case 'beat': {
+                const chapter = item.chapterId
+                    ? chapters.find((c) => c.id === item.chapterId)
+                    : undefined;
+                if (chapter) await openChapterTab(chapter);
+                else openPlotArchitectureTab();
+                break;
+            }
+            case 'thread': {
+                openPlotArchitectureTab();
+                break;
+            }
+            case 'tab': {
+                setActiveTabId(item.id);
+                break;
+            }
+            case 'scratch': {
+                setIsScratchOpen(true);
+                break;
+            }
         }
     }
 
@@ -2458,41 +2572,14 @@ function App() {
                 }}
                 onTimelineClick={() => setShowTimeline(true)}
                 projectName={currentProject?.name ?? null}
+                quickAccessItems={quickAccessItems}
+                onQuickAccessSelect={handleQuickAccessSelect}
                 extras={
                     currentProject && (
                         <>
                             <button
                                 className={`tb-btn ${openTabs.some((t) => t.type === 'plot-architecture') ? 'active' : ''}`}
-                                onClick={() => {
-                                    const existing = openTabs.find(
-                                        (t) => t.type === 'plot-architecture'
-                                    );
-                                    if (existing) {
-                                        if (activeTabId === existing.id) {
-                                            const newTabs = openTabs.filter(
-                                                (t) => t.id !== existing.id
-                                            );
-                                            setOpenTabs(newTabs);
-                                            setActiveTabId(
-                                                newTabs.length > 0
-                                                    ? newTabs[0].id
-                                                    : null
-                                            );
-                                        } else {
-                                            setActiveTabId(existing.id);
-                                        }
-                                    } else {
-                                        const tab: FileTab = {
-                                            id: 'plot-architecture',
-                                            name: 'Plot Architecture',
-                                            type: 'plot-architecture',
-                                            filePath: '',
-                                            isModified: false,
-                                        };
-                                        setOpenTabs((prev) => [...prev, tab]);
-                                        setActiveTabId(tab.id);
-                                    }
-                                }}
+                                onClick={togglePlotArchitectureTab}
                                 title="Plot Architecture"
                             >
                                 Plot

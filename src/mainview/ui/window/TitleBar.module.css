@@ -1,0 +1,508 @@
+.titleBar {
+    --titlebar-control-height: 34px;
+
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    align-items: center;
+    gap: 12px;
+    padding: 4px 12px;
+    background: var(--titlebar-bg, #222324);
+    background-color: var(--app-bg);
+    color: var(--text-primary, #fff);
+    user-select: none;
+    -webkit-app-region: drag;
+
+    button,
+    input,
+    .quickAccessPanel {
+        -webkit-app-region: no-drag;
+    }
+
+    > :last-child {
+        justify-self: end;
+    }
+}
+
+.appIconBtn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: transparent;
+    border: none;
+    border-radius: 6px;
+    color: var(--text-secondary, #9aa0a6);
+    padding: 4px;
+    width: 28px;
+    height: 31px;
+    cursor: pointer;
+    transition:
+        background 120ms ease,
+        color 120ms ease;
+
+    &.active {
+        color: var(--text-primary, #fff);
+    }
+
+    &:hover {
+        background: var(--accent-subtle, rgba(240, 160, 80, 0.08));
+        color: var(--text-primary, #fff);
+    }
+
+    svg {
+        font-size: 12px;
+        width: 20px;
+        height: 20px;
+        margin: 0px;
+    }
+}
+
+.applicationMenu {
+    max-width: max-content;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 2px;
+}
+
+.menuBar {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 2px;
+}
+
+.menuWrapper {
+    position: relative;
+}
+
+.menuBtn {
+    display: flex;
+    align-items: center;
+    padding: 5px 8px;
+    background-color: transparent;
+    border: none;
+    border-radius: 6px;
+    color: var(--text-secondary, #9aa0a6);
+    font: inherit;
+    font-size: 14px;
+    cursor: pointer;
+    transition:
+        background 120ms ease,
+        color 120ms ease;
+
+    &:hover {
+        background: var(--accent-subtle, rgba(240, 160, 80, 0.08));
+        color: var(--text-primary, #fff);
+    }
+}
+
+.menuBtnOpen {
+    background: var(--accent-subtle, rgba(240, 160, 80, 0.08));
+    color: var(--text-primary, #fff);
+}
+
+.menuDropdown {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    min-width: 200px;
+    padding: 4px;
+    background: var(--editor-slash-bg, #1a1a1c);
+    border: 1px solid var(--editor-slash-border, #333);
+    border-radius: 8px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+    z-index: 100;
+}
+
+.menuDivider {
+    height: 1px;
+    margin: 4px 6px;
+    background: var(--border, #2a2f3f);
+}
+
+.menuItem {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+    width: 100%;
+    padding: 6px 8px;
+    border: none;
+    border-radius: 5px;
+    background: transparent;
+    color: var(--text-primary, #e4e4e7);
+    font: inherit;
+    font-size: 14px;
+    text-align: left;
+    cursor: pointer;
+    transition: background 120ms ease;
+
+    &:hover {
+        background: var(--accent-subtle, rgba(240, 160, 80, 0.08));
+        color: var(--text-primary);
+    }
+}
+
+.menuShortcut {
+    color: var(--text-muted, #6b7280);
+    font-size: 11px;
+    white-space: nowrap;
+}
+
+.centerPill {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    padding: 3px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 24px;
+    background: rgba(255, 255, 255, 0.05);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+    transition:
+        border-color 150ms ease,
+        background 150ms ease;
+
+    &:hover {
+        border-color: var(--border-accent, rgba(212, 168, 83, 0.35));
+        background: rgba(255, 255, 255, 0.07);
+    }
+}
+
+.titleBarCenter {
+    composes: centerPill;
+    height: var(--titlebar-control-height);
+}
+
+.projectTitleBtn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    max-width: 40vw;
+    padding: 4px 10px;
+    background: transparent;
+    border: none;
+    border-radius: 14px;
+    color: var(--text-primary, #fff);
+    font: inherit;
+    font-size: 13px;
+    font-weight: 500;
+    line-height: 1;
+    cursor: pointer;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    transition:
+        color 150ms ease,
+        background 150ms ease;
+
+    .chevron {
+        flex-shrink: 0;
+        color: var(--text-secondary, #9aa0a6);
+        transition: color 150ms ease;
+    }
+
+    &:hover {
+        color: var(--text-accent, #f0a050);
+        background: var(--accent-subtle, rgba(240, 160, 80, 0.08));
+
+        .chevron {
+            color: var(--text-accent, #f0a050);
+        }
+    }
+}
+
+.centerDivider {
+    flex-shrink: 0;
+    width: 1px;
+    height: 16px;
+    margin: 0 3px;
+    background: rgba(255, 255, 255, 0.12);
+}
+
+.pillIconBtn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 26px;
+    height: 26px;
+    padding: 0;
+    background: transparent;
+    border: none;
+    border-radius: 14px;
+    color: var(--text-secondary, #9aa0a6);
+    cursor: pointer;
+    transition:
+        color 150ms ease,
+        background 150ms ease;
+
+    svg {
+        width: 16px;
+        height: 16px;
+        margin: 0;
+    }
+
+    &:hover {
+        color: var(--text-accent, #f0a050);
+        background: var(--accent-subtle, rgba(240, 160, 80, 0.08));
+    }
+}
+
+.projectBtn {
+    composes: pillIconBtn;
+}
+
+.searchBtn {
+    composes: pillIconBtn;
+}
+
+.quickAccessLayer {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: calc(100% * var(--qa-search-scale));
+    z-index: 1000;
+    animation: quickAccessGrow 200ms cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
+@keyframes quickAccessGrow {
+    from {
+        width: 100%;
+        opacity: 0;
+    }
+
+    to {
+        width: calc(100% * var(--qa-search-scale));
+        opacity: 1;
+    }
+}
+
+.quickAccessPill {
+    composes: centerPill;
+    gap: 8px;
+    padding: 3px 10px 3px 9px;
+    width: 100%;
+    min-width: 0;
+    height: var(--titlebar-control-height);
+
+    &:focus-within {
+        border-color: var(--border-accent, rgba(212, 168, 83, 0.35));
+        background: rgba(255, 255, 255, 0.07);
+    }
+}
+
+.quickAccessIcon {
+    flex-shrink: 0;
+    width: 15px;
+    height: 15px;
+    color: var(--text-secondary, #9aa0a6);
+}
+
+.quickAccessInput {
+    flex: 1;
+    min-width: 0;
+    padding: 0;
+    border: none;
+    outline: none;
+    background: transparent;
+    color: var(--text-primary, #fff);
+    font: inherit;
+    font-size: 13px;
+    line-height: 1;
+
+    &::placeholder {
+        color: var(--text-muted, #595d68);
+    }
+}
+
+.quickAccessClearBtn {
+    composes: pillIconBtn;
+    width: 20px;
+    height: 20px;
+    border-radius: 10px;
+
+    svg {
+        width: 13px;
+        height: 13px;
+    }
+}
+
+.quickAccessPanel {
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 50%;
+    transform: translateX(-50%);
+    transform-origin: top center;
+    width: calc(var(--qa-panel-scale) / var(--qa-search-scale) * 100%);
+    max-height: 380px;
+    overflow-y: auto;
+    padding: 4px;
+    background: var(--editor-slash-bg, #1a1a1c);
+    border: 1px solid var(--editor-slash-border, #333);
+    border-radius: 8px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+    z-index: 1000;
+    animation: quickAccessPanelIn 140ms cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+@keyframes quickAccessPanelIn {
+    from {
+        opacity: 0;
+        transform: translateX(-50%) scaleY(0.9);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateX(-50%) scaleY(1);
+    }
+}
+
+.quickAccessGroup {
+    margin-bottom: 4px;
+
+    &:last-child {
+        margin-bottom: 0;
+    }
+}
+
+.quickAccessGroupHeader {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 8px;
+    color: var(--text-muted, #595d68);
+    font-size: 11px;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+}
+
+.quickAccessItem {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 8px;
+    border-radius: 5px;
+    color: var(--text-primary, #e4e4e7);
+    font-size: 13px;
+    cursor: pointer;
+    transition: background 100ms ease;
+
+    &:hover {
+        background: rgba(255, 255, 255, 0.06);
+    }
+}
+
+.quickAccessItemActive {
+    background: var(--accent-subtle, rgba(240, 160, 80, 0.08));
+}
+
+.quickAccessItemLabel {
+    flex-shrink: 0;
+    max-width: 55%;
+    overflow: hidden;
+    font-size: 13px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.quickAccessItemSub {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    color: var(--text-secondary, #9aa0a6);
+    font-size: 12px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.quickAccessItemBadge {
+    flex-shrink: 0;
+    margin-left: 8px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--text-secondary, #9aa0a6);
+    font-size: 10px;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+}
+
+.quickAccessEmpty {
+    padding: 16px 10px;
+    color: var(--text-muted, #595d68);
+    font-size: 12px;
+    text-align: center;
+}
+
+.titleBarRight {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.leftButtons {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    margin-right: 8px;
+}
+
+.windowControls {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+}
+
+.windowBtn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 30px;
+    padding: 0;
+    background: transparent;
+    border: none;
+    border-radius: 6px;
+    color: var(--text-secondary, #9aa0a6);
+    cursor: pointer;
+    transition:
+        background 120ms ease,
+        color 120ms ease;
+
+    &:hover {
+        background: rgba(255, 255, 255, 0.08);
+        color: var(--text-primary, #fff);
+    }
+
+    svg {
+        width: 15px;
+        height: 15px;
+    }
+}
+
+.windowClose:hover {
+    background: #e81123;
+    color: #fff;
+}
+
+.hidden {
+    display: none;
+}
+
+.titleBarCenterWrapper {
+    --qa-search-scale: 1.4;
+    --qa-panel-scale: 1.6;
+
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: max-content;
+    min-width: 120px;
+}
+
+.titleBarCenterWrapper.active > .titleBarCenter {
+    visibility: hidden;
+    pointer-events: none;
+}
