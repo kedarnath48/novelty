@@ -1,17 +1,19 @@
 import { useState, useEffect } from 'react';
+
+import { isFieldVisible } from '../templates/fieldVisibility';
+import TemplateTab from './template/TemplateTab';
 import type {
     Character,
-    Location,
-    Organization,
-    Item,
-    LoreEntry,
     CompendiumCategory,
+    LoreEntry,
+    Organization,
+} from '../../shared/types/project/compendium';
+import type { Item, Location } from '../../shared/types';
+import type {
     EntityTemplate,
     FieldDefinition,
     TemplateLayout,
-} from '../types/index';
-import { isFieldVisible } from '../templates/fieldVisibility';
-import TemplateTab from './template/TemplateTab';
+} from '../../shared/types/project/templates';
 
 interface CompendiumEntryEditorProps {
     entry: Character | Location | Organization | Item | LoreEntry;
@@ -55,8 +57,15 @@ export default function CompendiumEntryEditor({
     }
 
     const [entryLabel, setEntryLabel] = useState(entry.name);
+
     useEffect(() => {
-        onUpdate('name', entryLabel);
+        setEntryLabel(entry.name);
+    }, [entry?.id]);
+
+    useEffect(() => {
+        if (entryLabel !== entry.name) {
+            onUpdate('name', entryLabel);
+        }
     }, [entryLabel]);
 
     return (

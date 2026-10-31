@@ -14,14 +14,13 @@ import { useSettings } from '../../contexts/SettingsContext';
 import {
     checkProviderConnection,
     getModelsFromProvider,
-} from '../../services/ai';
+} from '../../services/ai/ai';
 //import { div } from 'framer-motion/client';
-
-import type { Model, Provider } from './../../utils/ai/providerHelpers';
 
 import styles from './ProviderCard.module.css';
 
 import { ModelListRenderer } from '../ai/ModelListRenderer';
+import type { Model, Provider } from '../../../shared/types/ai/provider';
 
 type DefaultCardProps = {
     cardType?: 'default';

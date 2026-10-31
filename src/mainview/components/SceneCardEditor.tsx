@@ -1,11 +1,12 @@
 import type { ReactNode } from 'react';
-import type { StoryScene, Character } from '../types/index';
 import {
     IconPlus,
     IconTrash,
     IconChevronDown,
     IconChevronRight,
 } from '@tabler/icons-react';
+import type { Character } from '../../shared/types/project/compendium';
+import type { StoryScene } from '../../shared/types/project/manuscript';
 
 interface Props {
     scene: StoryScene;

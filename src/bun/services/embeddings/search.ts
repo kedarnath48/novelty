@@ -1,6 +1,6 @@
-import { sqliteVecAvailable, rawSqlite } from '../../database/index';
+import type { EmbeddingSettings } from '../../../shared/types/project/settings';
+import { sqliteVecAvailable, rawSqlite } from '../../electrobun/db';
 import { createEmbeddingProvider } from './provider';
-import type { EmbeddingSettings } from '../../../mainview/types';
 
 export interface SearchOptions {
     projectId: string;

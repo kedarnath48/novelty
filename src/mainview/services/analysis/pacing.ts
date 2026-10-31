@@ -1,4 +1,6 @@
-import type { Chapter, StoryAct, StoryBeat } from '../../types/index';
+import type { StoryAct } from '../../../shared/types';
+import type { Chapter } from '../../../shared/types/project';
+import type { StoryBeat } from '../../../shared/types/project/manuscript';
 
 export type PacingInsight = {
     type:

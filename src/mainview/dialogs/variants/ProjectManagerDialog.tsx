@@ -4,27 +4,7 @@ import dialogStyles from '../Dialog.module.css';
 import SubDialog from '../SubDialog';
 import AssetPicker from './AssetPicker';
 import { useRPC } from '../../contexts/RPCContext';
-import type {
-    Project,
-    ProjectScope,
-    SeriesArchitecture,
-    PointOfView,
-    PacingType,
-    WorkType,
-    ProjectStructure,
-    TargetAgeGroup,
-    ProjectStatus,
-    Genre,
-    Tag,
-    Theme,
-    Asset,
-    Series,
-    NewSeries,
-    Inspiration,
-    NewInspiration,
-    CompendiumCategory,
-} from '../../types/index';
-import { PREDEFINED_ASPECTS } from '../../types/index';
+
 import { PROJECT_SCOPE_TARGETS } from '../../types/index';
 import {
     IconCheck,
@@ -37,10 +17,11 @@ import {
 } from '@tabler/icons-react';
 import TemplateManagerTab from '../../components/template/TemplateManagerTab';
 import IconTextSideBar from '../../ui/layout/IconTextSideBar';
+import type {
+    ProjectDialogActiveTab} from '../../constants/layout_tabs';
 import {
     PROJECT_DIALOG_TABS,
-    PROJECT_DIALOG_TABS_ICONS,
-    ProjectDialogActiveTab,
+    PROJECT_DIALOG_TABS_ICONS
 } from '../../constants/layout_tabs';
 
 import SplitDialogLayout from '../../ui/layout/SplitDialogLayout';
@@ -59,6 +40,32 @@ import {
     targetAgeOptions,
     workTypeOptions,
 } from '../../constants/project_consts';
+import type {
+    Project,
+    ProjectScope,
+    PointOfView,
+    PacingType,
+    WorkType,
+    ProjectStructure,
+    TargetAgeGroup,
+    ProjectStatus,
+    Asset,
+} from '../../../shared/types';
+import type {
+    Genre,
+    Inspiration,
+    NewInspiration,
+    Tag,
+    Theme} from '../../../shared/types/project';
+import {
+    PREDEFINED_ASPECTS
+} from '../../../shared/types/project';
+import type {
+    Series,
+    SeriesArchitecture,
+    NewSeries,
+} from '../../../shared/types/series';
+import type { CompendiumCategory } from '../../../shared/types/project/compendium';
 
 interface ProjectManagerProps {
     open: boolean;

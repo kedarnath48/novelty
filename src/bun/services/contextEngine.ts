@@ -1,4 +1,4 @@
-import { db, sqliteVecAvailable } from '../database/index';
+import { db, sqliteVecAvailable } from '../electrobun/db';
 import {
     characters,
     locations,
@@ -9,21 +9,23 @@ import {
     chapterPlotThreads,
     storyBeats,
     chapters,
-} from '../schema/index';
+} from '../../shared/schema/index';
 import { eq } from 'drizzle-orm';
 import { semanticSearch } from './embeddings/search';
 import { countTokens, truncateToTokens } from './embeddings/tokenizer';
-import { resolveTemplate } from '../database/templates';
-import type { FieldDefinition } from '../database/templates';
+import { resolveTemplate } from '../database/tables/templates';
+
 import { isFieldVisible } from '../../mainview/templates/fieldVisibility';
 import { isTreeEdge } from '../../mainview/templates/tree';
+
+import type { Project } from '../../shared/types';
+import type { MentionTarget } from '../../shared/types/ai/chat';
 import type {
-    EmbeddingSettings,
-    Project,
-    MentionTarget,
     ContextSource,
-    CompendiumCategory,
-} from '../../mainview/types';
+    EmbeddingSettings,
+} from '../../shared/types/project/settings';
+import type { FieldDefinition } from '../../shared/types/project/templates';
+import type { CompendiumCategory } from '../../shared/types/project/compendium';
 
 export interface ContextRequest {
     projectId: string;
@@ -46,11 +48,13 @@ export interface ContextResult {
 }
 
 const ENTRY_PROMPT_INSTRUCTION =
-    '\n\nWhen asked to create a character, location, organization, item, or lore entry, append a JSON code block at the end of your response:\n```entry-data\n{"category": "character|location|organization|item|lore", "name": "Entry Name", "fields": {"field1": "value1", ...}}\n```\nInclude all relevant attributes in the fields object.';
+    '\n\nWhen asked to create or update a character, location, organization, item, or lore entry, append a JSON code block at the end of your response:\n```entry-data\n{"category": "character|location|organization|item|lore", "id": "optional-existing-id", "name": "Entry Name", "fields": {"field1": "value1", ...}}\n```\nInclude all relevant attributes in the fields object. If updating an already existing entry, include its "id".';
 
 function formatProjectPrompt(project: Project): string {
     const lines: string[] = [];
-    lines.push(`You are a writing assistant for "${project.name}".`);
+    lines.push(
+        `You are a writing assistant for "${project.name}" (Project ID: ${project.id}).`
+    );
     if (project.contentRating)
         lines.push(`Content rating: ${project.contentRating}`);
     if (project.primaryGenre) lines.push(`Genre: ${project.primaryGenre}`);
@@ -99,6 +103,7 @@ async function getResolvedFields(
 ): Promise<FieldDefinition[]> {
     try {
         const resolved = await resolveTemplate(
+            db,
             projectId,
             type as CompendiumCategory
         );
@@ -502,9 +507,11 @@ export async function buildContext(
         customTokens = countTokens(customBlock);
     }
 
-    const protectedParts = [projectPrompt, entryInstruction, customBlock].filter(
-        Boolean
-    );
+    const protectedParts = [
+        projectPrompt,
+        entryInstruction,
+        customBlock,
+    ].filter(Boolean);
     const baseTokens = projectTokens + entryTokens + customTokens;
     const remainingBudget = Math.max(budget - baseTokens, 0);
 

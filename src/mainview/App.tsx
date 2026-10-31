@@ -8,27 +8,7 @@ import {
 } from 'react';
 import type { RichTextEditorHandle } from './components/RichTextEditor';
 import { useRPC } from './contexts/RPCContext';
-import type {
-    Chapter,
-    NewChapter,
-    Project,
-    FileTab,
-    CompendiumCategory,
-    Character,
-    Location,
-    Organization,
-    Item,
-    LoreEntry,
-    EntityTemplate,
-    FieldDefinition,
-    TemplateLayout,
-    PlotThread,
-    StoryBeat,
-    StoryAct,
-    StorySequence,
-    StoryScene,
-    ChapterPlotThread,
-} from './types/index';
+
 import { DEFAULT_TEMPLATE_COLUMNS } from './types/index';
 import { type TreeEdge, treeEdgeKey } from './templates/tree';
 import type { ParsedEntry } from './services/entryParser';
@@ -78,6 +58,32 @@ import { useSettings } from './contexts/SettingsContext';
 import LeftPanel from './ui/workspaces/editor/LeftPanel';
 import RightPanel from './ui/workspaces/editor/RightPanel';
 import { type ProjectDialogActiveTab } from './constants/layout_tabs';
+import type {
+    Item,
+    Project,
+    StoryAct,
+    StorySequence,
+    Location,
+} from '../shared/types';
+import type { Chapter, NewChapter } from '../shared/types/project';
+import type {
+    Character,
+    CompendiumCategory,
+    LoreEntry,
+    Organization,
+} from '../shared/types/project/compendium';
+import type {
+    PlotThread,
+    ChapterPlotThread,
+    StoryScene,
+    StoryBeat,
+} from '../shared/types/project/manuscript';
+import type {
+    EntityTemplate,
+    FieldDefinition,
+    FileTab,
+    TemplateLayout,
+} from '../shared/types/project/templates';
 
 /*
 const categoryConfig: Record<
@@ -1370,13 +1376,14 @@ function App() {
     async function handleCreateCompendiumEntryFromAI(
         category: CompendiumCategory,
         name: string,
-        templateData: Record<string, unknown>
+        templateData: Record<string, unknown>,
+        existingId?: string
     ): Promise<string | null> {
         if (!currentProject) return null;
-        const id = crypto.randomUUID();
+        const id = existingId || crypto.randomUUID();
+        const isUpdate = Boolean(existingId);
 
         try {
-            // Check template mismatches
             const resolved = await rpc.request['db:get-resolved-template']({
                 projectId: currentProject.id,
                 baseType: category,
@@ -1454,6 +1461,49 @@ function App() {
                             newResolved?.columns ?? DEFAULT_TEMPLATE_COLUMNS,
                     }));
                 }
+            }
+
+            if (isUpdate) {
+                const data = {
+                    name,
+                    templateData: finalTemplateData,
+                } as any;
+                switch (category) {
+                    case 'character':
+                        await rpc.request['db:update-character']({
+                            id,
+                            data,
+                        });
+                        break;
+                    case 'location':
+                        await rpc.request['db:update-location']({
+                            id,
+                            data,
+                        });
+                        break;
+                    case 'organization':
+                        await rpc.request['db:update-organization']({
+                            id,
+                            data,
+                        });
+                        break;
+                    case 'item':
+                        await rpc.request['db:update-item']({
+                            id,
+                            data,
+                        });
+                        break;
+                    case 'lore':
+                        await rpc.request['db:update-lore-entry']({
+                            id,
+                            data,
+                        });
+                        break;
+                }
+                if (currentProject) {
+                    await loadCompendium(currentProject.id);
+                }
+                return id;
             }
 
             let newEntry: unknown;

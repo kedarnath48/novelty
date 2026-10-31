@@ -1,4 +1,10 @@
-import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import React, {
+    useState,
+    useEffect,
+    useRef,
+    useCallback,
+    useMemo,
+} from 'react';
 import {
     //IconArrowRight,
     IconPlus,
@@ -20,7 +26,12 @@ import {
     IconBuildings,
     IconSwords,
 } from '@tabler/icons-react';
-import { chatCompletion, toApiMessages, AIAbortError } from '../services/ai';
+import {
+    chatCompletion,
+    toApiMessages,
+    AIAbortError,
+    getCurrentlyLoadedModelInProvider,
+} from '../services/ai';
 import {
     COMMAND_MAP,
     EXTRACT_COMMANDS,
@@ -29,26 +40,7 @@ import {
     typeLabels,
     SLASH_COMMANDS,
 } from '../features/ai/constants/chatpanel_consts';
-import type {
-    ChatMessage,
-    UserChatMessage,
-    AssistantChatMessage,
-} from '../services/ai';
-import type {
-    NewChatSession,
-    Project,
-    MentionTarget,
-    Chapter,
-    Character,
-    Location,
-    Organization,
-    Item,
-    LoreEntry,
-    CompendiumCategory,
-    FieldDefinition,
-    StoryScene,
-    StorySequence,
-} from '../types';
+
 import { parseEntryData, parseAllEntryData } from '../services/entryParser';
 import type { ParsedEntry } from '../services/entryParser';
 import type { RichTextEditorHandle } from './RichTextEditor';
@@ -76,8 +68,26 @@ import FloatingSuggestions from './FloatingSuggestions';
 import type { SuggestionGroup } from './FloatingSuggestions';
 import ContextChips from './ContextChips';
 import SystemPromptToggle from './SystemPromptToggle';
-import { SettingsDialogActiveTab } from '../constants/layout_tabs';
-import { Model } from '../utils/ai/providerHelpers';
+import type { SettingsDialogActiveTab } from '../constants/layout_tabs';
+
+import type { Item, Project, StorySequence, Location } from '../../shared/types';
+import type {
+    AssistantChatMessage,
+    ChatMessage,
+    NewChatSession,
+    UserChatMessage,
+} from '../../shared/types/ai';
+import type { Chapter } from '../../shared/types/project';
+import type {
+    Character,
+    CompendiumCategory,
+    LoreEntry,
+    Organization,
+} from '../../shared/types/project/compendium';
+import type { StoryScene } from '../../shared/types/project/manuscript';
+import type { FieldDefinition } from '../../shared/types/project/templates';
+import type { Model } from '../../shared/types/ai/provider';
+import type { MentionTarget } from '../../shared/types/ai/chat';
 
 function smartTruncate(text: string, maxLen = 50): string {
     const cleaned = text
@@ -111,7 +121,8 @@ interface ChatPanelProps {
     onCreateCompendiumEntry?: (
         category: CompendiumCategory,
         name: string,
-        templateData: Record<string, unknown>
+        templateData: Record<string, unknown>,
+        existingId?: string
     ) => Promise<string | null>;
     onExtractEntities?: (
         entries: ParsedEntry[],
@@ -156,7 +167,7 @@ export default function ChatPanel({
     resolvedTemplates,
     onCreateScenesAndSequences,
 }: ChatPanelProps) {
-    const { settings } = useSettings();
+    const { settings, updateProviderConf } = useSettings();
 
     const rpc = getRPC();
     const [input, setInput] = useState('');
@@ -199,25 +210,39 @@ export default function ChatPanel({
         );
     }, [enabledProviders]);
 
-    const [selectedModel, setSelectedModel] =
-        useState<string>(
-            /*
-            () => {
-            const firstProvider = enabledProviders[0];
-            const firstModel = firstProvider?.models.find((m) => m.enabled);
-            return firstModel?.id ?? '';
-            }
-        */
-        );
+    const [selectedModel, setSelectedModel] = useState<string>('');
+    //console.log('selectedModel1', selectedModel);
 
     // needs refactor
     const enabledModel = useMemo(() => {
+        const matchedProvider = enabledProviders.find((p) =>
+            p.models.some((m) => m.id === selectedModel)
+        ) ?? {
+            id: 'local',
+            label: 'Local',
+            url: {
+                base: '',
+                endpoint: { type: 'lm-studio', value: '/v1' },
+            },
+            models: [],
+            enabled: true,
+        };
+
+        console.log('matchedProvider1', matchedProvider);
         return {
-            provider: enabledProviders.find((p) =>
-                p.models.find((m) => m.id === selectedModel)
-            ) ?? {
-                id: 'local',
-                label: 'Local',
+            provider: matchedProvider,
+            activeModelId: selectedModel,
+        };
+    }, [selectedModel, enabledProviders]);
+    //console.log('enabledModel', enabledModel);
+
+    /*
+    return {
+        provider: enabledProviders.find((p) =>
+            p.models.find((m) => m.id === selectedModel)
+        ) ?? {
+            id: 'local',
+            label: 'Local',
                 url: {
                     base: '',
                     endpoint: { type: 'lm-studio', value: '/v1' },
@@ -226,9 +251,10 @@ export default function ChatPanel({
                 enabled: true,
             },
             activeModelId: selectedModel,
-        };
-    }, [selectedModel, enabledProviders, enabledModels]);
-
+            };
+            }, [selectedModel, enabledProviders, enabledModels]);
+    console.log('enabledModel', enabledModel);
+*/
     /*
     console.log(
         Object.entries(enabledModels).flatMap(([p, ms]) =>
@@ -425,6 +451,19 @@ export default function ChatPanel({
         const text = (prompt ?? input).trim();
         if (!text || isLoading || isStreamingRef.current) return;
 
+        /*
+        try {
+            console.log(text);
+            const result = await rpc.request['ai:process-prompt']({
+                prompt: text,
+                model: selectedModel,
+            });
+            console.log('handleSubmit result', result);
+        } catch (err) {
+            console.log('RPC Error:', err);
+        }
+        */
+
         let sessionId = activeSessionId;
         let sessionIsManuallyNamed: boolean;
 
@@ -512,6 +551,9 @@ export default function ChatPanel({
                 scenes,
                 sequences,
                 resolvedTemplates,
+                supportsTools: enabledModel.provider.models.find(
+                    (m) => m.id === enabledModel.activeModelId
+                )?.supportsTools,
             });
 
             if (ctxResult.systemPrompt) {
@@ -744,6 +786,7 @@ export default function ChatPanel({
 
         const userMessage: UserChatMessage = {
             id: crypto.randomUUID(),
+            sessionId,
             role: 'user',
             content: displayText,
             mode,
@@ -753,6 +796,7 @@ export default function ChatPanel({
         const assistantId = crypto.randomUUID();
         const assistantMessage: AssistantChatMessage = {
             id: assistantId,
+            sessionId,
             role: 'assistant',
             content: [''],
             reasoning: '',
@@ -771,10 +815,11 @@ export default function ChatPanel({
 
         try {
             rpc.request['db:create-message']({
-                id: userMessage.id,
                 sessionId,
+                id: userMessage.id,
                 role: userMessage.role,
                 content: userMessage.content,
+                mode,
             });
 
             const provider = enabledModel.provider;
@@ -791,6 +836,10 @@ export default function ChatPanel({
 
             const completionMaxTokens = isAnalysisCommand ? 16384 : undefined;
 
+            const activeModel = enabledModel.provider.models.find(
+                (m) => m.id === enabledModel.activeModelId
+            );
+
             const result = await chatCompletion(endpoint, {
                 enabledModel,
                 messages: [...messages, userMessage],
@@ -798,6 +847,26 @@ export default function ChatPanel({
                 maxTokens: completionMaxTokens,
                 signal: abortController.signal,
                 chunkTimeoutMs: isAnalysisCommand ? 300_000 : 120_000,
+                supportsTools: activeModel?.supportsTools,
+                onToolSupportDetermined: (modelId, isSupported) => {
+                    if (!settings) return;
+                    const providerIndex = settings.providers.configs.findIndex(
+                        (p) => p.id === enabledModel.provider.id
+                    );
+                    if (providerIndex !== -1) {
+                        const providerConfig =
+                            settings.providers.configs[providerIndex];
+                        const updatedModels = providerConfig.models.map((m) =>
+                            m.id === modelId
+                                ? { ...m, supportsTools: isSupported }
+                                : m
+                        );
+                        updateProviderConf(providerIndex, {
+                            ...providerConfig,
+                            models: updatedModels,
+                        });
+                    }
+                },
                 onChunk: (chunk) => {
                     streamedContentRef.current += chunk;
                     if (rafIdRef.current === null) {
@@ -832,6 +901,8 @@ export default function ChatPanel({
                 sessionId,
                 role: 'assistant',
                 content: result.content,
+                mode,
+                model: enabledModel.activeModelId || '',
             });
 
             if (result.usage) {
@@ -991,15 +1062,14 @@ export default function ChatPanel({
                     return {
                         id: m.id,
                         role: 'assistant' as const,
-                        content: [m.content],
+                        content: m.content,
                         currentVariantIndex: 0,
                         model: 'unknown',
                         mode: 'assistant' as const,
                         timestamp:
                             typeof m.timestamp === 'string'
                                 ? m.timestamp
-                                : m.timestamp?.toISOString?.() ||
-                                  new Date(m.timestamp).toISOString(),
+                                : new Date(m.timestamp).toISOString(),
                     } as AssistantChatMessage;
                 }
                 return {
@@ -1010,8 +1080,7 @@ export default function ChatPanel({
                     timestamp:
                         typeof m.timestamp === 'string'
                             ? m.timestamp
-                            : m.timestamp?.toISOString?.() ||
-                              new Date(m.timestamp).toISOString(),
+                            : new Date(m.timestamp).toISOString(),
                 } as UserChatMessage;
             });
             setMessages(mapped);
@@ -1309,6 +1378,7 @@ export default function ChatPanel({
 
     const handleCopy = (messageId: string) => {
         const msg = messages.find((m) => m.id === messageId);
+        console.log('messages', messages);
         if (!msg) return;
 
         const text =
@@ -1738,7 +1808,8 @@ export default function ChatPanel({
     const scrollToTop = () => {
         messagesRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
     };
-
+    const [isLoadingModel, setIsLoadingModel] = useState(false);
+    const [modelStatus, setModelStatus] = useState<string>('');
     return (
         <div className="chat-panel" style={style}>
             <div className="chat-panel-header">
@@ -1831,6 +1902,7 @@ export default function ChatPanel({
                                 slashOverride?.category || entryData?.category;
                             const effectiveName =
                                 slashOverride?.name || entryData?.name;
+                            const isUpdate = Boolean(entryData?.existingId);
                             const createEntryBtn =
                                 entryData &&
                                 effectiveCategory &&
@@ -1844,7 +1916,8 @@ export default function ChatPanel({
                                                 await onCreateCompendiumEntry(
                                                     effectiveCategory!,
                                                     effectiveName!,
-                                                    entryData.templateData
+                                                    entryData.templateData,
+                                                    entryData.existingId
                                                 );
                                                 setPendingEntryData((prev) => {
                                                     const copy = { ...prev };
@@ -1856,7 +1929,11 @@ export default function ChatPanel({
                                             }
                                         }}
                                         disabled={creatingEntryId === msg.id}
-                                        title={`Create ${effectiveCategory} entry`}
+                                        title={
+                                            isUpdate
+                                                ? `Update ${effectiveCategory} entry`
+                                                : `Create ${effectiveCategory} entry`
+                                        }
                                     >
                                         {creatingEntryId === msg.id ? (
                                             <IconLoader2
@@ -1872,7 +1949,9 @@ export default function ChatPanel({
                                                 marginLeft: '2px',
                                             }}
                                         >
-                                            {effectiveCategory}
+                                            {isUpdate
+                                                ? `update ${effectiveCategory}`
+                                                : effectiveCategory}
                                         </span>
                                     </button>
                                 ) : undefined;
@@ -2364,6 +2443,7 @@ export default function ChatPanel({
                             >
                                 <IconPaperclip size={16} />
                             </button>
+
                             <select
                                 value={mode}
                                 onChange={(e) =>
@@ -2377,22 +2457,109 @@ export default function ChatPanel({
 
                             <select
                                 className="model-select"
-                                value={selectedModel ?? getPlaceholderText()}
-                                onChange={(e) => {
-                                    setSelectedModel(e.target.value);
+                                style={{
+                                    backgroundColor: modelStatus.includes(
+                                        'Loading'
+                                    )
+                                        ? '#793f05'
+                                        : modelStatus.includes('successfully')
+                                          ? '#14532d'
+                                          : modelStatus.includes('Failed')
+                                            ? '#7f1d1d'
+                                            : '#313233', // Default Dark Gray
                                 }}
+                                value={
+                                    modelStatus
+                                        ? 'status-placeholder'
+                                        : (selectedModel ??
+                                          getPlaceholderText())
+                                }
+                                onChange={async (e) => {
+                                    const nextModelId = e.target.value;
+
+                                    console.log('selectedModel', selectedModel);
+
+                                    setModelStatus('Loading model...');
+                                    setIsLoadingModel(true);
+                                    setSelectedModel(nextModelId);
+                                    console.log('modelStatus', modelStatus);
+
+                                    console.log(
+                                        'enabledProviders',
+                                        enabledProviders
+                                    );
+                                    try {
+                                        const matchedProvider =
+                                            enabledProviders.find((provider) =>
+                                                provider.models.some(
+                                                    (model) =>
+                                                        model.id === nextModelId
+                                                )
+                                            );
+
+                                        const modelObject =
+                                            matchedProvider?.models.find(
+                                                (model) =>
+                                                    model.id === nextModelId
+                                            );
+
+                                        const targetModelName =
+                                            modelObject?.label ?? '';
+
+                                        if (!matchedProvider) {
+                                            throw new Error(
+                                                'No matching provider found.'
+                                            );
+                                        }
+                                        const isModel =
+                                            await getCurrentlyLoadedModelInProvider(
+                                                matchedProvider,
+                                                targetModelName
+                                            );
+
+                                        if (isModel) {
+                                            setModelStatus(
+                                                'Model loaded successfully!'
+                                            );
+                                        } else {
+                                            setModelStatus(
+                                                'Failed to load model'
+                                            );
+                                        }
+                                    } catch (error) {
+                                        console.error(
+                                            'Error preloading model:',
+                                            error
+                                        );
+                                    } finally {
+                                        setIsLoadingModel(false);
+                                        setTimeout(() => {
+                                            setModelStatus('');
+                                        }, 1500);
+                                    }
+                                }}
+
                                 disabled={
                                     settings?.providers?.configs?.length ===
                                         0 ||
                                     enabledProviders.length === 0 ||
                                     !Object.values(enabledModels).some(
                                         (models) => models.length > 0
-                                    )
+                                    ) ||
+                                    isLoadingModel ||
+                                    modelStatus !== ''
                                 }
                             >
-                                <option value={getPlaceholderText()}>
-                                    {getPlaceholderText()}
+                                <option
+                                    value={
+                                        modelStatus
+                                            ? 'status-placeholder'
+                                            : getPlaceholderText()
+                                    }
+                                >
+                                    {modelStatus || getPlaceholderText()}
                                 </option>
+
                                 {enabledProviders.map((provider) => {
                                     const models =
                                         enabledModels[provider.id] || [];
@@ -2436,8 +2603,17 @@ export default function ChatPanel({
                             </button>
                             <button
                                 onClick={() => handleSubmit()}
-                                disabled={!input.trim() || isLoading}
-                                title="Send"
+                                disabled={
+                                    !input.trim() ||
+                                    isLoading ||
+                                    selectedModel === 'Select a Model'
+                                }
+                                title={
+                                    selectedModel === 'Select a Model' ||
+                                    selectedModel === 'Enable a Provider'
+                                        ? getPlaceholderText()
+                                        : 'Send'
+                                }
                             >
                                 <IconSend size={16} />
                             </button>

@@ -16,15 +16,15 @@ import {
     IconPinFilled,
     IconPencilMinus,
 } from '@tabler/icons-react';
-import {
-    Chapter,
+
+import type { Chapter } from '../../../../shared/types/project';
+import type {
     Character,
-    Item,
-    Location,
+    CompendiumCategory,
     LoreEntry,
     Organization,
-} from '../../../types';
-import type { CompendiumCategory } from '../../../types';
+} from '../../../../shared/types/project/compendium';
+import type { Item, Location } from '../../../../shared/types';
 
 const COMPENDIUM_CONFIG = {
     character: { label: 'Characters', icon: IconUsers, dataKey: 'characters' },
@@ -43,7 +43,7 @@ const COMPENDIUM_CONFIG = {
 const MANUSCRIPT_CONFIG = {
     chapters: { label: 'Chapters', icon: IconFiles, dataKey: 'chapters' },
 } as const;
-const EXPLORER_CONFIG = {
+export const EXPLORER_CONFIG = {
     ...MANUSCRIPT_CONFIG,
     ...COMPENDIUM_CONFIG,
 } as const;
@@ -378,12 +378,15 @@ export default function LeftPanel({
                                                 <div className="chapter-list">
                                                     {currentData.map(
                                                         (
-                                                            entry: any,
+                                                            entry:
+                                                                | Chapter
+                                                                | Character,
                                                             index: number
                                                         ) => {
                                                             const label =
-                                                                entry.title ||
-                                                                entry.name;
+                                                                'title' in entry
+                                                                    ? entry.title
+                                                                    : entry.name;
                                                             const isManuscript =
                                                                 mode ===
                                                                 'manuscript';
@@ -397,7 +400,7 @@ export default function LeftPanel({
                                                                     onClick={() =>
                                                                         isManuscript
                                                                             ? openChapter(
-                                                                                  entry
+                                                                                  entry as Chapter
                                                                               )
                                                                             : openCompendiumEntry(
                                                                                   entry.id,
@@ -479,8 +482,7 @@ export default function LeftPanel({
                                                                                     e.stopPropagation();
                                                                                     handleStartRename(
                                                                                         entry.id,
-                                                                                        entry.title ||
-                                                                                            ''
+                                                                                        label
                                                                                     );
                                                                                 }}
                                                                             >
@@ -498,14 +500,19 @@ export default function LeftPanel({
                                                                             e
                                                                         ) => {
                                                                             e.stopPropagation();
-                                                                            isManuscript
-                                                                                ? deleteChapter(
-                                                                                      entry
-                                                                                  )
-                                                                                : deleteCompendiumEntry(
-                                                                                      entry.id,
-                                                                                      explorerTab as CompendiumCategory
-                                                                                  );
+
+                                                                            if (
+                                                                                isManuscript
+                                                                            ) {
+                                                                                deleteChapter(
+                                                                                    entry as Chapter
+                                                                                );
+                                                                            } else {
+                                                                                deleteCompendiumEntry(
+                                                                                    entry.id,
+                                                                                    explorerTab as CompendiumCategory
+                                                                                );
+                                                                            }
                                                                         }}
                                                                     >
                                                                         <IconTrash

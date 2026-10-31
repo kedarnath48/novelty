@@ -1,4 +1,6 @@
-import type { CompendiumCategory, Project } from '../types';
+import type { Project } from '../../shared/types';
+import type { CompendiumCategory } from '../../shared/types/project/compendium';
+
 import { buildAIContext } from './context_engine_requests';
 import { buildContext, type BuildContextParams } from './contextBuilder';
 
@@ -40,6 +42,7 @@ export async function buildBaseSystemPrompt({
     scenes,
     sequences,
     resolvedTemplates,
+    supportsTools,
 }: BuildBaseSystemPromptParams): Promise<BaseSystemPromptResult> {
     if (!project) return { systemPrompt: null };
 
@@ -76,6 +79,7 @@ export async function buildBaseSystemPrompt({
         scenes,
         sequences,
         resolvedTemplates,
+        supportsTools,
     });
     return {
         systemPrompt: result.systemPrompt,

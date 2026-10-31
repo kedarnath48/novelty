@@ -1,5 +1,5 @@
 import { IconX, IconFileText, IconNotes } from '@tabler/icons-react';
-import type { FileTab } from '../types/index';
+import type { FileTab } from '../../shared/types/project/templates';
 
 interface FileTabsProps {
     tabs: FileTab[];

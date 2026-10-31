@@ -3,7 +3,7 @@ import type {
     FieldVisibility,
     VisibilityCondition,
     VisibilityOperator,
-} from '../types/index';
+} from '../../shared/types/project/templates';
 import { getOperatorsForFieldType } from '../templates/fieldVisibility';
 
 interface VisibilityEditorProps {
