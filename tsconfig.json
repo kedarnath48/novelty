@@ -160,7 +160,10 @@
         "electrobun.config.ts",
         "eslint.config.ts",
         "vite.config.ts",
-        ".local_sandbox/**/*"
+        ".sandbox",
+        ".sandbox/**/*",
+        ".sandbox/.cloud/**/*",
+        ".sandbox/.local/**/*"
     ],
     "exclude": ["node_modules", "dist", "build", "../../package/dist"]
 }
